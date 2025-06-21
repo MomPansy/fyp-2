@@ -1,0 +1,6 @@
+{
+  "*.{ts,tsx}": [
+    "eslint --fix --report-unused-disable-directives --max-warnings 0 --no-warn-ignored",
+    "prettier --write"
+  ]
+}

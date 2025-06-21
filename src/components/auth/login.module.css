@@ -1,0 +1,66 @@
+.wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-size: 45%;
+  background-position: calc(50% + 225px) center;
+  background-repeat: no-repeat;
+  background-color: rgb(236, 232, 215);
+  background-image: url("/public/mollygo_sqr.png");
+  display: flex;
+  justify-content: flex-start;
+}
+
+.form {
+  border-right: 1px solid
+    light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-7));
+  min-height: 100vh;
+  max-width: 450px;
+  padding-top: 80px;
+  background-color: light-dark(rgba(255, 255, 255, 0.95), rgba(0, 0, 0, 0.85));
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+  }
+}
+.title {
+  color: light-dark(var(--mantine-color-black), var(--mantine-color-white));
+  font-family:
+    Greycliff CF,
+    var(--mantine-font-family);
+}
+
+.list {
+  position: relative;
+  margin-bottom: var(--mantine-spacing-md);
+}
+
+.indicator {
+  background-color: var(--mantine-color-white);
+  border-radius: var(--mantine-radius-md);
+  border: 1px solid var(--mantine-color-gray-2);
+  box-shadow: var(--mantine-shadow-sm);
+
+  @mixin dark {
+    background-color: var(--mantine-color-dark-6);
+    border-color: var(--mantine-color-dark-4);
+  }
+}
+
+.tab {
+  z-index: 1;
+  font-weight: 500;
+  transition: color 100ms ease;
+  color: var(--mantine-color-gray-7);
+
+  &[data-active] {
+    color: var(--mantine-color-black);
+  }
+
+  @mixin dark {
+    color: var(--mantine-color-dark-1);
+
+    &[data-active] {
+      color: var(--mantine-color-white);
+    }
+  }
+}
