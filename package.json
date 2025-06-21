@@ -16,7 +16,7 @@
     "build": "pnpm run build:typecheck && rimraf dist && pnpm run build:server && pnpm run build:app",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "start": "pnpm envx:run -- node dist/index.js",
-    "db:typegen": "pnpm dotenvx run --env-file=.env.production -- pnpm supabase gen types typescript --project-id $SUPABASE_PROJECT_ID -s public,storage > src/database.gen.ts",
+    "db:typegen": "pnpm dotenvx run --env-file=.env.production -- pnpm supabase gen types typescript --project-id hmmpdcfxjqskkwmsoxzh -s public,storage > src/database.gen.ts",
     "db:gen": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit generate --config=drizzle.config.ts", 
     "db:mig": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit migrate --config=drizzle.config.ts"
   },
