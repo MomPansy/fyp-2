@@ -54,6 +54,8 @@ export function Login() {
     },
   });
 
+  const { isPending } = magicLinkMutation;
+
 
   return (
     <form onSubmit={magicLinkForm.onSubmit((values) => {
@@ -76,7 +78,7 @@ export function Login() {
           ) : (
             <>
               <TextInput label="Email" placeholder="example@email.com" required radius="md" {...magicLinkForm.getInputProps('email')} />
-              <Button fullWidth mt="xl" radius="md" type='submit'>
+              <Button fullWidth mt="xl" radius="md" type='submit' loading={isPending} disabled={isPending}>
                 Sign in
               </Button>
             </>

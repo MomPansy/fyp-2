@@ -22,6 +22,7 @@ export const accessTokenQueryOptions = queryOptions<{
       throw new Error("No session found");
     }
     const accessToken = data.session.access_token;
+    console.log("Access Token:", accessToken);
     const payload = jwtDecode<JwtPayload>(accessToken);
     return { raw: accessToken, payload };
   },

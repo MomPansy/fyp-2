@@ -18,7 +18,7 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2(hono@4.7.6)(zod@3.24.2)
       '@supabase/supabase-js':
-        specifier: ^2.49.4
+        specifier: ^2.26.9
         version: 2.49.4
       class-variance-authority:
         specifier: ^0.7.1
