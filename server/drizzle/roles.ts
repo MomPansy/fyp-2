@@ -1,10 +1,10 @@
 import { relations } from "drizzle-orm";
-import { pgTable, uuid, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, timestamp } from "drizzle-orm/pg-core";
 import { userRoles } from "./user_roles";
+import { citext } from "./_custom";
 
 export const roles = pgTable("roles", {
-  id: uuid("id").notNull().primaryKey().defaultRandom(),
-  name: text("name").notNull(),
+  id: citext("id").notNull().primaryKey(),
   createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
     .defaultNow()
     .notNull(),

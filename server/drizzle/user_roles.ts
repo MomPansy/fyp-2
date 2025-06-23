@@ -6,16 +6,18 @@ import {
   uuid,
   foreignKey,
   unique,
+  ForeignKeyBuilder,
 } from 'drizzle-orm/pg-core';
 
 import { users } from './users.ts';
 import { roles } from './roles.ts';
+import { citext } from './_custom.ts';
 
 export const userRoles = pgTable(
   'user_roles',
   {
     userId: uuid('user_id').notNull(),
-    roleId: uuid('role_id').notNull(),
+    roleId: citext('role_id').notNull(),
     createdAt: timestamp('created_at', { precision: 3, withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -39,15 +41,15 @@ export const userRoles = pgTable(
       name: 'user_roles_created_by_fk',
     }),
     foreignKey({
-      columns: [table.roleId],
-      foreignColumns: [roles.id],
-      name: 'user_roles_role_id_fk',
-    }).onDelete('cascade'),
-    foreignKey({
       columns: [table.updatedBy],
       foreignColumns: [users.id],
       name: 'user_roles_updated_by_fk',
     }),
+    foreignKey({
+      columns: [table.roleId],
+      foreignColumns: [roles.id],
+      name: 'user_roles_role_id_fk',
+    }).onDelete('cascade'),
     primaryKey({
       name: 'user_roles_pk',
       columns: [table.userId, table.roleId],
