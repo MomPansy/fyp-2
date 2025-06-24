@@ -16,7 +16,7 @@ import { supabase } from 'lib/supabase.ts';
 import { showError } from 'utils/notifications.tsx';
 import { useMutation } from '@tanstack/react-query';
 
-const redirectUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+const redirectUrl = import.meta.env.DEV ? 'http://localhost:5173' : import.meta.env.VITE_APP_URL || window.location.origin;
 
 export function Login() {
   const magicLinkForm = useForm({
