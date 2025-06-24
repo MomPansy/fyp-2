@@ -15,7 +15,7 @@ export const Route = createFileRoute('/')({
     if (!payload) {
       throw redirect({ to: '/login' });
     }
-    if (payload.role === 'admin') {
+    if (payload.user_metadata.role === 'admin') {
       throw redirect({ to: '/admin/dashboard' })
     } else {
       throw redirect({ to: '/student/dashboard' })

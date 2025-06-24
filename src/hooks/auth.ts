@@ -22,7 +22,6 @@ export const accessTokenQueryOptions = queryOptions<{
       throw new Error("No session found");
     }
     const accessToken = data.session.access_token;
-    console.log("Access Token:", accessToken);
     const payload = jwtDecode<JwtPayload>(accessToken);
     return { raw: accessToken, payload };
   },
@@ -30,6 +29,24 @@ export const accessTokenQueryOptions = queryOptions<{
 
 export function useAccessToken() {
   return useSuspenseQuery(accessTokenQueryOptions);
+}
+
+const userQueryOptions = queryOptions({
+  queryKey: ["user"],
+  queryFn: async () => {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      throw error;
+    }
+    if (!data.user) {
+      throw new Error("No user found");
+    }
+    return data.user;
+  },
+})
+
+export function useUser() {
+  return useSuspenseQuery(userQueryOptions);
 }
 
 export function useSignInWithEmailAndPassword() {

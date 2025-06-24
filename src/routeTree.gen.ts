@@ -13,12 +13,12 @@
 import { Route as rootRoute } from './routes/__root.tsx';
 import { Route as RegisterImport } from './routes/register.tsx';
 import { Route as LoginImport } from './routes/login.tsx';
-import { Route as ChatImport } from './routes/chat.tsx';
 import { Route as StudentImport } from './routes/_student.tsx';
 import { Route as AdminImport } from './routes/_admin.tsx';
 import { Route as IndexImport } from './routes/index.tsx';
 import { Route as StudentStudentDashboardImport } from './routes/_student.student.dashboard.tsx';
 import { Route as AdminAdminDashboardImport } from './routes/_admin.admin.dashboard.tsx';
+import { Route as AdminAdminAssessmentsCreateImport } from './routes/_admin.admin.assessments.create.tsx';
 
 // Create/Update Routes
 
@@ -31,12 +31,6 @@ const RegisterRoute = RegisterImport.update({
 const LoginRoute = LoginImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRoute,
-} as any);
-
-const ChatRoute = ChatImport.update({
-  id: '/chat',
-  path: '/chat',
   getParentRoute: () => rootRoute,
 } as any);
 
@@ -68,6 +62,13 @@ const AdminAdminDashboardRoute = AdminAdminDashboardImport.update({
   getParentRoute: () => AdminRoute,
 } as any);
 
+const AdminAdminAssessmentsCreateRoute =
+  AdminAdminAssessmentsCreateImport.update({
+    id: '/admin/assessments/create',
+    path: '/admin/assessments/create',
+    getParentRoute: () => AdminRoute,
+  } as any);
+
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -91,13 +92,6 @@ declare module '@tanstack/react-router' {
       path: '';
       fullPath: '';
       preLoaderRoute: typeof StudentImport;
-      parentRoute: typeof rootRoute;
-    };
-    '/chat': {
-      id: '/chat';
-      path: '/chat';
-      fullPath: '/chat';
-      preLoaderRoute: typeof ChatImport;
       parentRoute: typeof rootRoute;
     };
     '/login': {
@@ -128,6 +122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StudentStudentDashboardImport;
       parentRoute: typeof StudentImport;
     };
+    '/_admin/admin/assessments/create': {
+      id: '/_admin/admin/assessments/create';
+      path: '/admin/assessments/create';
+      fullPath: '/admin/assessments/create';
+      preLoaderRoute: typeof AdminAdminAssessmentsCreateImport;
+      parentRoute: typeof AdminImport;
+    };
   }
 }
 
@@ -135,10 +136,12 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute;
+  AdminAdminAssessmentsCreateRoute: typeof AdminAdminAssessmentsCreateRoute;
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
+  AdminAdminAssessmentsCreateRoute: AdminAdminAssessmentsCreateRoute,
 };
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren);
@@ -157,21 +160,21 @@ const StudentRouteWithChildren =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '': typeof StudentRouteWithChildren;
-  '/chat': typeof ChatRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/assessments/create': typeof AdminAdminAssessmentsCreateRoute;
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '': typeof StudentRouteWithChildren;
-  '/chat': typeof ChatRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/assessments/create': typeof AdminAdminAssessmentsCreateRoute;
 }
 
 export interface FileRoutesById {
@@ -179,11 +182,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute;
   '/_admin': typeof AdminRouteWithChildren;
   '/_student': typeof StudentRouteWithChildren;
-  '/chat': typeof ChatRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/_student/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/_admin/admin/assessments/create': typeof AdminAdminAssessmentsCreateRoute;
 }
 
 export interface FileRouteTypes {
@@ -191,30 +194,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | ''
-    | '/chat'
     | '/login'
     | '/register'
     | '/admin/dashboard'
-    | '/student/dashboard';
+    | '/student/dashboard'
+    | '/admin/assessments/create';
   fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
     | ''
-    | '/chat'
     | '/login'
     | '/register'
     | '/admin/dashboard'
-    | '/student/dashboard';
+    | '/student/dashboard'
+    | '/admin/assessments/create';
   id:
     | '__root__'
     | '/'
     | '/_admin'
     | '/_student'
-    | '/chat'
     | '/login'
     | '/register'
     | '/_admin/admin/dashboard'
-    | '/_student/student/dashboard';
+    | '/_student/student/dashboard'
+    | '/_admin/admin/assessments/create';
   fileRoutesById: FileRoutesById;
 }
 
@@ -222,7 +225,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute;
   AdminRoute: typeof AdminRouteWithChildren;
   StudentRoute: typeof StudentRouteWithChildren;
-  ChatRoute: typeof ChatRoute;
   LoginRoute: typeof LoginRoute;
   RegisterRoute: typeof RegisterRoute;
 }
@@ -231,7 +233,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
   StudentRoute: StudentRouteWithChildren,
-  ChatRoute: ChatRoute,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
 };
@@ -249,7 +250,6 @@ export const routeTree = rootRoute
         "/",
         "/_admin",
         "/_student",
-        "/chat",
         "/login",
         "/register"
       ]
@@ -260,7 +260,8 @@ export const routeTree = rootRoute
     "/_admin": {
       "filePath": "_admin.tsx",
       "children": [
-        "/_admin/admin/dashboard"
+        "/_admin/admin/dashboard",
+        "/_admin/admin/assessments/create"
       ]
     },
     "/_student": {
@@ -268,9 +269,6 @@ export const routeTree = rootRoute
       "children": [
         "/_student/student/dashboard"
       ]
-    },
-    "/chat": {
-      "filePath": "chat.tsx"
     },
     "/login": {
       "filePath": "login.tsx"
@@ -285,6 +283,10 @@ export const routeTree = rootRoute
     "/_student/student/dashboard": {
       "filePath": "_student.student.dashboard.tsx",
       "parent": "/_student"
+    },
+    "/_admin/admin/assessments/create": {
+      "filePath": "_admin.admin.assessments.create.tsx",
+      "parent": "/_admin"
     }
   }
 }
