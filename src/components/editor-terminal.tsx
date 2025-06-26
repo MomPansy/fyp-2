@@ -1,18 +1,47 @@
-import { useRef, useState } from "react"
-import { Group, Text, Button, Select, Box, Stack, ActionIcon, Tooltip, Divider, Title } from "@mantine/core"
-import { IconMaximize, IconPlayerPlay } from "@tabler/icons-react"
-import Editor, { EditorProps } from "@monaco-editor/react"
-import { editor as MonacoEditor } from "monaco-editor"
+import { useRef, useState } from "react";
+import {
+  Group,
+  Text,
+  Button,
+  Select,
+  Box,
+  Stack,
+  ActionIcon,
+  Tooltip,
+  Divider,
+  Title,
+} from "@mantine/core";
+import { IconMaximize, IconPlayerPlay } from "@tabler/icons-react";
+import Editor, { EditorProps } from "@monaco-editor/react";
+import { editor as MonacoEditor } from "monaco-editor";
 
 // Sample test result data
 const sampleTestResult = {
   success: true,
   message: "Test passed successfully",
   data: [
-    { ID: 3878, NAME: "New York", COUNTRYCODE: "USA", DISTRICT: "New York", POPULATION: 8008278 },
-    { ID: 3805, NAME: "Los Angeles", COUNTRYCODE: "USA", DISTRICT: "California", POPULATION: 3694820 },
-    { ID: 3812, NAME: "Chicago", COUNTRYCODE: "USA", DISTRICT: "Illinois", POPULATION: 2896016 },
-  ]
+    {
+      ID: 3878,
+      NAME: "New York",
+      COUNTRYCODE: "USA",
+      DISTRICT: "New York",
+      POPULATION: 8008278,
+    },
+    {
+      ID: 3805,
+      NAME: "Los Angeles",
+      COUNTRYCODE: "USA",
+      DISTRICT: "California",
+      POPULATION: 3694820,
+    },
+    {
+      ID: 3812,
+      NAME: "Chicago",
+      COUNTRYCODE: "USA",
+      DISTRICT: "Illinois",
+      POPULATION: 2896016,
+    },
+  ],
 };
 
 // Available SQL dialects
@@ -21,20 +50,24 @@ const sqlDialects = [
   { value: "PostgreSQL", label: "PostgreSQL" },
   { value: "SQLite", label: "SQLite" },
   { value: "SQL Server", label: "SQL Server" },
-  { value: "Oracle", label: "Oracle" }
+  { value: "Oracle", label: "Oracle" },
 ];
 
 export function EditorTerminal() {
   const [sqlDialect, setSqlDialect] = useState<string | null>("MySQL");
-  const [sqlCode, setSqlCode] = useState<string | undefined>("SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000");
-  const [terminalOutput, setTerminalOutput] = useState<typeof sampleTestResult | null>(null);
+  const [sqlCode, setSqlCode] = useState<string | undefined>(
+    "SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000",
+  );
+  const [terminalOutput, setTerminalOutput] = useState<
+    typeof sampleTestResult | null
+  >(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
-  const handleEditorDidMount: EditorProps['onMount'] = (editor) => {
+  const handleEditorDidMount: EditorProps["onMount"] = (editor) => {
     editorRef.current = editor;
-  }
+  };
 
   // Test SQL query
   const testQuery = () => {
@@ -56,7 +89,7 @@ export function EditorTerminal() {
       setTerminalOutput({
         success: true,
         message: "Your solution passed all test cases!",
-        data: sampleTestResult.data
+        data: sampleTestResult.data,
       });
       setIsSubmitting(false);
     }, 1500);
@@ -84,7 +117,10 @@ export function EditorTerminal() {
               <thead>
                 <tr className="bg-gray-100">
                   {Object.keys(terminalOutput.data[0]).map((key) => (
-                    <th key={key} className="border border-gray-300 px-4 py-2 text-left">
+                    <th
+                      key={key}
+                      className="border border-gray-300 px-4 py-2 text-left"
+                    >
                       {key}
                     </th>
                   ))}
@@ -92,9 +128,15 @@ export function EditorTerminal() {
               </thead>
               <tbody>
                 {terminalOutput.data.map((row, rowIndex) => (
-                  <tr key={rowIndex} className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                  <tr
+                    key={rowIndex}
+                    className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                  >
                     {Object.values(row).map((value, valueIndex) => (
-                      <td key={valueIndex} className="border border-gray-300 px-4 py-2">
+                      <td
+                        key={valueIndex}
+                        className="border border-gray-300 px-4 py-2"
+                      >
                         {value}
                       </td>
                     ))}
@@ -141,26 +183,30 @@ export function EditorTerminal() {
           defaultLanguage="sql"
           value={sqlCode}
           onChange={(e) => setSqlCode(e)}
-          onMount={(editor) => { editorRef.current = editor }}
+          onMount={(editor) => {
+            editorRef.current = editor;
+          }}
           options={{
             minimap: { enabled: false },
             fontSize: 14,
             scrollBeyondLastLine: false,
-            wordWrap: 'on',
+            wordWrap: "on",
             tabSize: 2,
-            automaticLayout: true
+            automaticLayout: true,
           }}
         />
       </Box>
 
       {/* Terminal Output Section */}
-      <Box style={{
-        backgroundColor: "#111827",
-        color: "white",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "auto"
-      }}>
+      <Box
+        style={{
+          backgroundColor: "#111827",
+          color: "white",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "auto",
+        }}
+      >
         <Box className="p-2 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
           <Text fw={600}>Results</Text>
           <Tooltip label="Maximize">

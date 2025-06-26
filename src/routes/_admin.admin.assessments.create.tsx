@@ -1,32 +1,41 @@
-import { Stack, Title, Text, Paper, Button } from '@mantine/core';
-import { createFileRoute } from '@tanstack/react-router';
-import { EditorTerminal } from 'components/editor-terminal';
-import { Drop } from 'components/dropzone';
-import { MarkdownEditor} from 'components/markdown-editor';
+import {
+  Stack,
+  Title,
+  Paper,
+  SimpleGrid,
+  TextInput,
+  Select,
+} from "@mantine/core";
+import { createFileRoute } from "@tanstack/react-router";
+import { AssessmentDatabaseSetup } from "components/assessments/assessment-database.tsx";
+import { MarkdownEditor } from "components/markdown-editor.tsx";
 
-export const Route = createFileRoute('/_admin/admin/assessments/create')({
+export const Route = createFileRoute("/_admin/admin/assessments/create")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
   return (
-    <Stack py={20} px={120}>
-      <Title> Create Assessment Question </Title>
-      <Text >Craft your question, provide data and set the expected answer.</Text>
-      <Paper shadow='sm'>
-        <MarkdownEditor />
+    <SimpleGrid cols={2} px={20} py={20} spacing="xl">
+      <Paper p={20} withBorder>
+        <Stack>
+          <Title> Problem Details</Title>
+          <TextInput
+            placeholder="Enter your question name"
+            label="Question name"
+            required
+          />
+          <Select
+            label="Problem Description"
+            placeholder="Choose a template"
+            w={200}
+          />
+          <Paper shadow="sm">
+            <MarkdownEditor />
+          </Paper>
+        </Stack>
       </Paper>
-      <Paper shadow='sm' p={20} mt={20} withBorder>
-        <Title order={3}> Upload Data </Title>
-        <Drop />
-      </Paper>
-      <Paper shadow='sm' p={20} mt={20} withBorder>
-        <EditorTerminal />
-      </Paper>
-      <Button mt={20} variant="filled" color="green" size="md">
-        Save Assessment
-      </Button>
-    </Stack>
-  )
+      <AssessmentDatabaseSetup />
+    </SimpleGrid>
+  );
 }
-
