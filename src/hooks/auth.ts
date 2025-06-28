@@ -1,12 +1,12 @@
 import {
-  useMutation,
   queryOptions,
+  useMutation,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
 import { type JwtPayload } from "server/zod/jwt.ts";
 import { supabase } from "lib/supabase.ts";
-import { showError } from "utils/notifications"; 
+import { showError } from "utils/notifications";
 
 export const accessTokenQueryOptions = queryOptions<{
   raw: string;
@@ -31,22 +31,9 @@ export function useAccessToken() {
   return useSuspenseQuery(accessTokenQueryOptions);
 }
 
-const userQueryOptions = queryOptions({
-  queryKey: ["user"],
-  queryFn: async () => {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) {
-      throw error;
-    }
-    if (!data.user) {
-      throw new Error("No user found");
-    }
-    return data.user;
-  },
-})
-
 export function useUser() {
-  return useSuspenseQuery(userQueryOptions);
+  return useSuspenseQuery(accessTokenQueryOptions).data.payload.user_metadata
+    .user_id;
 }
 
 export function useSignInWithEmailAndPassword() {
@@ -81,8 +68,8 @@ export function useSignInWithOTP() {
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-            emailRedirectTo: window.location.origin,
-        }
+          emailRedirectTo: window.location.origin,
+        },
       });
       if (error) {
         throw error;

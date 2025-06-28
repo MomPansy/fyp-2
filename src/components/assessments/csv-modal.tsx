@@ -2,8 +2,11 @@
 import {
   Accordion,
   Button,
+  Flex,
   Group,
+  LoadingOverlay,
   Modal,
+  ScrollArea,
   Stack,
   Table,
   Text,
@@ -11,7 +14,6 @@ import {
 } from "@mantine/core";
 import { IconFileTypeCsv } from "@tabler/icons-react";
 import { useState } from "react";
-
 interface CSVModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -20,20 +22,30 @@ interface CSVModalProps {
   removeColumns: (columns: string[]) => void;
   data: Record<string, unknown>[];
   reset: () => void;
+  onSave: () => void;
+  isLoading?: boolean;
 }
 
 export function CSVModal(props: CSVModalProps) {
-  const { isOpen, onClose, fileName, columns, removeColumns, reset } = props;
+  const { isOpen, onClose, fileName, columns, removeColumns, reset, onSave: onSaveProp, isLoading = false } = props;
   const [columnsToRemove, setColumnsToRemove] = useState<string[]>([]);
   const [accordionOpened, setAccordionOpened] = useState<string[]>([]);
   const filteredColumns =
     columns?.filter((col) => !columnsToRemove.includes(col)) ?? [];
+
+  const handleSave = async () => {
+    if (columnsToRemove.length > 0) {
+      removeColumns(columnsToRemove);
+    }
+    await onSaveProp();
+    onClose();
+  }
+
   return (
     <Modal
       opened={isOpen}
       onClose={() => {
         onClose();
-        removeColumns(columnsToRemove);
       }}
       size="xl"
       title="Add content to new table"
@@ -165,8 +177,21 @@ export function CSVModal(props: CSVModalProps) {
               </Accordion.Panel>
             </Accordion.Item>
           </Accordion>
+          <Flex justify="flex-end" >
+            <Button
+              type="submit"
+              onClick={handleSave}
+              loading={isLoading}
+              disabled={isLoading}
+            >
+              Save
+            </Button>
+          </Flex>
         </Stack>
       </Modal.Body>
+      <LoadingOverlay
+        visible={isLoading}
+      />
     </Modal>
   );
 }

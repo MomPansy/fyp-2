@@ -42,33 +42,37 @@ export default tseslint.config(
         '@typescript-eslint/parser': ['.ts', '.tsx'],
       },
       'import-x/resolver': 'oxc',
-    },
-    rules: {
-      ...reactHooksPlugin.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-      'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
-      'import-x/extensions': ['error', 'ignorePackages'],
-      'import-x/order': ['error'],
-      'import-x/no-named-as-default-member': ['off'],
-      'drizzle/enforce-delete-with-where': ['error'],
-      'drizzle/enforce-update-with-where': ['error'],
-      '@typescript-eslint/no-confusing-void-expression': [
-        'error',
-        { ignoreArrowShorthand: true },
-      ],
-      '@typescript-eslint/no-misused-promises': [
-        'error',
-        {
-          checksVoidReturn: {
-            arguments: false,
-            attributes: false,
-          },
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx', '.css']
         },
-      ],
-      "@typescript-eslint/no-floating-promises": ["off"],
+      },
+      rules: {
+        ...reactHooksPlugin.configs.recommended.rules,
+        'react-refresh/only-export-components': [
+          'warn',
+          { allowConstantExport: true },
+        ],
+        'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
+        'import-x/extensions': ['error', 'ignorePackages'],
+        'import-x/order': ['error'],
+        'import-x/no-named-as-default-member': ['off'],
+        'drizzle/enforce-delete-with-where': ['error'],
+        'drizzle/enforce-update-with-where': ['error'],
+        '@typescript-eslint/no-confusing-void-expression': [
+          'error',
+          { ignoreArrowShorthand: true },
+        ],
+        '@typescript-eslint/no-misused-promises': [
+          'error',
+          {
+            checksVoidReturn: {
+              arguments: false,
+              attributes: false,
+            },
+          },
+        ],
+        "@typescript-eslint/no-floating-promises": ["off"],
+      },
     },
-  },
 );
