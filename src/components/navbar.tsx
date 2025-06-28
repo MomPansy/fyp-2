@@ -19,7 +19,7 @@ import {
   showSuccessNotification,
 } from 'components/notifications.ts';
 import { supabase } from 'lib/supabase.ts';
-import { useUser } from 'hooks/auth.ts';
+import { useAccessToken, useUser } from 'hooks/auth.ts';
 
 interface NavbarLinkProps {
   leftSection: NavLinkProps['leftSection'];
@@ -52,7 +52,7 @@ function NavbarLink({
 
 export function Navbar({ close }: { close?: () => void }) {
   const navigate = useNavigate();
-  const { data: user } = useUser();
+  const { data } = useAccessToken();
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -91,9 +91,9 @@ export function Navbar({ close }: { close?: () => void }) {
         </section>
         <Stack>
           <Group>
-            <Avatar color='initials' name={user.email} />
+            <Avatar color='initials' name={data.payload.email} />
             <div className="text-center text-sm text-gray-500">
-              {user.email}
+              {data.payload.email}
             </div>
           </Group>
           <Button
