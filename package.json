@@ -18,7 +18,9 @@
     "start": "pnpm envx:run -- node dist/index.js",
     "db:typegen": "pnpm dotenvx run --env-file=.env.production -- pnpm supabase gen types typescript --project-id hmmpdcfxjqskkwmsoxzh -s public,storage > src/database.gen.ts",
     "db:gen": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit generate --config=drizzle.config.ts",
-    "db:mig": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit migrate --config=drizzle.config.ts"
+    "db:mig": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit migrate --config=drizzle.config.ts",
+    "db:gen-local": "pnpm dotenvx run --env-file=.env.local -- pnpm drizzle-kit generate --config=drizzle.config.ts",
+    "db:mig-local": "pnpm dotenvx run --env-file=.env.local -- pnpm drizzle-kit migrate --config=drizzle.config.ts"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.33.0",
@@ -44,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.41.0",
+    "generate-schema": "^2.6.0",
     "hono": "^4.6.15",
     "jwt-decode": "^4.0.0",
     "mantine-form-zod-resolver": "^1.1.0",

@@ -19,7 +19,8 @@ import {
   showSuccessNotification,
 } from 'components/notifications.ts';
 import { supabase } from 'lib/supabase.ts';
-import { useAccessToken, useUser } from 'hooks/auth.ts';
+import { useAccessToken } from 'hooks/auth.ts';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface NavbarLinkProps {
   leftSection: NavLinkProps['leftSection'];
@@ -51,6 +52,7 @@ function NavbarLink({
 
 
 export function Navbar({ close }: { close?: () => void }) {
+  const queryClient = useQueryClient()
   const navigate = useNavigate();
   const { data } = useAccessToken();
 
@@ -64,7 +66,11 @@ export function Navbar({ close }: { close?: () => void }) {
       showSuccessNotification({
         message: 'Successfully logged out!',
       });
+      queryClient.invalidateQueries({
+        queryKey: ['accessToken'],
+      })
     }
+    console.log('navigating to login');
     navigate({ to: '/login' });
   };
 

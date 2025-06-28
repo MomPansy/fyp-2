@@ -13,6 +13,7 @@ import {
   Title,
 } from "@mantine/core";
 import { IconFileTypeCsv } from "@tabler/icons-react";
+import { ToggleButton } from "components/buttons/toggle-button";
 import { useState } from "react";
 interface CSVModalProps {
   isOpen: boolean;
@@ -99,10 +100,11 @@ export function CSVModal(props: CSVModalProps) {
                     first 20 columns and first 20 rows).
                   </Text>
                   <Group gap="xs" wrap="wrap">
-                    {columns?.map((column) => (
-                      <ColumnTag
+                    {columns?.map((column, index) => (
+                      <ToggleButton
                         key={column}
-                        column={column}
+                        label={column}
+                        index={index}
                         onToggle={(column, isSelected) => {
                           if (isSelected) {
                             setColumnsToRemove((prev) =>
@@ -196,28 +198,3 @@ export function CSVModal(props: CSVModalProps) {
   );
 }
 
-interface ColumnTagProps {
-  column: string;
-  onToggle: (column: string, isSelected: boolean) => void;
-}
-
-function ColumnTag({ column, onToggle }: ColumnTagProps) {
-  const [isSelected, setIsSelected] = useState(true);
-
-  const handleClick = () => {
-    const newSelectedState = !isSelected;
-    setIsSelected(newSelectedState);
-    onToggle(column, newSelectedState);
-  };
-
-  return (
-    <Button
-      variant={isSelected ? "filled" : "outline"}
-      color={isSelected ? "blue" : "gray"}
-      onClick={handleClick}
-      size="xs"
-    >
-      {column}
-    </Button>
-  );
-}

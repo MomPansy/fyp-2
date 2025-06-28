@@ -8,7 +8,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
@@ -20,6 +21,7 @@ Deno.serve(async (req) => {
     // Validate authorization header first
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("❌ Authorization header missing or invalid:", authHeader);
       return new Response(
         JSON.stringify({ error: "Missing or invalid Authorization header" }),
         {
@@ -28,11 +30,27 @@ Deno.serve(async (req) => {
         },
       );
     }
+    const requestBody = await req.text();
 
-    const { userId, tableName, assessmentName } = await req.json();
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(requestBody);
+    } catch (parseError) {
+      const errorMessage = parseError instanceof Error
+        ? parseError.message
+        : String(parseError);
+      throw new Error(`Invalid JSON in request body: ${errorMessage}`);
+    }
+
+    const { userId, tableName, assessmentName } = parsedBody;
 
     // Validate required fields
     if (!userId || !tableName || !assessmentName) {
+      console.error("❌ Missing required fields:", {
+        userId: !!userId,
+        tableName: !!tableName,
+        assessmentName: !!assessmentName,
+      });
       return new Response(
         JSON.stringify({
           error: "Missing required fields: userId, tableName, assessmentName",
@@ -43,11 +61,20 @@ Deno.serve(async (req) => {
         },
       );
     }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error(
+        "Missing required environment variables: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+      );
+    }
     const supabaseClient = createClient(
       // Supabase API URL - env var exported by default.
-      Deno.env.get("SUPABASE_URL") ?? "",
+      supabaseUrl,
       // Use service role key for storage operations
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      supabaseServiceKey,
       // Create client with Auth context of the user that called the function.
       // This way your row-level-security (RLS) policies are applied.
     );
@@ -62,7 +89,10 @@ Deno.serve(async (req) => {
     }).catch((error) => {
       // Only throw if it's not a "bucket already exists" error
       if (!error.message?.includes("already exists")) {
+        console.error("❌ Bucket creation failed:", error);
         throw new Error(error.message || "Failed to create bucket");
+      } else {
+        console.info("✅ Bucket already exists, continuing...");
       }
     });
 
@@ -72,7 +102,7 @@ Deno.serve(async (req) => {
       });
 
     if (error) {
-      console.error("Supabase storage error:", {
+      console.error("❌ Supabase storage error:", {
         message: error.message,
         name: error.name,
         cause: error.cause,
@@ -84,22 +114,31 @@ Deno.serve(async (req) => {
     }
 
     if (!data) {
+      console.error("❌ No upload URL generated - data is null/undefined");
       throw new Error("No upload URL generated");
     }
 
+    const response = {
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: data.path,
+    };
+
     return new Response(
-      JSON.stringify({
-        signedUrl: data.signedUrl,
-        token: data.token,
-        path: data.path,
-      }),
+      JSON.stringify(response),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       },
     );
   } catch (error) {
-    console.error("Function error:", error);
+    console.error("💥 Function error caught:", {
+      error,
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      name: error instanceof Error ? error.name : undefined,
+    });
 
     const errorMessage = error instanceof Error
       ? error.message
