@@ -2,40 +2,37 @@ import {
   Stack,
   Title,
   Paper,
-  SimpleGrid,
   TextInput,
   Select,
+  Stepper,
 } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
-import { AssessmentDatabaseSetup } from "components/assessments/assessment-database.tsx";
+import { AssessmentDatabaseSetup } from "components/assessments/assessment-database";
+import { ProblemDescription } from "components/assessments/problem-description";
 import { MarkdownEditor } from "components/markdown-editor.tsx";
+import { useState } from "react";
 
 export const Route = createFileRoute("/_admin/admin/assessments/create")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const [active, setActive] = useState<number>(0);
+  const nextStep = () => {
+    setActive((current) => current + 1);
+  };
+  const prevStep = () => {
+    setActive((current) => current > 0 ? current - 1 : current);
+  };
+
   return (
-    <SimpleGrid cols={2} px={20} py={20} spacing="xl">
-      <Paper p={20} withBorder>
-        <Stack>
-          <Title> Problem Details</Title>
-          <TextInput
-            placeholder="Enter your question name"
-            label="Question name"
-            required
-          />
-          <Select
-            label="Problem Description"
-            placeholder="Choose a template"
-            w={200}
-          />
-          <Paper shadow="sm">
-            <MarkdownEditor />
-          </Paper>
-        </Stack>
-      </Paper>
-      <AssessmentDatabaseSetup />
-    </SimpleGrid>
+    <Stepper active={active} onStepClick={setActive} p={20} size="sm">
+      <Stepper.Step label={"Problem Details"} description={"Enter the problem details"}>
+        <ProblemDescription />
+      </Stepper.Step>
+      <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"}>
+        <AssessmentDatabaseSetup />
+      </Stepper.Step>
+    </Stepper>
   );
 }

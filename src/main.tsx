@@ -1,10 +1,10 @@
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "@mantine/dates/styles.css";
-import "@mantine/tiptap/styles.css";
 import "@mantine/dropzone/styles.css";
 
 import "./main.css";
+import "reactjs-tiptap-editor/style.css"
 import 'overlayscrollbars/overlayscrollbars.css';
 
 import { StrictMode } from "react";
