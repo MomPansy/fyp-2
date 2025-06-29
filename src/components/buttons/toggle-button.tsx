@@ -1,34 +1,31 @@
 import { Button, ButtonProps } from "@mantine/core";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+
+export type OnToggleProps = (label: string, isSelected: boolean, index?: number,) => void;
 
 interface ToggleButtonProps extends ButtonProps {
   label: string;
-  onToggle: (label: string, index: number, isSelected: boolean) => void;
+  onToggle: OnToggleProps;
   isSelected?: boolean;
-  index: number;
+  defaultSelected?: boolean;
+  index?: number;
 }
 
-export function ToggleButton({ label, onToggle, isSelected: externalIsSelected, index, ...props }: ToggleButtonProps) {
-  const [internalIsSelected, setInternalIsSelected] = useState(false);
-
-  // Use external state if provided, otherwise use internal state
-  const isSelected = externalIsSelected !== undefined ? externalIsSelected : internalIsSelected;
+export function ToggleButton({ label, onToggle, defaultSelected = true, isSelected: externalIsSelected, index, ...props }: ToggleButtonProps) {
+  const [internalIsSelected, setInternalIsSelected] = useState(defaultSelected);
+  const selectedState = externalIsSelected ?? internalIsSelected;
 
   const handleClick = () => {
-    const newSelectedState = !isSelected;
-
-    if (externalIsSelected === undefined) {
-      setInternalIsSelected(newSelectedState);
-    }
-
-    onToggle(label, index, newSelectedState);
+    const newSelectedState = !selectedState;
+    setInternalIsSelected(newSelectedState);
+    onToggle(label, newSelectedState, index);
   };
 
   return (
     <Button
       {...props}
-      variant={isSelected ? "filled" : "outline"}
-      color={isSelected ? "blue" : "gray"}
+      variant={selectedState ? "filled" : "outline"}
+      color={selectedState ? "blue" : "gray"}
       onClick={handleClick}
       size="xs"
     >

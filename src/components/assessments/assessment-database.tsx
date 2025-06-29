@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { IconArrowRight, IconTrash } from "@tabler/icons-react";
 import { TableManager } from "./table-manager.tsx";
-import { ToggleButton } from "../buttons/toggle-button.tsx";
+import { OnToggleProps, ToggleButton } from "../buttons/toggle-button.tsx";
 import { useMemo, useState } from "react";
 import { TableMetadata } from "./types.ts";
 
@@ -45,9 +45,9 @@ export function AssessmentDatabaseSetup() {
   // Fallback to mock data if no table metadata is available
   const displayTables = tables.length > 0 ? tables : mockTableNames;
 
-  const handleTable1Toggle = (label: string, index: number, isSelected: boolean) => {
+  const handleTable1Toggle: OnToggleProps = (_label, isSelected, index) => {
     if (isSelected) {
-      setSelectedTable1Index(index);
+      setSelectedTable1Index(index ?? 0);
       // If this table was selected in table2, remove it
       if (selectedTable2Index === index) {
         setSelectedTable2Index(null);
@@ -57,9 +57,9 @@ export function AssessmentDatabaseSetup() {
     }
   };
 
-  const handleTable2Toggle = (label: string, index: number, isSelected: boolean) => {
+  const handleTable2Toggle: OnToggleProps = (_label, isSelected, index) => {
     if (isSelected) {
-      setSelectedTable2Index(index);
+      setSelectedTable2Index(index ?? 0);
       // If this table was selected in table1, remove it
       if (selectedTable1Index === index) {
         setSelectedTable1Index(null);
@@ -111,12 +111,13 @@ export function AssessmentDatabaseSetup() {
             <Group gap="xs">
               {displayTables.map((table, index) => (
                 <ToggleButton
-                  key={`table1-${table}`}
+                  key={index}
                   label={table}
                   index={index}
                   onToggle={handleTable1Toggle}
                   disabled={selectedTable2Index === index}
                   isSelected={selectedTable1Index === index}
+                  defaultSelected={false}
                 />
               ))}
             </Group>
@@ -127,12 +128,13 @@ export function AssessmentDatabaseSetup() {
             <Group gap="xs">
               {displayTables.map((table, index) => (
                 <ToggleButton
-                  key={`table2-${table}`}
+                  key={index}
                   label={table}
                   index={index}
                   onToggle={handleTable2Toggle}
                   disabled={selectedTable1Index === index}
                   isSelected={selectedTable2Index === index}
+                  defaultSelected={false}
                 />
               ))}
             </Group>

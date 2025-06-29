@@ -6,48 +6,50 @@ import {
   Group,
   LoadingOverlay,
   Modal,
-  ScrollArea,
   Stack,
   Table,
   Text,
   Title,
 } from "@mantine/core";
 import { IconFileTypeCsv } from "@tabler/icons-react";
-import { ToggleButton } from "components/buttons/toggle-button";
+import { OnToggleProps, ToggleButton } from "components/buttons/toggle-button";
 import { useState } from "react";
 interface CSVModalProps {
   isOpen: boolean;
   onClose: () => void;
   fileName: string;
   columns: string[] | undefined;
-  removeColumns: (columns: string[]) => void;
   data: Record<string, unknown>[];
-  reset: () => void;
-  onSave: () => void;
+  onSave: (columnsToRemove?: string[]) => void;
   isLoading?: boolean;
 }
 
 export function CSVModal(props: CSVModalProps) {
-  const { isOpen, onClose, fileName, columns, removeColumns, reset, onSave: onSaveProp, isLoading = false } = props;
+  const { isOpen, onClose, fileName, columns, onSave: onSaveProp, isLoading = false } = props;
   const [columnsToRemove, setColumnsToRemove] = useState<string[]>([]);
   const [accordionOpened, setAccordionOpened] = useState<string[]>([]);
   const filteredColumns =
     columns?.filter((col) => !columnsToRemove.includes(col)) ?? [];
 
   const handleSave = async () => {
-    if (columnsToRemove.length > 0) {
-      removeColumns(columnsToRemove);
-    }
-    await onSaveProp();
+    await onSaveProp(columnsToRemove.length > 0 ? columnsToRemove : undefined);
     onClose();
+  }
+
+  const onToggle: OnToggleProps = (label: string, isSelected: boolean) => {
+    if (isSelected) {
+      setColumnsToRemove((prev) =>
+        prev.filter((col) => col !== label),
+      );
+    } else {
+      setColumnsToRemove((prev) => [...prev, label]);
+    }
   }
 
   return (
     <Modal
       opened={isOpen}
-      onClose={() => {
-        onClose();
-      }}
+      onClose={onClose}
       size="xl"
       title="Add content to new table"
     >
@@ -74,7 +76,7 @@ export function CSVModal(props: CSVModalProps) {
                   {fileName}
                 </Text>
               </Group>
-              <Button variant="outline" onClick={reset}>
+              <Button variant="outline" onClick={onClose}>
                 Remove File
               </Button>
             </Stack>
@@ -104,16 +106,7 @@ export function CSVModal(props: CSVModalProps) {
                       <ToggleButton
                         key={column}
                         label={column}
-                        index={index}
-                        onToggle={(column, isSelected) => {
-                          if (isSelected) {
-                            setColumnsToRemove((prev) =>
-                              prev.filter((col) => col !== column),
-                            );
-                          } else {
-                            setColumnsToRemove((prev) => [...prev, column]);
-                          }
-                        }}
+                        onToggle={onToggle}
                       />
                     ))}
                   </Group>

@@ -2,7 +2,7 @@
 import { FileWithPath, MIME_TYPES } from "@mantine/dropzone";
 import { parse, unparse } from "papaparse";
 import { useDisclosure } from "@mantine/hooks";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { DropCSV } from "./dropzone.tsx";
 import { CSVModal } from "./csv-modal.tsx";
 import { showErrorNotification, showSuccessNotification } from "components/notifications.ts";
@@ -36,47 +36,39 @@ export function TableManager(props: Props) {
     setData([]);
   };
 
-  const removeColumns = (columnsToRemove: string[]) => {
-    console.log('removeColumns called with:', {
-      columnsToRemove,
-      currentColumns: Array.from(columns),
-      dataRowCount: data.length
+  const onClose = () => {
+    reset();
+    close();
+  }
+
+  useEffect(() => {
+    console.log("update columns and data", {
+      columns: Array.from(columns),
+      data: data.slice(0, 5) // Log only the first 5 rows
     });
+  }, [columns, data]);
 
-    // Check if any of the columns to remove actually exist
-    const columnsToActuallyRemove = columnsToRemove.filter(col => columns.has(col));
-    if (columnsToActuallyRemove.length === 0) {
-      return;
-    }
 
-    // Batch the state updates
-    setColumns((prev) => {
-      const newSet = new Set(prev);
-      columnsToActuallyRemove.forEach((column) => newSet.delete(column));
-      return newSet;
-    });
+  const onSave = useCallback(async (columnsToRemove?: string[]) => {
+    // Calculate the final columns and data
+    const finalColumns = columnsToRemove && columnsToRemove.length > 0
+      ? new Set(Array.from(columns).filter(col => !columnsToRemove.includes(col)))
+      : columns;
 
-    setData((prevData) => {
-      const newData = prevData.map((row, index) => {
-        if (index === 0) console.log('Processing first row:', Object.keys(row));
-        const newObj: Record<string, unknown> = {};
-        Object.keys(row).forEach((key) => {
-          if (!columnsToActuallyRemove.includes(key)) {
-            newObj[key] = row[key];
-          }
-        });
-        return newObj;
-      });
-      return newData;
-    });
-  };
+    const finalData = columnsToRemove && columnsToRemove.length > 0
+      ? data.map(row =>
+        Object.fromEntries(
+          Object.entries(row).filter(([key]) => finalColumns.has(key))
+        )
+      )
+      : data;
 
-  const onSave = async () => {
-    if (!fileName || columns.size === 0 || data.length === 0) {
+    // Validate we have the necessary data
+    if (!fileName || finalColumns.size === 0 || finalData.length === 0) {
       console.warn('Validation failed', {
         hasFileName: !!fileName,
-        columnCount: columns.size,
-        dataRows: data.length
+        columnCount: finalColumns.size,
+        dataRows: finalData.length
       });
       showErrorNotification({
         title: "Invalid data",
@@ -86,9 +78,15 @@ export function TableManager(props: Props) {
     }
 
     try {
-      const csvString = unparse(data, {
+      console.log("Saving data:", {
+        fileName,
+        columns: Array.from(finalColumns),
+        data: finalData.slice(0, 5) // Log only the first 5 rows for brevity
+      });
+
+      const csvString = unparse(finalData, {
         header: true,
-        columns: Array.from(columns),
+        columns: Array.from(finalColumns),
       });
 
       await uploadFile({
@@ -97,10 +95,10 @@ export function TableManager(props: Props) {
         assessmentName: fileName
       });
 
-      const schema = GS.json(data);
+      const schema = GS.json(finalData);
 
       const columnTypes = Object.entries(schema.items.properties).map(([key, value]) => ({
-        column: key.toLowerCase().replace(/\s+/g, '_'),
+        column: key,
         type: (value as { type: string }).type
       }));
       const tableMetadata: TableMetadata = {
@@ -121,8 +119,16 @@ export function TableManager(props: Props) {
         message: error instanceof Error ? error.message : "An unexpected error occurred while saving.",
       });
     }
-  }
-
+  },
+    [
+      fileName,
+      columns,
+      data,
+      uploadFile,
+      setTableMetadata,
+      close,
+      reset,
+    ]);
 
   const onDrop = (files: FileWithPath[]) => {
     const file = files[0];
@@ -131,10 +137,10 @@ export function TableManager(props: Props) {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        setFileName(file.name);
+        const fileName = file.name.replace(/\.[^/.]+$/, "");
+        setFileName(fileName);
         setColumns(new Set(results.meta.fields));
         setData(results.data as Record<string, unknown>[]);
-
         open();
       },
       error: (error) => {
@@ -144,7 +150,7 @@ export function TableManager(props: Props) {
           message: error.message,
         });
       },
-      worker: true,
+      transformHeader: (header) => header.toLowerCase().replace(/\s+/g, '_'),
     });
   };
 
@@ -154,15 +160,11 @@ export function TableManager(props: Props) {
       {fileName && columns.size > 0 && (
         <CSVModal
           isOpen={isOpen}
-          onClose={() => {
-            close();
-          }}
+          onClose={onClose}
           onSave={onSave}
           fileName={fileName}
           columns={Array.from(columns)}
           data={data}
-          removeColumns={removeColumns}
-          reset={reset}
           isLoading={isLoading}
         />
       )}
