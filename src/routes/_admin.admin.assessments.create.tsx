@@ -1,15 +1,9 @@
 import {
-  Stack,
-  Title,
-  Paper,
-  TextInput,
-  Select,
   Stepper,
 } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import { AssessmentDatabaseSetup } from "components/assessments/assessment-database";
 import { ProblemDescription } from "components/assessments/problem-description";
-import { MarkdownEditor } from "components/markdown-editor.tsx";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_admin/admin/assessments/create")({
@@ -28,7 +22,7 @@ function RouteComponent() {
   return (
     <Stepper active={active} onStepClick={setActive} p={20} size="sm">
       <Stepper.Step label={"Problem Details"} description={"Enter the problem details"}>
-        <ProblemDescription />
+        <ProblemDescription nextStep={nextStep} prevStep={prevStep} />
       </Stepper.Step>
       <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"}>
         <AssessmentDatabaseSetup />
