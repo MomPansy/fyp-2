@@ -15,7 +15,6 @@ interface Props {
   setTableMetadata: React.Dispatch<React.SetStateAction<TableMetadata[]>>;
 }
 
-
 export function TableManager(props: Props) {
   const { setTableMetadata } = props;
 
@@ -40,14 +39,6 @@ export function TableManager(props: Props) {
     reset();
     close();
   }
-
-  useEffect(() => {
-    console.log("update columns and data", {
-      columns: Array.from(columns),
-      data: data.slice(0, 5) // Log only the first 5 rows
-    });
-  }, [columns, data]);
-
 
   const onSave = useCallback(async (columnsToRemove?: string[]) => {
     // Calculate the final columns and data
@@ -78,21 +69,9 @@ export function TableManager(props: Props) {
     }
 
     try {
-      console.log("Saving data:", {
-        fileName,
-        columns: Array.from(finalColumns),
-        data: finalData.slice(0, 5) // Log only the first 5 rows for brevity
-      });
-
       const csvString = unparse(finalData, {
         header: true,
         columns: Array.from(finalColumns),
-      });
-
-      await uploadFile({
-        csvString,
-        tableName: fileName,
-        assessmentName: fileName
       });
 
       const schema = GS.json(finalData);
@@ -101,10 +80,19 @@ export function TableManager(props: Props) {
         column: key,
         type: (value as { type: string }).type
       }));
+
       const tableMetadata: TableMetadata = {
         tableName: fileName,
         columnTypes
       };
+
+      await uploadFile({
+        csvString,
+        tableName: fileName,
+        assessmentName: fileName,
+        columnTypes: columnTypes,
+      });
+
       setTableMetadata((prev) => [...prev, tableMetadata]);
       showSuccessNotification({
         title: "Save successful",

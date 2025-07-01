@@ -1,7 +1,10 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { showErrorNotification } from "components/notifications";
 import { useAccessToken, useUser } from "./auth";
 import { supabase } from "../lib/supabase";
+import { problemKeys } from "components/problems/querykeys";
+import { TableMetadata } from "components/problems/types";
+import { ColumnType } from "server/drizzle/_custom";
 
 interface signedUploadResponse {
   signedUrl: string;
@@ -9,7 +12,10 @@ interface signedUploadResponse {
   path: string;
 }
 
+const testProblemId = "47f122d6-6f6d-47dd-a7d6-168d91d0db2e";
+
 export const useDataStorage = () => {
+  const queryClient = useQueryClient();
   const { data: accessTokenData } = useAccessToken();
   const userId = useUser();
 
@@ -50,10 +56,12 @@ export const useDataStorage = () => {
     csvString,
     tableName,
     assessmentName = "data.csv",
+    columnTypes,
   }: {
     csvString: string;
     tableName: string;
     assessmentName?: string;
+    columnTypes: ColumnType[];
   }) => {
     // Get signed upload URL from edge function
     const { signedUrl, token, path } = await initializeUpload(
@@ -65,21 +73,37 @@ export const useDataStorage = () => {
     const csvFile = new File([csvString], assessmentName, { type: "text/csv" });
 
     try {
-      const { data, error } = await supabase.storage
+      const { data, error: storageError } = await supabase.storage
         .from(userId)
         .uploadToSignedUrl(path, token, csvFile);
 
-      if (error) {
-        console.error("❌ Upload failed:", error);
-        throw new Error(`Upload failed: ${error.message}`);
+      if (storageError) {
+        throw new Error(`Upload failed: ${storageError.message}`);
       }
+      // save to db table
+      // TODO: insert problem_id instead of testProblemId
+      const { error: dbError } = await supabase
+        .from("problem_tables")
+        .upsert({
+          problem_id: testProblemId,
+          ddl_script: "test",
+          data_path: path,
+          table_name: tableName,
+          column_types: columnTypes,
+        });
+
+      if (dbError) {
+        throw new Error(`Database update failed: ${dbError.message}`);
+      }
+
+      // save table metadata
     } catch (error) {
-      console.error("💥 Upload error:", {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+      showErrorNotification({
+        title: "File upload failed",
+        message: error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during file upload.",
       });
-      throw error;
     }
 
     return { success: true, filePath: path, token };
@@ -92,6 +116,12 @@ export const useDataStorage = () => {
       showErrorNotification({
         title: "Failed to upload file",
         message: error.message,
+      });
+    },
+    onSuccess: () => {
+      // TODO: insert problem_id instead of testProblemId
+      queryClient.invalidateQueries({
+        queryKey: problemKeys.detail(testProblemId),
       });
     },
   });
