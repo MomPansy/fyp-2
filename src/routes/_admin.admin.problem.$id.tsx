@@ -1,7 +1,10 @@
+import { ProblemInsert } from "@/components/problems/types";
 import {
+  Button,
+  Group,
   Stepper,
 } from "@mantine/core";
-import { createFileRoute, useLoaderData, useParams } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { ProblemDatabase } from "components/problems/problem-database";
 import { ProblemDescription } from "components/problems/problem-description";
 import { problemDetailQueryOptions, createNewProblem } from "hooks/useProblem";
@@ -11,32 +14,26 @@ export const Route = createFileRoute("/_admin/admin/problem/$id")({
   loader: async ({ context: { queryClient }, params }) => {
     try {
       // Try to fetch existing problem
-      const problem = await queryClient.ensureQueryData(problemDetailQueryOptions(params.id));
+      const existingProblem = await queryClient.ensureQueryData(problemDetailQueryOptions(params.id));
 
-      if (problem) {
-        return problem;
+      // If problem exists, return it
+      if (existingProblem) {
+        return existingProblem;
       }
 
       // If problem doesn't exist (null), create a new one
       const newProblem = await createNewProblem(params.id);
 
-      // Invalidate and refetch to ensure cache is updated
-      queryClient.invalidateQueries({ queryKey: ['problems', params.id] });
+      // Update the cache with the new problem and return it
+      queryClient.setQueryData(problemDetailQueryOptions(params.id).queryKey, newProblem);
 
-      return await queryClient.ensureQueryData(problemDetailQueryOptions(params.id));
+      return newProblem;
     } catch (error) {
-      // If there's an error fetching, try to create new problem
-      try {
-        const newProblem = await createNewProblem(params.id);
-        queryClient.invalidateQueries({ queryKey: ['problems', params.id] });
-        return await queryClient.ensureQueryData(problemDetailQueryOptions(params.id));
-      } catch (createError) {
-        throw new Error(`Failed to load or create problem: ${createError instanceof Error ? createError.message : 'Unknown error'}`);
-      }
+      throw new Error(`Failed to load or create problem: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   },
   // Add proper error handling
-  errorComponent: ({ error }) => (
+  errorComponent: ({ error }: { error: Error }) => (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
       <h2 className="text-xl font-semibold text-red-600">Failed to Load Problem</h2>
       <p className="text-gray-600">{error.message}</p>
@@ -57,6 +54,7 @@ export const Route = createFileRoute("/_admin/admin/problem/$id")({
       </div>
     </div>
   ),
+  preload: false,
   component: RouteComponent,
 });
 
@@ -73,9 +71,11 @@ function RouteComponent() {
 
   return (
     <Stepper active={active} onStepClick={setActive} p={20} size="xs" styles={(theme) => ({
+      root: {
+        paddingTop: 0
+      },
       steps: {
-        justifyContent: "center",
-        gap: 5,
+        display: "none",
       },
       separator: {
         display: "none",
@@ -87,11 +87,9 @@ function RouteComponent() {
     })}>
       <Stepper.Step label={"Problem Details"} description={"Enter the problem details"} allowStepSelect={false}>
         <ProblemDescription
-          nextStep={nextStep}
-          prevStep={prevStep}
           problemId={id}
-          problemName={problem?.name}
-          content={problem?.description}
+          problemName={problem.name}
+          problemContent={problem?.description || ''}
         />
       </Stepper.Step>
       <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"} allowStepSelect={false}>

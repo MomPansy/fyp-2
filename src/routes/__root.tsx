@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Button, Center, Stack, Text, Title } from '@mantine/core';
 import { type QueryClient } from '@tanstack/react-query';
 
-import { createRootRouteWithContext, Link, Outlet, useNavigate } from '@tanstack/react-router'
+import { createRootRouteWithContext, Outlet, useNavigate } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 

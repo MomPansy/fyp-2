@@ -8,144 +8,198 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-// Import Routes
+import { Route as rootRouteImport } from './routes/__root.tsx';
+import { Route as RegisterRouteImport } from './routes/register.tsx';
+import { Route as LoginRouteImport } from './routes/login.tsx';
+import { Route as StudentRouteImport } from './routes/_student.tsx';
+import { Route as AdminRouteImport } from './routes/_admin.tsx';
+import { Route as IndexRouteImport } from './routes/index.tsx';
+import { Route as StudentStudentDashboardRouteImport } from './routes/_student.student.dashboard.tsx';
+import { Route as AdminAdminProblemsRouteImport } from './routes/_admin.admin.problems.tsx';
+import { Route as AdminAdminDashboardRouteImport } from './routes/_admin.admin.dashboard.tsx';
+import { Route as AdminAdminProblemIdRouteImport } from './routes/_admin.admin.problem.$id.tsx';
 
-import { Route as rootRoute } from './routes/__root.tsx';
-import { Route as RegisterImport } from './routes/register.tsx';
-import { Route as LoginImport } from './routes/login.tsx';
-import { Route as StudentImport } from './routes/_student.tsx';
-import { Route as AdminImport } from './routes/_admin.tsx';
-import { Route as IndexImport } from './routes/index.tsx';
-import { Route as StudentStudentDashboardImport } from './routes/_student.student.dashboard.tsx';
-import { Route as AdminAdminProblemsImport } from './routes/_admin.admin.problems.tsx';
-import { Route as AdminAdminDashboardImport } from './routes/_admin.admin.dashboard.tsx';
-import { Route as AdminAdminProblemIdImport } from './routes/_admin.admin.problem.$id.tsx';
-
-// Create/Update Routes
-
-const RegisterRoute = RegisterImport.update({
+const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any);
-
-const LoginRoute = LoginImport.update({
+const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any);
-
-const StudentRoute = StudentImport.update({
+const StudentRoute = StudentRouteImport.update({
   id: '/_student',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any);
-
-const AdminRoute = AdminImport.update({
+const AdminRoute = AdminRouteImport.update({
   id: '/_admin',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any);
-
-const IndexRoute = IndexImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => rootRouteImport,
 } as any);
-
-const StudentStudentDashboardRoute = StudentStudentDashboardImport.update({
+const StudentStudentDashboardRoute = StudentStudentDashboardRouteImport.update({
   id: '/student/dashboard',
   path: '/student/dashboard',
   getParentRoute: () => StudentRoute,
 } as any);
-
-const AdminAdminProblemsRoute = AdminAdminProblemsImport.update({
+const AdminAdminProblemsRoute = AdminAdminProblemsRouteImport.update({
   id: '/admin/problems',
   path: '/admin/problems',
   getParentRoute: () => AdminRoute,
 } as any);
-
-const AdminAdminDashboardRoute = AdminAdminDashboardImport.update({
+const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
   getParentRoute: () => AdminRoute,
 } as any);
-
-const AdminAdminProblemIdRoute = AdminAdminProblemIdImport.update({
+const AdminAdminProblemIdRoute = AdminAdminProblemIdRouteImport.update({
   id: '/admin/problem/$id',
   path: '/admin/problem/$id',
   getParentRoute: () => AdminRoute,
 } as any);
 
-// Populate the FileRoutesByPath interface
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute;
+  '/login': typeof LoginRoute;
+  '/register': typeof RegisterRoute;
+  '/admin/dashboard': typeof AdminAdminDashboardRoute;
+  '/admin/problems': typeof AdminAdminProblemsRoute;
+  '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/problem/$id': typeof AdminAdminProblemIdRoute;
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute;
+  '/login': typeof LoginRoute;
+  '/register': typeof RegisterRoute;
+  '/admin/dashboard': typeof AdminAdminDashboardRoute;
+  '/admin/problems': typeof AdminAdminProblemsRoute;
+  '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/problem/$id': typeof AdminAdminProblemIdRoute;
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/_admin': typeof AdminRouteWithChildren;
+  '/_student': typeof StudentRouteWithChildren;
+  '/login': typeof LoginRoute;
+  '/register': typeof RegisterRoute;
+  '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute;
+  '/_admin/admin/problems': typeof AdminAdminProblemsRoute;
+  '/_student/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/_admin/admin/problem/$id': typeof AdminAdminProblemIdRoute;
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/admin/dashboard'
+    | '/admin/problems'
+    | '/student/dashboard'
+    | '/admin/problem/$id';
+  fileRoutesByTo: FileRoutesByTo;
+  to:
+    | '/'
+    | '/login'
+    | '/register'
+    | '/admin/dashboard'
+    | '/admin/problems'
+    | '/student/dashboard'
+    | '/admin/problem/$id';
+  id:
+    | '__root__'
+    | '/'
+    | '/_admin'
+    | '/_student'
+    | '/login'
+    | '/register'
+    | '/_admin/admin/dashboard'
+    | '/_admin/admin/problems'
+    | '/_student/student/dashboard'
+    | '/_admin/admin/problem/$id';
+  fileRoutesById: FileRoutesById;
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute;
+  AdminRoute: typeof AdminRouteWithChildren;
+  StudentRoute: typeof StudentRouteWithChildren;
+  LoginRoute: typeof LoginRoute;
+  RegisterRoute: typeof RegisterRoute;
+}
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/';
-      path: '/';
-      fullPath: '/';
-      preLoaderRoute: typeof IndexImport;
-      parentRoute: typeof rootRoute;
-    };
-    '/_admin': {
-      id: '/_admin';
-      path: '';
-      fullPath: '';
-      preLoaderRoute: typeof AdminImport;
-      parentRoute: typeof rootRoute;
-    };
-    '/_student': {
-      id: '/_student';
-      path: '';
-      fullPath: '';
-      preLoaderRoute: typeof StudentImport;
-      parentRoute: typeof rootRoute;
+    '/register': {
+      id: '/register';
+      path: '/register';
+      fullPath: '/register';
+      preLoaderRoute: typeof RegisterRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     '/login': {
       id: '/login';
       path: '/login';
       fullPath: '/login';
-      preLoaderRoute: typeof LoginImport;
-      parentRoute: typeof rootRoute;
+      preLoaderRoute: typeof LoginRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
-    '/register': {
-      id: '/register';
-      path: '/register';
-      fullPath: '/register';
-      preLoaderRoute: typeof RegisterImport;
-      parentRoute: typeof rootRoute;
+    '/_student': {
+      id: '/_student';
+      path: '';
+      fullPath: '';
+      preLoaderRoute: typeof StudentRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
-    '/_admin/admin/dashboard': {
-      id: '/_admin/admin/dashboard';
-      path: '/admin/dashboard';
-      fullPath: '/admin/dashboard';
-      preLoaderRoute: typeof AdminAdminDashboardImport;
-      parentRoute: typeof AdminImport;
+    '/_admin': {
+      id: '/_admin';
+      path: '';
+      fullPath: '';
+      preLoaderRoute: typeof AdminRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
-    '/_admin/admin/problems': {
-      id: '/_admin/admin/problems';
-      path: '/admin/problems';
-      fullPath: '/admin/problems';
-      preLoaderRoute: typeof AdminAdminProblemsImport;
-      parentRoute: typeof AdminImport;
+    '/': {
+      id: '/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
     };
     '/_student/student/dashboard': {
       id: '/_student/student/dashboard';
       path: '/student/dashboard';
       fullPath: '/student/dashboard';
-      preLoaderRoute: typeof StudentStudentDashboardImport;
-      parentRoute: typeof StudentImport;
+      preLoaderRoute: typeof StudentStudentDashboardRouteImport;
+      parentRoute: typeof StudentRoute;
+    };
+    '/_admin/admin/problems': {
+      id: '/_admin/admin/problems';
+      path: '/admin/problems';
+      fullPath: '/admin/problems';
+      preLoaderRoute: typeof AdminAdminProblemsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    '/_admin/admin/dashboard': {
+      id: '/_admin/admin/dashboard';
+      path: '/admin/dashboard';
+      fullPath: '/admin/dashboard';
+      preLoaderRoute: typeof AdminAdminDashboardRouteImport;
+      parentRoute: typeof AdminRoute;
     };
     '/_admin/admin/problem/$id': {
       id: '/_admin/admin/problem/$id';
       path: '/admin/problem/$id';
       fullPath: '/admin/problem/$id';
-      preLoaderRoute: typeof AdminAdminProblemIdImport;
-      parentRoute: typeof AdminImport;
+      preLoaderRoute: typeof AdminAdminProblemIdRouteImport;
+      parentRoute: typeof AdminRoute;
     };
   }
 }
-
-// Create and export the route tree
 
 interface AdminRouteChildren {
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute;
@@ -172,84 +226,6 @@ const StudentRouteChildren: StudentRouteChildren = {
 const StudentRouteWithChildren =
   StudentRoute._addFileChildren(StudentRouteChildren);
 
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute;
-  '': typeof StudentRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/register': typeof RegisterRoute;
-  '/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/admin/problems': typeof AdminAdminProblemsRoute;
-  '/student/dashboard': typeof StudentStudentDashboardRoute;
-  '/admin/problem/$id': typeof AdminAdminProblemIdRoute;
-}
-
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute;
-  '': typeof StudentRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/register': typeof RegisterRoute;
-  '/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/admin/problems': typeof AdminAdminProblemsRoute;
-  '/student/dashboard': typeof StudentStudentDashboardRoute;
-  '/admin/problem/$id': typeof AdminAdminProblemIdRoute;
-}
-
-export interface FileRoutesById {
-  __root__: typeof rootRoute;
-  '/': typeof IndexRoute;
-  '/_admin': typeof AdminRouteWithChildren;
-  '/_student': typeof StudentRouteWithChildren;
-  '/login': typeof LoginRoute;
-  '/register': typeof RegisterRoute;
-  '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/_admin/admin/problems': typeof AdminAdminProblemsRoute;
-  '/_student/student/dashboard': typeof StudentStudentDashboardRoute;
-  '/_admin/admin/problem/$id': typeof AdminAdminProblemIdRoute;
-}
-
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths:
-    | '/'
-    | ''
-    | '/login'
-    | '/register'
-    | '/admin/dashboard'
-    | '/admin/problems'
-    | '/student/dashboard'
-    | '/admin/problem/$id';
-  fileRoutesByTo: FileRoutesByTo;
-  to:
-    | '/'
-    | ''
-    | '/login'
-    | '/register'
-    | '/admin/dashboard'
-    | '/admin/problems'
-    | '/student/dashboard'
-    | '/admin/problem/$id';
-  id:
-    | '__root__'
-    | '/'
-    | '/_admin'
-    | '/_student'
-    | '/login'
-    | '/register'
-    | '/_admin/admin/dashboard'
-    | '/_admin/admin/problems'
-    | '/_student/student/dashboard'
-    | '/_admin/admin/problem/$id';
-  fileRoutesById: FileRoutesById;
-}
-
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  AdminRoute: typeof AdminRouteWithChildren;
-  StudentRoute: typeof StudentRouteWithChildren;
-  LoginRoute: typeof LoginRoute;
-  RegisterRoute: typeof RegisterRoute;
-}
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -257,63 +233,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
 };
-
-export const routeTree = rootRoute
+export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>();
-
-/* ROUTE_MANIFEST_START
-{
-  "routes": {
-    "__root__": {
-      "filePath": "__root.tsx",
-      "children": [
-        "/",
-        "/_admin",
-        "/_student",
-        "/login",
-        "/register"
-      ]
-    },
-    "/": {
-      "filePath": "index.tsx"
-    },
-    "/_admin": {
-      "filePath": "_admin.tsx",
-      "children": [
-        "/_admin/admin/dashboard",
-        "/_admin/admin/problems",
-        "/_admin/admin/problem/$id"
-      ]
-    },
-    "/_student": {
-      "filePath": "_student.tsx",
-      "children": [
-        "/_student/student/dashboard"
-      ]
-    },
-    "/login": {
-      "filePath": "login.tsx"
-    },
-    "/register": {
-      "filePath": "register.tsx"
-    },
-    "/_admin/admin/dashboard": {
-      "filePath": "_admin.admin.dashboard.tsx",
-      "parent": "/_admin"
-    },
-    "/_admin/admin/problems": {
-      "filePath": "_admin.admin.problems.tsx",
-      "parent": "/_admin"
-    },
-    "/_student/student/dashboard": {
-      "filePath": "_student.student.dashboard.tsx",
-      "parent": "/_student"
-    },
-    "/_admin/admin/problem/$id": {
-      "filePath": "_admin.admin.problem.$id.tsx",
-      "parent": "/_admin"
-    }
-  }
-}
-ROUTE_MANIFEST_END */

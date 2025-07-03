@@ -20,7 +20,8 @@ import { useMemo, useState } from "react";
 import { TableMetadata } from "./types.ts";
 
 export function ProblemDatabase() {
-  // TODO: retrieve column types from the database 
+  // TODO: prefetch the column types from the database 
+
   const [tableMetadata, setTableMetadata] = useState<TableMetadata[]>([]);
   const [selectedTable1Index, setSelectedTable1Index] = useState<number | null>(null);
   const [selectedTable2Index, setSelectedTable2Index] = useState<number | null>(null);
