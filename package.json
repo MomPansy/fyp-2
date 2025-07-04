@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.7.0",
   "scripts": {
     "envx": "dotenvx",
-    "envx:run": "pnpm envx run --env-file .env.production --env-file .env.local --overload",
+    "envx:run": "pnpm envx run --ignore --env-file .env.production --env-file .env.local --overload",
     "dev:server": "pnpm envx:run -- tsx watch --tsconfig tsconfig.node.json server/index.ts",
     "dev:app": "wait-on http://127.0.0.1:3000/healthz && cross-env NODE_ENV=development vite",
     "dev": "pnpm run --stream /dev:.*/",
