@@ -2,7 +2,7 @@ import { factory } from "server/factory.ts";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { auth } from "server/middlewares/auth.ts";
-import { supabase } from "server/lib/supabase";
+import { supabase } from "server/lib/supabase.ts";
 import { HTTPException } from "hono/http-exception";
 
 export const route = factory

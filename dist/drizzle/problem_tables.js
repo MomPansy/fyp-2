@@ -15,6 +15,7 @@ const problemTables = pgTable("problem_tables", {
   ddlScript: text("ddl_script").notNull(),
   dataPath: text("data_path").notNull(),
   columnTypes: jsonb("column_types").$type(),
+  relations: jsonb("relations").$type(),
   createdAt: timestamp("created_at").notNull().defaultNow()
 }, (table) => [
   foreignKey({

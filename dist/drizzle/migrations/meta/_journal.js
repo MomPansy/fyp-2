@@ -21,6 +21,13 @@ var entries = [
     when: 1751304719080,
     tag: "0002_overconfident_human_robot",
     breakpoints: false
+  },
+  {
+    idx: 3,
+    version: "7",
+    when: 1751652604200,
+    tag: "0003_ambiguous_sandman",
+    breakpoints: false
   }
 ];
 var journal_default = {

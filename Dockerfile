@@ -38,4 +38,4 @@ COPY package.json ./
 USER node
 EXPOSE 3000
 ENV NODE_ENV=production
-CMD ["pnpm", "envx", "run", "--env-file", ".env.production", "node", "dist/index.js"]
+CMD ["pnpm", "run", "start"]
