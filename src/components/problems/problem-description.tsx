@@ -1,15 +1,15 @@
-import { Group, Loader, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Button, Group, Stack, Text, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDebouncedCallback } from "@mantine/hooks";
 import { IconCheck } from "@tabler/icons-react";
-import { useAutoSaveProblemContent, useAutoSaveProblemName } from "hooks/useProblem";
+import { useAutoSaveProblemContent, useAutoSaveProblemName, usePrefetchProblemTablesColumnTypes } from "@/hooks/use-problem";
 import { useEffect, useState } from "react";
 import { SimpleEditor } from "components/tiptap-templates/simple/simple-editor";
 import { UseEditorOptions } from "@tiptap/react";
-import { editor } from "monaco-editor";
+import { useProblemContext } from "./problem-context";
+
 
 interface ProblemDescriptionProps {
-  problemId: string;
   problemName: string;
   problemContent: string;
 }
@@ -72,10 +72,11 @@ function useSaveStatus(
 
 
 export function ProblemDescription({
-  problemId,
   problemName: initialProblemName,
   problemContent: initialContent
 }: ProblemDescriptionProps) {
+  const { problemId, nextStep } = useProblemContext()
+
   const { mutate: saveContentMutate, isPending: saveContentPending, isSuccess: saveContentSuccess } = useAutoSaveProblemContent();
   const { mutate: saveNameMutate, isPending: saveNamePending, isSuccess: saveNameSuccess } = useAutoSaveProblemName();
 
@@ -107,6 +108,7 @@ export function ProblemDescription({
         });
       }
     }, 500)
+
   const debouncedSaveName = useDebouncedCallback(
     (name: string) => {
       const errors = form.validate();
@@ -125,14 +127,29 @@ export function ProblemDescription({
     saveContentSuccess,
     saveContentPending
   );
+
+  const prefetchColumnTypes = () => {
+    usePrefetchProblemTablesColumnTypes(problemId);
+  }
+
   return (
     <Stack>
-      <TextInput
-        placeholder="Enter the name of your problem"
-        label="Problem name"
-        required
-        {...form.getInputProps('name')}
-      />
+      <Group>
+        <Group flex={1}>
+          <TextInput
+            placeholder="Enter the name of your problem"
+            label="Problem name"
+            required
+            w='100%'
+            {...form.getInputProps('name')}
+          />
+        </Group>
+        <Group >
+          <Button onClick={nextStep} disabled={!form.isValid()} color="blue" mt={25} onMouseEnter={prefetchColumnTypes}>
+            Next Step
+          </Button>
+        </Group>
+      </Group>
       <SimpleEditor
         onUpdate={onUpdate}
         initialContent={initialContent}

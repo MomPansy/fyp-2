@@ -1,15 +1,20 @@
 import {
   queryOptions,
   useMutation,
+  usePrefetchQuery,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { showErrorNotification } from "components/notifications";
-import { problemKeys } from "components/problems/querykeys.ts";
+import {
+  problemKeys,
+  problemTableKeys,
+} from "components/problems/querykeys.ts";
 import { supabase } from "lib/supabase.ts";
 import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html";
 import { Database } from "database.gen";
+import { TableMetadata } from "server/drizzle/_custom";
 
 // Query options for use in loaders (router-safe)
 export const problemDetailQueryOptions = (id: string) =>
@@ -171,63 +176,41 @@ export const useAutoSaveProblemContent = () => {
   });
 };
 
-export const useProblem = () => {
-  const queryClient = useQueryClient();
-  async function saveProblemDetails(
-    { id, problemName, content }: {
-      id?: string;
-      problemName: string;
-      content: string;
-    },
-  ) {
-    // Logic to save the problem name and content
-    const { data, error } = await supabase.from("problems").upsert({
-      id: id,
-      name: problemName,
-      description: content,
-    }).select("id").single();
+const problemTablesColumnTypesQueryOptions = (id: string) => {
+  return queryOptions<TableMetadata[]>({
+    queryKey: problemTableKeys.columnTypes(id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("problem_tables")
+        .select("table_name, column_types")
+        .eq("problem_id", id);
 
-    if (error) {
-      showErrorNotification({
-        title: "Error saving problem",
-        message: error.message,
-      });
-    }
-    return data;
-  }
-
-  const saveProblemDetailsMutation = () =>
-    useMutation({
-      mutationFn: saveProblemDetails,
-      onSuccess: (data) => {
-        if (data?.id) {
-          // Optimistically update the cache
-          queryClient.setQueryData(
-            problemKeys.detail(data.id),
-            (oldData: any) => oldData ? { ...oldData, ...data } : data,
-          );
-          // Then invalidate to ensure freshness
-          queryClient.invalidateQueries({
-            queryKey: problemKeys.detail(data.id),
-          });
-        }
-        // Always invalidate the list view
-        queryClient.invalidateQueries({ queryKey: problemKeys.all });
-      },
-      onError: (error) => {
+      if (error) {
         showErrorNotification({
-          title: "Error saving problem",
+          title: "Failed to fetch problem tables",
           message: error.message,
         });
-      },
-    });
+        throw new Error(error.message);
+      }
+      if (!data || data.length === 0) {
+        return [];
+      }
+      return data.map((item) => ({
+        tableName: item.table_name,
+        columnTypes: item.column_types,
+      })) as TableMetadata[];
+    },
+  });
+};
 
-  const fetchProblemsQuery = (id: string) => {
-    return useSuspenseQuery(problemDetailQueryOptions(id));
-  };
+export const usePrefetchProblemTablesColumnTypes = (id: string) => {
+  useQueryClient().prefetchQuery({
+    ...problemTablesColumnTypesQueryOptions(id),
+  });
+};
 
-  return {
-    saveProblemDetailsMutation,
-    fetchProblemsQuery,
-  };
+export const useFetchProblemTablesColumnTypes = (id: string) => {
+  return useSuspenseQuery({
+    ...problemTablesColumnTypesQueryOptions(id),
+  });
 };

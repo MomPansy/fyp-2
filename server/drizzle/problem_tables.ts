@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { problems } from "./problems.ts";
-import { ColumnType } from "./_custom.ts";
+import { ColumnType, ForeignKeyMapping } from "./_custom.ts";
 
 export const problemTables = pgTable("problem_tables", {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
@@ -17,6 +17,7 @@ export const problemTables = pgTable("problem_tables", {
     ddlScript: text("ddl_script").notNull(),
     dataPath: text("data_path").notNull(),
     columnTypes: jsonb("column_types").$type<ColumnType[]>(),
+    relations: jsonb("relations").$type<ForeignKeyMapping[]>(),
     createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
     foreignKey({

@@ -1,14 +1,14 @@
-import { ProblemInsert } from "@/components/problems/types";
+
+import { ProblemContext } from "@/components/problems/problem-context";
 import {
-  Button,
-  Group,
   Stepper,
 } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
-import { ProblemDatabase } from "components/problems/problem-database";
+import { ProblemDatabase } from "@/components/problems/database/problem-database";
 import { ProblemDescription } from "components/problems/problem-description";
-import { problemDetailQueryOptions, createNewProblem } from "hooks/useProblem";
+import { problemDetailQueryOptions, createNewProblem } from "@/hooks/use-problem";
 import { useState } from "react";
+
 
 export const Route = createFileRoute("/_admin/admin/problem/$id")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -70,31 +70,32 @@ function RouteComponent() {
   };
 
   return (
-    <Stepper active={active} onStepClick={setActive} p={20} size="xs" styles={(theme) => ({
-      root: {
-        paddingTop: 0
-      },
-      steps: {
-        display: "none",
-      },
-      separator: {
-        display: "none",
-      },
-      stepBody: {
-        display: "none"
-      },
+    <ProblemContext.Provider value={{ problemId: id, prevStep, nextStep }}>
+      <Stepper active={active} onStepClick={setActive} p={20} size="xs" styles={(theme) => ({
+        root: {
+          paddingTop: 0
+        },
+        steps: {
+          display: "none",
+        },
+        separator: {
+          display: "none",
+        },
+        stepBody: {
+          display: "none"
+        },
 
-    })}>
-      <Stepper.Step label={"Problem Details"} description={"Enter the problem details"} allowStepSelect={false}>
-        <ProblemDescription
-          problemId={id}
-          problemName={problem.name}
-          problemContent={problem?.description || ''}
-        />
-      </Stepper.Step>
-      <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"} allowStepSelect={false}>
-        <ProblemDatabase />
-      </Stepper.Step>
-    </Stepper>
+      })}>
+        <Stepper.Step label={"Problem Details"} description={"Enter the problem details"} allowStepSelect={false}>
+          <ProblemDescription
+            problemName={problem.name}
+            problemContent={problem?.description || ''}
+          />
+        </Stepper.Step>
+        <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"} allowStepSelect={false}>
+          <ProblemDatabase />
+        </Stepper.Step>
+      </Stepper>
+    </ProblemContext.Provider>
   );
 }

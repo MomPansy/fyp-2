@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { type Database } from "database.types.ts";
+import { type Database } from "../database.local.ts";
 
 export const supabaseUrl = import.meta.env.DEV
     ? "http://127.0.0.1:54321"

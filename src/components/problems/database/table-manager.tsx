@@ -3,21 +3,16 @@ import { FileWithPath, MIME_TYPES } from "@mantine/dropzone";
 import { parse, unparse } from "papaparse";
 import { useDisclosure } from "@mantine/hooks";
 import { useCallback, useEffect, useState } from "react";
-import { DropCSV } from "./dropzone.tsx";
-import { CSVModal } from "./csv-modal.tsx";
+import { DropCSV } from "../dropzone.tsx";
+import { CSVModal } from "../csv-modal.tsx";
 import { showErrorNotification, showSuccessNotification } from "components/notifications.ts";
-import { useDataStorage } from "hooks/useDataStorage.ts";
+import { useDataStorage } from "@/hooks/use-storage.ts";
 //@ts-expect-error
 import GenerateSchema from 'generate-schema';
-import { TableMetadata } from "./types.ts";
+import { useProblemContext } from "../problem-context.ts";
 
-interface Props {
-  setTableMetadata: React.Dispatch<React.SetStateAction<TableMetadata[]>>;
-}
 
-export function TableManager(props: Props) {
-  const { setTableMetadata } = props;
-
+export function TableManager() {
   const [isOpen, { open, close }] = useDisclosure(false);
   const [fileName, setFileName] = useState<string>();
   const [columns, setColumns] = useState<Set<string>>(new Set());
@@ -26,6 +21,8 @@ export function TableManager(props: Props) {
     uploadFile,
     isLoading
   } = useDataStorage();
+
+  const { problemId } = useProblemContext()
 
   const GS = GenerateSchema as any;
 
@@ -81,19 +78,13 @@ export function TableManager(props: Props) {
         type: (value as { type: string }).type
       }));
 
-      const tableMetadata: TableMetadata = {
-        tableName: fileName,
-        columnTypes
-      };
-
       await uploadFile({
         csvString,
         tableName: fileName,
-        assessmentName: fileName,
+        problemId: problemId,
         columnTypes: columnTypes,
       });
 
-      setTableMetadata((prev) => [...prev, tableMetadata]);
       showSuccessNotification({
         title: "Save successful",
         message: `Table ${fileName} has been saved successfully.`,
@@ -113,7 +104,6 @@ export function TableManager(props: Props) {
       columns,
       data,
       uploadFile,
-      setTableMetadata,
       close,
       reset,
     ]);
