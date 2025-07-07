@@ -5,12 +5,12 @@ import {
 } from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
 import { ProblemDatabase } from "@/components/problems/database/problem-database";
-import { ProblemDescription } from "components/problems/problem-description";
+import { ProblemDescription } from "components/problems/details/problem-description";
 import { problemDetailQueryOptions, createNewProblem } from "@/hooks/use-problem";
 import { useState } from "react";
 
 
-export const Route = createFileRoute("/_admin/admin/problem/$id")({
+export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
   loader: async ({ context: { queryClient }, params }) => {
     try {
       // Try to fetch existing problem
@@ -61,41 +61,13 @@ export const Route = createFileRoute("/_admin/admin/problem/$id")({
 function RouteComponent() {
   const problem = Route.useLoaderData()
   const { id } = Route.useParams();
-  const [active, setActive] = useState<number>(0);
-  const nextStep = () => {
-    setActive((current) => current + 1);
-  };
-  const prevStep = () => {
-    setActive((current) => current > 1 ? current - 1 : current);
-  };
 
   return (
-    <ProblemContext.Provider value={{ problemId: id, prevStep, nextStep }}>
-      <Stepper active={active} onStepClick={setActive} p={20} size="xs" styles={(theme) => ({
-        root: {
-          paddingTop: 0
-        },
-        steps: {
-          display: "none",
-        },
-        separator: {
-          display: "none",
-        },
-        stepBody: {
-          display: "none"
-        },
-
-      })}>
-        <Stepper.Step label={"Problem Details"} description={"Enter the problem details"} allowStepSelect={false}>
-          <ProblemDescription
-            problemName={problem.name}
-            problemContent={problem?.description || ''}
-          />
-        </Stepper.Step>
-        <Stepper.Step label={"Database Setup"} description={"Set up the assessment database"} allowStepSelect={false}>
-          <ProblemDatabase />
-        </Stepper.Step>
-      </Stepper>
-    </ProblemContext.Provider>
+    <ProblemContext.Provider value={{ problemId: id }}>
+      <ProblemDescription
+        problemName={problem.name}
+        problemContent={problem?.description || ''}
+      />
+    </ProblemContext.Provider >
   );
 }

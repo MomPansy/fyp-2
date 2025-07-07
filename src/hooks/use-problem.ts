@@ -4,6 +4,7 @@ import {
   usePrefetchQuery,
   useQuery,
   useQueryClient,
+  useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { showErrorNotification } from "components/notifications";
@@ -14,7 +15,7 @@ import {
 import { supabase } from "lib/supabase.ts";
 import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html";
 import { Database } from "database.gen";
-import { TableMetadata } from "server/drizzle/_custom";
+import { ForeignKeyMapping, TableMetadata } from "server/drizzle/_custom";
 
 // Query options for use in loaders (router-safe)
 export const problemDetailQueryOptions = (id: string) =>
@@ -176,7 +177,7 @@ export const useAutoSaveProblemContent = () => {
   });
 };
 
-const problemTablesColumnTypesQueryOptions = (id: string) => {
+export const problemTablesColumnTypesQueryOptions = (id: string) => {
   return queryOptions<TableMetadata[]>({
     queryKey: problemTableKeys.columnTypes(id),
     queryFn: async () => {
@@ -203,6 +204,47 @@ const problemTablesColumnTypesQueryOptions = (id: string) => {
   });
 };
 
+export const problemTablesRelationsQueryOptions = (id: string) => {
+  return queryOptions<Record<string, ForeignKeyMapping[]>>({
+    queryKey: problemTableKeys.relationsByProblemId(id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("problem_tables")
+        .select("table_name, relations")
+        .eq("problem_id", id);
+
+      if (error) {
+        showErrorNotification({
+          title: "Failed to fetch problem table relations",
+          message: error.message,
+        });
+        throw new Error(error.message);
+      }
+      if (!data || data.length === 0) {
+        return {};
+      }
+
+      const groupedMappings: Record<string, ForeignKeyMapping[]> = {};
+
+      data.forEach((item) => {
+        const foreignKeyMapping = (item.relations || []) as ForeignKeyMapping[];
+        if (foreignKeyMapping && foreignKeyMapping.length > 0) {
+          foreignKeyMapping.forEach((mapping) => {
+            const pairKey =
+              `${mapping.baseTableName}_to_${mapping.foreignTableName}`;
+            if (!groupedMappings[pairKey]) {
+              groupedMappings[pairKey] = [];
+            }
+            groupedMappings[pairKey].push(mapping);
+          });
+        }
+      });
+
+      return groupedMappings;
+    },
+  });
+};
+
 export const usePrefetchProblemTablesColumnTypes = (id: string) => {
   useQueryClient().prefetchQuery({
     ...problemTablesColumnTypesQueryOptions(id),
@@ -212,5 +254,11 @@ export const usePrefetchProblemTablesColumnTypes = (id: string) => {
 export const useFetchProblemTablesColumnTypes = (id: string) => {
   return useSuspenseQuery({
     ...problemTablesColumnTypesQueryOptions(id),
+  });
+};
+
+export const useFetchProblemTablesRelations = (id: string) => {
+  return useSuspenseQuery({
+    ...problemTablesRelationsQueryOptions(id),
   });
 };

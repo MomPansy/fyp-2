@@ -6,9 +6,9 @@ import { useAutoSaveProblemContent, useAutoSaveProblemName, usePrefetchProblemTa
 import { useEffect, useState } from "react";
 import { SimpleEditor } from "components/tiptap-templates/simple/simple-editor";
 import { UseEditorOptions } from "@tiptap/react";
-import { useProblemContext } from "./problem-context";
-
-
+import { useProblemContext } from "../problem-context";
+import { useNavigate } from "@tanstack/react-router";
+import { CustomAnchor } from "../../buttons/link-button";
 interface ProblemDescriptionProps {
   problemName: string;
   problemContent: string;
@@ -75,7 +75,8 @@ export function ProblemDescription({
   problemName: initialProblemName,
   problemContent: initialContent
 }: ProblemDescriptionProps) {
-  const { problemId, nextStep } = useProblemContext()
+  const navigate = useNavigate();
+  const { problemId } = useProblemContext()
 
   const { mutate: saveContentMutate, isPending: saveContentPending, isSuccess: saveContentSuccess } = useAutoSaveProblemContent();
   const { mutate: saveNameMutate, isPending: saveNamePending, isSuccess: saveNameSuccess } = useAutoSaveProblemName();
@@ -144,10 +145,12 @@ export function ProblemDescription({
             {...form.getInputProps('name')}
           />
         </Group>
-        <Group >
-          <Button onClick={nextStep} disabled={!form.isValid()} color="blue" mt={25} onMouseEnter={prefetchColumnTypes}>
-            Next Step
-          </Button>
+        <Group>
+          <CustomAnchor to={'/admin/problem/$id/database'} params={{ id: problemId }} style={{ textDecoration: 'none' }} preload="intent">
+            <Button disabled={!form.isValid()} color="blue" mt={25} onMouseEnter={prefetchColumnTypes}>
+              Next Step
+            </Button>
+          </CustomAnchor>
         </Group>
       </Group>
       <SimpleEditor

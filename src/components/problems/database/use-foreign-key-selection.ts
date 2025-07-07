@@ -3,6 +3,10 @@ import { useProblemContext } from "../problem-context";
 import { ForeignKeyMapping } from "./database-types";
 import { supabase } from "@/lib/supabase";
 import { problemTableKeys } from "../querykeys";
+import {
+  showErrorNotification,
+  showSuccessNotification,
+} from "@/components/notifications";
 
 export const useSaveRelations = () => {
   const { problemId } = useProblemContext();
@@ -17,16 +21,10 @@ export const useSaveRelations = () => {
       // For each table that has foreign key mappings
       for (const [tableName, mappings] of Object.entries(groupedMappings)) {
         // Transform the mappings to match the server schema
-        const relations = mappings.map((mapping) => ({
-          foreignTableName: mapping.table2Name,
-          foreignTableColumn: mapping.table2Column,
-          foreignTableType: mapping.table2ColumnType,
-        }));
-
         // Update the relations for this specific table
         const { data, error } = await supabase
           .from("problem_tables")
-          .update({ relations: relations })
+          .update({ relations: mappings })
           .eq("problem_id", problemId)
           .eq("table_name", tableName);
 
@@ -55,32 +53,21 @@ export const useSaveRelations = () => {
       // Optimistically update to the new value
       queryClient.setQueryData(
         problemTableKeys.relationsByProblemId(problemId),
-        (oldData: any) => {
-          if (!oldData) return oldData;
+        (oldData: Record<string, ForeignKeyMapping[]>) => {
+          if (!oldData) return groupedMappings;
 
-          // Update the relations for each table in the grouped mappings
-          return oldData.map((table: any) => {
-            const tableRelations = groupedMappings[table.table_name];
-            if (tableRelations) {
-              const transformedRelations = tableRelations.map((mapping) => ({
-                foreignTableName: mapping.table2Name,
-                foreignTableColumn: mapping.table2Column,
-                foreignTableType: mapping.table2ColumnType,
-              }));
-              return {
-                ...table,
-                relations: transformedRelations,
-              };
-            }
-            return table;
-          });
+          // Merge the old data with the new grouped mappings
+          return {
+            ...oldData,
+            ...groupedMappings,
+          };
         },
       );
 
       // Return a context object with the snapshotted value
       return { previousRelations };
     },
-    onError: (_error, _variables, context) => {
+    onError: (error, _variables, context) => {
       // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousRelations) {
         queryClient.setQueryData(
@@ -88,11 +75,19 @@ export const useSaveRelations = () => {
           context.previousRelations,
         );
       }
+      showErrorNotification({
+        message: error.message,
+        title: "Failed to save relations",
+      });
     },
     onSuccess: (data) => {
       // Invalidate and refetch
       queryClient.invalidateQueries({
         queryKey: problemTableKeys.relationsByProblemId(problemId),
+      });
+      showSuccessNotification({
+        message: "Relations saved successfully!",
+        title: "Success",
       });
     },
   });

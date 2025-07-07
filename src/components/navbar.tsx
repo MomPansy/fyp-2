@@ -104,7 +104,7 @@ export function Navbar({ close }: { close?: () => void }) {
                   onClick={close}
                 />
                 <CustomLink
-                  to='/admin/problem/$id'
+                  to='/admin/problem/$id/details'
                   params={{ id: createProblemId() }}
                   leftSection={<IconFilePencil className="size-5" />}
                   label="Create Problem"

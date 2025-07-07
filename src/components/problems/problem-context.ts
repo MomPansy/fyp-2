@@ -2,8 +2,6 @@ import { createContext, useContext } from "react";
 
 interface ProblemContextProps {
     problemId: string;
-    prevStep: () => void;
-    nextStep: () => void;
 }
 
 export const ProblemContext = createContext<ProblemContextProps | undefined>(

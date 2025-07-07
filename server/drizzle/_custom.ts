@@ -21,6 +21,9 @@ export type TableMetadata = {
 };
 
 export type ForeignKeyMapping = {
+    baseTableName: string;
+    baseColumnName: string;
+    baseColumnType: string;
     foreignTableName: string;
     foreignTableColumn: string;
     foreignTableType: string;

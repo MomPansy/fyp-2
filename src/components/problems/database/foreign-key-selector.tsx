@@ -14,27 +14,27 @@ import {
 } from "@mantine/core";
 import { IconArrowRight, IconTrash } from "@tabler/icons-react";
 import { useState, useEffect } from "react";
-import { ColumnType, ForeignKeyMapping } from "../database-types.ts";
+import { ColumnType, ForeignKeyMapping } from "./database-types.ts";
 
 // Exported utility function to process foreign key mappings
 export const processForeignKeyMappings = (mappings: ForeignKeyMapping[]): Record<string, ForeignKeyMapping[]> => {
   // drop the mappings with any empty values 
   const filteredMappings = mappings.filter(mapping =>
-    mapping.table1Column && mapping.table2Column && mapping.table1Name && mapping.table2Name && mapping.table1ColumnType && mapping.table2ColumnType
+    mapping.baseColumnName && mapping.foreignTableColumn && mapping.baseTableName && mapping.foreignTableName && mapping.baseColumnType && mapping.foreignTableType
   );
 
-  // group by table1Name, table1Name will be the base table and the rest will be the foreign tables 
+  // group by baseTableName, baseTableName will be the base table and the rest will be the foreign tables 
   const groupedMappings = filteredMappings.reduce((acc, mapping) => {
-    if (!acc[mapping.table1Name]) {
-      acc[mapping.table1Name] = [];
+    if (!acc[mapping.baseTableName]) {
+      acc[mapping.baseTableName] = [];
     }
-    acc[mapping.table1Name].push({
-      table1Name: mapping.table1Name,
-      table2Name: mapping.table2Name,
-      table1Column: mapping.table1Column,
-      table2Column: mapping.table2Column,
-      table1ColumnType: mapping.table1ColumnType,
-      table2ColumnType: mapping.table2ColumnType
+    acc[mapping.baseTableName].push({
+      baseTableName: mapping.baseTableName,
+      foreignTableName: mapping.foreignTableName,
+      baseColumnName: mapping.baseColumnName,
+      foreignTableColumn: mapping.foreignTableColumn,
+      baseColumnType: mapping.baseColumnType,
+      foreignTableType: mapping.foreignTableType
     });
     return acc;
   }, {} as Record<string, ForeignKeyMapping[]>);
@@ -49,6 +49,7 @@ interface ForeignKeySelectorProps {
   selectedTable2Name: string | null;
   onMappingsChange?: (mappings: ForeignKeyMapping[]) => void;
   onSave?: (groupedMappings: Record<string, ForeignKeyMapping[]>) => void;
+  initialMappings?: Record<string, ForeignKeyMapping[]>;
 }
 
 export function ForeignKeySelector({
@@ -58,21 +59,24 @@ export function ForeignKeySelector({
   selectedTable2Name,
   onMappingsChange,
   onSave,
+  initialMappings,
 }: ForeignKeySelectorProps) {
   // Store mappings grouped by table pair
-  const [groupedMappings, setGroupedMappings] = useState<Record<string, ForeignKeyMapping[]>>({});
+  const [groupedMappings, setGroupedMappings] = useState<Record<string, ForeignKeyMapping[]>>(
+    initialMappings || {}
+  );
 
   // Generate a key for the current table pair
   const currentPairKey = `${selectedTable1Name || 'table1'}_to_${selectedTable2Name || 'table2'}`;
 
   // Get current mappings for the selected table pair
   const currentMappings = groupedMappings[currentPairKey] || [{
-    table1Name: selectedTable1Name || '',
-    table1Column: '',
-    table1ColumnType: '',
-    table2Name: selectedTable2Name || '',
-    table2Column: '',
-    table2ColumnType: ''
+    baseTableName: selectedTable1Name || '',
+    baseColumnName: '',
+    baseColumnType: '',
+    foreignTableName: selectedTable2Name || '',
+    foreignTableColumn: '',
+    foreignTableType: ''
   }];
 
   // Update the grouped mappings when current mappings change
@@ -87,15 +91,22 @@ export function ForeignKeySelector({
   useEffect(() => {
     if (!groupedMappings[currentPairKey]) {
       updateGroupedMappings([{
-        table1Name: selectedTable1Name || '',
-        table1Column: '',
-        table1ColumnType: '',
-        table2Name: selectedTable2Name || '',
-        table2Column: '',
-        table2ColumnType: ''
+        baseTableName: selectedTable1Name || '',
+        baseColumnName: '',
+        baseColumnType: '',
+        foreignTableName: selectedTable2Name || '',
+        foreignTableColumn: '',
+        foreignTableType: ''
       }]);
     }
   }, [currentPairKey, selectedTable1Name, selectedTable2Name]);
+
+  // Update grouped mappings when initial data changes
+  useEffect(() => {
+    if (initialMappings) {
+      setGroupedMappings(initialMappings);
+    }
+  }, [initialMappings]);
 
   // Call callback when mappings change - flatten all mappings
   useEffect(() => {
@@ -105,12 +116,12 @@ export function ForeignKeySelector({
 
   const addForeignKeyMapping = () => {
     const newMapping = {
-      table1Name: selectedTable1Name || '',
-      table1Column: '',
-      table1ColumnType: '',
-      table2Name: selectedTable2Name || '',
-      table2Column: '',
-      table2ColumnType: ''
+      baseTableName: selectedTable1Name || '',
+      baseColumnName: '',
+      baseColumnType: '',
+      foreignTableName: selectedTable2Name || '',
+      foreignTableColumn: '',
+      foreignTableType: ''
     };
     updateGroupedMappings([...currentMappings, newMapping]);
   };
@@ -122,21 +133,21 @@ export function ForeignKeySelector({
     }
   };
 
-  const updateForeignKeyMapping = (index: number, field: 'table1Column' | 'table2Column', value: string) => {
+  const updateForeignKeyMapping = (index: number, field: 'baseColumnName' | 'foreignTableColumn', value: string) => {
     const updated = [...currentMappings];
     updated[index][field] = value;
 
     // Update the corresponding type field when column changes
-    if (field === 'table1Column') {
+    if (field === 'baseColumnName') {
       const columnType = table1Columns.find(col => col.column === value)?.type || '';
-      updated[index].table1ColumnType = columnType;
+      updated[index].baseColumnType = columnType;
       // Update table name when column is selected
-      updated[index].table1Name = selectedTable1Name || '';
-    } else if (field === 'table2Column') {
+      updated[index].baseTableName = selectedTable1Name || '';
+    } else if (field === 'foreignTableColumn') {
       const columnType = table2Columns.find(col => col.column === value)?.type || '';
-      updated[index].table2ColumnType = columnType;
+      updated[index].foreignTableType = columnType;
       // Update table name when column is selected
-      updated[index].table2Name = selectedTable2Name || '';
+      updated[index].foreignTableName = selectedTable2Name || '';
     }
 
     updateGroupedMappings(updated);
@@ -171,9 +182,9 @@ export function ForeignKeySelector({
               <Select
                 placeholder="Select column..."
                 data={table1Columns.map(col => {
-                  const hasTypeMismatch = mapping.table2Column ? col.type !== table2Columns.find(t2Col => t2Col.column === mapping.table2Column)?.type : false;
+                  const hasTypeMismatch = mapping.foreignTableColumn ? col.type !== table2Columns.find(t2Col => t2Col.column === mapping.foreignTableColumn)?.type : false;
                   const isDuplicate = currentMappings.some((otherMapping, otherIndex) =>
-                    otherIndex !== index && otherMapping.table1Column === col.column
+                    otherIndex !== index && otherMapping.baseColumnName === col.column
                   );
 
                   return {
@@ -183,12 +194,12 @@ export function ForeignKeySelector({
                   };
                 })}
                 disabled={table1Columns.length === 0}
-                value={mapping.table1Column}
-                onChange={(value) => updateForeignKeyMapping(index, 'table1Column', value || '')}
+                value={mapping.baseColumnName}
+                onChange={(value) => updateForeignKeyMapping(index, 'baseColumnName', value || '')}
               />
               <Flex align='center' justify="flex-start">
                 <Badge>
-                  {mapping.table1ColumnType || "Type"}
+                  {mapping.baseColumnType || "Type"}
                 </Badge>
               </Flex>
               <Flex justify="center">
@@ -197,9 +208,9 @@ export function ForeignKeySelector({
               <Select
                 placeholder="Select column..."
                 data={table2Columns.map(col => {
-                  const hasTypeMismatch = mapping.table1Column ? col.type !== table1Columns.find(t1Col => t1Col.column === mapping.table1Column)?.type : false;
+                  const hasTypeMismatch = mapping.baseColumnName ? col.type !== table1Columns.find(t1Col => t1Col.column === mapping.baseColumnName)?.type : false;
                   const isDuplicate = currentMappings.some((otherMapping, otherIndex) =>
-                    otherIndex !== index && otherMapping.table2Column === col.column
+                    otherIndex !== index && otherMapping.foreignTableColumn === col.column
                   );
 
                   return {
@@ -209,12 +220,12 @@ export function ForeignKeySelector({
                   };
                 })}
                 disabled={table2Columns.length === 0}
-                value={mapping.table2Column}
-                onChange={(value) => updateForeignKeyMapping(index, 'table2Column', value || '')}
+                value={mapping.foreignTableColumn}
+                onChange={(value) => updateForeignKeyMapping(index, 'foreignTableColumn', value || '')}
               />
               <Flex align='center' justify="flex-start">
                 <Badge>
-                  {mapping.table2ColumnType || "Type"}
+                  {mapping.foreignTableType || "Type"}
                 </Badge>
               </Flex>
               <Flex justify="center">
@@ -236,7 +247,7 @@ export function ForeignKeySelector({
               <Text size="xs" fw={500} mb="xs">Debug: All Table Pair Mappings</Text>
               {Object.entries(groupedMappings).map(([pairKey, mappings]) => (
                 <Text key={pairKey} size="xs" c="dimmed">
-                  {pairKey}: {mappings.filter(m => m.table1Column && m.table2Column).length} mapping(s)
+                  {pairKey}: {mappings.filter(m => m.baseColumnName && m.foreignTableColumn).length} mapping(s)
                 </Text>
               ))}
             </Paper>
