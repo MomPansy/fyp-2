@@ -76,6 +76,7 @@ export function Navbar({ close }: { close?: () => void }) {
         queryKey: ['accessToken'],
       })
     }
+    console.log('Logging out');
     navigate({ to: '/login' });
   };
 

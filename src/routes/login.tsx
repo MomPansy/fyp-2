@@ -10,13 +10,8 @@ export const Route = createFileRoute('/login')({
       await queryClient.ensureQueryData(accessTokenQueryOptions);
       throw redirect({ to: '/' });
 
-    } catch (error) {
-      if (error instanceof Error) {
-        console.log("Auth error:", error.message);
-      } else {
-        // This could be a redirect, just rethrow it
-        throw error;
-      }
+    } catch (_error) {
+
     }
   },
   component: memo(Login),

@@ -14,7 +14,6 @@ import { MantineProvider } from "@mantine/core";
 import { Notifications } from "@mantine/notifications";
 import { theme } from "./theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
-import { UserContext, useUser } from "./hooks/auth.ts";
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -34,17 +33,6 @@ const queryClient = new QueryClient({
 // Create a new router instance
 const router = createRouter({ routeTree, context: { queryClient } });
 
-// App wrapper component to handle user context
-function AppWrapper() {
-  const user = useUser();
-
-  return (
-    <UserContext.Provider value={{ email: user.email, id: user.user_id }}>
-      <RouterProvider router={router} />
-      <Notifications position="top-right" />
-    </UserContext.Provider>
-  );
-}
 
 // Render the app
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -55,7 +43,8 @@ if (!rootElement.innerHTML) {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme}>
-          <AppWrapper />
+          <RouterProvider router={router} />
+          <Notifications position="top-right" />
         </MantineProvider>
       </QueryClientProvider>
     </StrictMode>,

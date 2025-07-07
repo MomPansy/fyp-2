@@ -7,9 +7,6 @@ import { jwtDecode } from "jwt-decode";
 import { type JwtPayload } from "server/zod/jwt.ts";
 import { supabase } from "lib/supabase.ts";
 import { showError } from "utils/notifications";
-import { createContext, useContext } from "react";
-import { type User } from "@supabase/supabase-js";
-import { Database } from "@/database.gen";
 
 export const accessTokenQueryOptions = queryOptions<{
   raw: string;
@@ -83,20 +80,3 @@ export function useSignInWithOTP() {
     },
   });
 }
-
-interface UserContextProps {
-  id: string;
-  email: string;
-}
-
-export const UserContext = createContext<
-  UserContextProps | undefined
->(undefined);
-
-export const useUserContext = () => {
-  const user = useContext(UserContext);
-  if (!user) {
-    throw new Error("useUserContext must be used within a UserProvider");
-  }
-  return user;
-};
