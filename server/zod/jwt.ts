@@ -10,7 +10,7 @@ export const jwtPayloadSchema = z.object({
     provider: z.string(),
     providers: z.array(z.string()),
   }),
-  aud: z.string(),
+  aud: z.union([z.string(), z.array(z.string())]), // Can be string or array
   email: z.string(),
   exp: z.number().refine((val) => val > Date.now() / 1000, {
     message: "expired",
@@ -18,7 +18,7 @@ export const jwtPayloadSchema = z.object({
   iat: z.number(),
   is_anonymous: z.boolean(),
   iss: z.string(),
-  phone: z.string(),
+  phone: z.string().optional(), // Make phone optional since it can be empty
   role: z.string(),
   session_id: z.string(),
   sub: z.string().describe("user_id, uuid format"),

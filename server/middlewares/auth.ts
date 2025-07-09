@@ -63,8 +63,9 @@ export function auth({ requireServiceRole = false }: Options = {}) {
     } catch (error) {
       console.error("JWT verification/parsing error:", error);
 
-      // Provide specific error messages based on error type
+      // Check if error is from JWT verification or Zod parsing
       if (error instanceof Error) {
+        // JWT verification errors
         if (error.message.includes("signature")) {
           throw new HTTPException(401, {
             res: Response.json({
@@ -81,25 +82,40 @@ export function auth({ requireServiceRole = false }: Options = {}) {
             }, { status: 401 }),
           });
         }
-        if (error.message.includes("malformed")) {
+        if (
+          error.message.includes("malformed") ||
+          error.message.includes("Invalid")
+        ) {
           throw new HTTPException(401, {
             res: Response.json({
               error: "Malformed token",
-              message: "The JWT token is malformed",
+              message: "The JWT token is malformed or invalid",
+            }, { status: 401 }),
+          });
+        }
+        // Zod parsing errors (payload structure issues)
+        if (error.name === "ZodError") {
+          console.error("JWT payload validation failed:", error);
+          throw new HTTPException(401, {
+            res: Response.json({
+              error: "Invalid token payload",
+              message:
+                "The JWT token payload does not match the expected structure",
             }, { status: 401 }),
           });
         }
       }
 
-      // Generic JWT error
+      // Generic JWT error with more detail
       throw new HTTPException(401, {
         res: Response.json({
-          error: "Invalid token",
-          message: "The JWT token is invalid or malformed",
+          error: "Token verification failed",
+          message: `JWT verification failed: ${
+            error instanceof Error ? error.message : "Unknown error"
+          }`,
         }, { status: 401 }),
       });
     }
-
     if (requireServiceRole && jwtPayload.role !== "service_role") {
       throw new HTTPException(403, {
         res: Response.json({
