@@ -1,3 +1,6 @@
 node_modules
 .env.keys
 .env.local
+./python/nixpacks.toml
+./python/test_api.py
+./python/test_compression.py

@@ -1,8 +1,8 @@
 import pako from "pako";
 
 const BASE_URL = import.meta.env.DEV
-    ? process.env.FLASK_URL as string
-    : "http://localhost:5002";
+    ? "http://localhost:5002"
+    : import.meta.env.VITE_FLASK_URL as string;
 
 type SchemaItem = {
     type: string;
