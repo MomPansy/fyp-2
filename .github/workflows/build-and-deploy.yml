@@ -21,19 +21,29 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Step 3: Check for Changes in client or server
-      - name: Check for Changes in client or server
-        id: changes_check
+      # Step 3: Check for Changes in Node.js app
+      - name: Check for Changes in Node.js app
+        id: node_changes
         run: |
           if git diff --quiet HEAD^ HEAD -- src server package.json nixpacks.toml Dockerfile; then
-            echo "no_changes=true" >> $GITHUB_ENV
+            echo "node_changes=false" >> $GITHUB_OUTPUT
           else
-            echo "no_changes=false" >> $GITHUB_ENV
+            echo "node_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      # Step 4: Build and Push Docker Image
-      - name: Build and Push Docker Image
-        if: env.no_changes == 'false'
+      # Step 4: Check for Changes in Python app
+      - name: Check for Changes in Python app
+        id: python_changes
+        run: |
+          if git diff --quiet HEAD^ HEAD -- python/; then
+            echo "python_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "python_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Step 5: Build and Push Node.js Docker Image
+      - name: Build and Push Node.js Docker Image
+        if: steps.node_changes.outputs.node_changes == 'true'
         run: |
           TAG=${GITHUB_SHA::7}
           docker build -t mompansy/fyp-node:$TAG .
@@ -41,10 +51,21 @@ jobs:
           docker push mompansy/fyp-node:$TAG
           docker push mompansy/fyp-node:latest
 
-      # Step 5: Commit and Push Changes
+      # Step 6: Build and Push Python Flask Docker Image
+      - name: Build and Push Python Flask Docker Image
+        if: steps.python_changes.outputs.python_changes == 'true'
+        run: |
+          TAG=${GITHUB_SHA::7}
+          cd python
+          docker build -t mompansy/fyp-python:$TAG .
+          docker tag mompansy/fyp-python:$TAG mompansy/fyp-python:latest
+          docker push mompansy/fyp-python:$TAG
+          docker push mompansy/fyp-python:latest
+
+      # Step 7: Commit and Push Changes
       - name: Commit and Push Changes
-        if: env.no_changes == 'false'
+        if: steps.node_changes.outputs.node_changes == 'true' || steps.python_changes.outputs.python_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
-          commit_message: "Update image tag to $TAG"
+          commit_message: "Update Docker image tags to ${GITHUB_SHA::7}"
           branch: main

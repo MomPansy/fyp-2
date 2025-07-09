@@ -1,13 +1,8 @@
 
 import { ProblemContext } from "@/components/problems/problem-context";
-import {
-  Stepper,
-} from "@mantine/core";
 import { createFileRoute } from "@tanstack/react-router";
-import { ProblemDatabase } from "@/components/problems/database/problem-database";
 import { ProblemDescription } from "components/problems/details/problem-description";
 import { problemDetailQueryOptions, createNewProblem } from "@/hooks/use-problem";
-import { useState } from "react";
 
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/details")({

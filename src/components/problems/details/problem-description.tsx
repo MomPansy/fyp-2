@@ -135,7 +135,7 @@ export function ProblemDescription({
 
   return (
     <Stack>
-      <Group>
+      <Group p='md'>
         <Group flex={1}>
           <TextInput
             placeholder="Enter the name of your problem"
@@ -146,7 +146,7 @@ export function ProblemDescription({
           />
         </Group>
         <Group>
-          <CustomAnchor to={'/admin/problem/$id/database'} params={{ id: problemId }} style={{ textDecoration: 'none' }} preload="intent">
+          <CustomAnchor to={'/admin/problem/$id/database'} params={{ id: problemId }} style={{ textDecoration: 'none' }} preload="intent" >
             <Button disabled={!form.isValid()} color="blue" mt={25} onMouseEnter={prefetchColumnTypes}>
               Next Step
             </Button>

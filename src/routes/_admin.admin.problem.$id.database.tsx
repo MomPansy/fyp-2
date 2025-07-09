@@ -1,4 +1,4 @@
-import { problemDetailQueryOptions, problemTablesColumnTypesQueryOptions, problemTablesRelationsQueryOptions } from '@/hooks/use-problem';
+import { problemTablesColumnTypesQueryOptions, problemTablesRelationsQueryOptions, useFetchProblemTablesColumnTypes, useFetchProblemTablesRelations } from '@/hooks/use-problem';
 import { createFileRoute } from '@tanstack/react-router';
 import { ProblemDatabase } from '@/components/problems/database/problem-database';
 import { ProblemDatabasePending } from '@/components/problems/database/problem-database-pending';
@@ -25,10 +25,14 @@ function ProblemDatabaseErrorComponent({ error, reset }: { error: Error; reset: 
 }
 
 function RouteComponent() {
-  const { relations, tableMetadata } = Route.useLoaderData();
+  const params = Route.useParams();
+
+  // Use reactive queries instead of loader data for real-time updates
+  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
+  const { data: relations } = useFetchProblemTablesRelations(params.id);
 
   return (
-    <ProblemContext.Provider value={{ problemId: Route.useParams().id }}>
+    <ProblemContext.Provider value={{ problemId: params.id }}>
       <ProblemDatabase
         tableMetadata={tableMetadata}
         groupedMappings={relations}

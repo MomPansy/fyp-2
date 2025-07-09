@@ -166,7 +166,7 @@ export const useDataStorage = () => {
         message: error.message,
       });
     },
-    onSuccess: async (_data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidate all queries related to this problem's tables to get fresh data
       queryClient.invalidateQueries({
         queryKey: problemTableKeys.byProblemId(variables.problemId),
@@ -174,6 +174,10 @@ export const useDataStorage = () => {
       // Also invalidate column types for this problem
       queryClient.invalidateQueries({
         queryKey: problemTableKeys.columnTypes(variables.problemId),
+      });
+      // Invalidate relations for this problem
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.relationsByProblemId(variables.problemId),
       });
       // Invalidate the specific table if needed
       queryClient.invalidateQueries({
@@ -184,6 +188,13 @@ export const useDataStorage = () => {
       // Always refetch after error or success to ensure we have the latest data
       queryClient.invalidateQueries({
         queryKey: problemTableKeys.byProblemId(variables.problemId),
+      });
+      // Also ensure column types and relations are refetched
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.columnTypes(variables.problemId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.relationsByProblemId(variables.problemId),
       });
     },
   });
@@ -206,6 +217,12 @@ export const useDataStorage = () => {
       showErrorNotification({
         title: "Failed to initialize upload",
         message: error.message,
+      });
+    },
+    onSuccess: (_data, variables) => {
+      // Optionally, you can handle any success logic here
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.columnTypes(variables.problemId),
       });
     },
   });

@@ -7,9 +7,8 @@ import { DropCSV } from "../dropzone.tsx";
 import { CSVModal } from "../csv-modal.tsx";
 import { showErrorNotification, showSuccessNotification } from "components/notifications.ts";
 import { useDataStorage } from "@/hooks/use-storage.ts";
-//@ts-expect-error
-import GenerateSchema from 'generate-schema';
 import { useProblemContext } from "../problem-context.ts";
+import { generateSchema } from "./use-table-manager.ts";
 
 
 export function TableManager() {
@@ -23,8 +22,6 @@ export function TableManager() {
   } = useDataStorage();
 
   const { problemId } = useProblemContext()
-
-  const GS = GenerateSchema as any;
 
   const reset = () => {
     setFileName(undefined);
@@ -71,12 +68,8 @@ export function TableManager() {
         columns: Array.from(finalColumns),
       });
 
-      const schema = GS.json(finalData);
-
-      const columnTypes = Object.entries(schema.items.properties).map(([key, value]) => ({
-        column: key,
-        type: (value as { type: string }).type
-      }));
+      // Generate schema from CSV data
+      const columnTypes = await generateSchema(csvString);
 
       await uploadFile({
         csvString,
