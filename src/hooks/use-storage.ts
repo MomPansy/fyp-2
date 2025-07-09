@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { showErrorNotification } from "components/notifications";
-import { useAccessToken, useUser } from "./auth.ts";
+import { useUser } from "./auth.ts";
 import { supabase } from "../lib/supabase.ts";
 import { problemTableKeys } from "components/problems/querykeys";
 import { ColumnType } from "server/drizzle/_custom";
 import { api } from "@/lib/api";
-import { Database, Json } from "@/database.gen";
+import { Database } from "@/database.gen";
 
 export const useDataStorage = () => {
   const queryClient = useQueryClient();
