@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: db-broker
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/MomPansy/fyp-2.git
+    targetRevision: HEAD
+    path: database-infra/templates/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
