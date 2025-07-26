@@ -1,0 +1,36 @@
+DB_USERNAME: "admin"
+DB_PASSWORD: "password"
+
+APP_DATABASE_NAME: "app_db"
+APP_USERNAME: "app_user"
+APP_PASSWORD: "app_password"
+
+replicaCount: 2
+image: mompansy/fyp-go-db-broker:latest
+serviceAccount:
+  create: true
+  name: db-broker
+resources:
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+
+keda:
+  enabled: true
+  pollingInterval: 15
+  cooldownPeriod: 30
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  prometheus:
+    serverAddress: http://prometheus-stack-kube-prom-prometheus.monitoring.svc.cluster.local:9090
+    query: sum(sandbox_databases_free)
+    threshold: "3"
+
+db-broker:
+  app:
+    name: db-broker
+  service:
+    name: db-broker
+    port: 8080
+  ingress:
+    host: database-broker.com

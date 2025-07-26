@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry
+  namespace: "{{ .Release.Namespace }}"
+data:
+  databases.yaml: |
+    - name: pg-primary
+      type: postgres
+      host: localhost
+      port: 15432
+      userEnv: "{{ .Values.DB_USERNAME }}"
+      passEnv: "{{ .Values.DB_PASSWORD }}"
+      database: defaultdb

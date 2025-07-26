@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: db-broker-metrics
+  namespace: "{{ .Release.Namespace }}"
+  labels:
+    app: db-broker
+    release: prometheus-stack
+spec:
+  selector:
+    matchLabels:
+      app: db-broker
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 15s

@@ -1,0 +1,45 @@
+# Compiled binaries
+server/server
+server/app
+db-broker
+
+# Build artifacts and temporary files
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Test and debug files
+test-*.sh
+debug-*.sh
+run-local-test.sh
+quick-test-allocate.sh
+debug-output.yaml
+mock/
+
+# Documentation files (optional - uncomment if you want to exclude)
+# *.md
+# TESTING.md
+# DEBUGGING.md
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

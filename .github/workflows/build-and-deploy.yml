@@ -41,7 +41,17 @@ jobs:
             echo "python_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      # Step 5: Build and Push Node.js Docker Image
+      # Step 5: Check for Changes in Go server
+      - name: Check for Changes in Go server
+        id: go_changes
+        run: |
+          if git diff --quiet HEAD^ HEAD -- database-infra/server/; then
+            echo "go_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "go_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Step 6: Build and Push Node.js Docker Image
       - name: Build and Push Node.js Docker Image
         if: steps.node_changes.outputs.node_changes == 'true'
         run: |
@@ -51,7 +61,7 @@ jobs:
           docker push mompansy/fyp-node:$TAG
           docker push mompansy/fyp-node:latest
 
-      # Step 6: Build and Push Python Flask Docker Image
+      # Step 7: Build and Push Python Flask Docker Image
       - name: Build and Push Python Flask Docker Image
         if: steps.python_changes.outputs.python_changes == 'true'
         run: |
@@ -62,9 +72,20 @@ jobs:
           docker push mompansy/fyp-python:$TAG
           docker push mompansy/fyp-python:latest
 
-      # Step 7: Commit and Push Changes
+      # Step 8: Build and Push Go Server Docker Image
+      - name: Build and Push Go Server Docker Image
+        if: steps.go_changes.outputs.go_changes == 'true'
+        run: |
+          TAG=${GITHUB_SHA::7}
+          cd database-infra/server
+          docker build -t mompansy/fyp-go-db-broker:$TAG .
+          docker tag mompansy/fyp-go-db-broker:$TAG mompansy/fyp-go-db-broker:latest
+          docker push mompansy/fyp-go-db-broker:$TAG
+          docker push mompansy/fyp-go-db-broker:latest
+
+      # Step 9: Commit and Push Changes
       - name: Commit and Push Changes
-        if: steps.node_changes.outputs.node_changes == 'true' || steps.python_changes.outputs.python_changes == 'true'
+        if: steps.node_changes.outputs.node_changes == 'true' || steps.python_changes.outputs.python_changes == 'true' || steps.go_changes.outputs.go_changes == 'true'
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Update Docker image tags to ${GITHUB_SHA::7}"

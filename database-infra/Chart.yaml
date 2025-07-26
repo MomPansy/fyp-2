@@ -1,0 +1,4 @@
+apiVersion: v2
+name: sandboxed-db
+version: 0.0.0
+description: A collection of ephemeral databases

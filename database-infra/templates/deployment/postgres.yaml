@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pg-sandbox
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: pg-sandbox
+  template:
+    metadata:
+      labels:
+        app: pg-sandbox
+        dialect: postgres
+        state: free
+    spec:
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: pg-init-scripts
+      containers:
+        - name: postgres
+          image: postgres:17-alpine
+          args: ["-c", "max_connections=10"]
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              value: "{{ .Values.DB_USERNAME }}"
+            - name: POSTGRES_PASSWORD
+              value: "{{ .Values.DB_PASSWORD }}"
+            - name: POSTGRES_DB
+              value: "default_db"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
