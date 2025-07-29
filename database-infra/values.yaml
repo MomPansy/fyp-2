@@ -10,10 +10,12 @@ image: mompansy/fyp-go-db-broker:latest
 serviceAccount:
   create: true
   name: db-broker
+
 resources:
+  requests:
+    memory: "256Mi"
   limits:
-    cpu: "100m"
-    memory: "128Mi"
+    memory: "512Mi"
 
 keda:
   enabled: true
@@ -34,3 +36,13 @@ db-broker:
     port: 8080
   ingress:
     host: database-broker.com
+
+web-app:
+  app:
+    name: web-app
+    image: mompansy/fyp-node:latest
+  service:
+    name: web-app
+    port: 3000
+  ingress:
+    host: query-proctor.com

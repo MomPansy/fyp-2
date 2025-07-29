@@ -1,0 +1,30 @@
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: "{{ index .Values "web-app" "app" "name" }}"
+  namespace: "{{ .Release.Namespace }}"
+spec: 
+  replicas: 1 
+  selector: 
+    matchLabels: 
+      app: "{{ index .Values "web-app" "app" "name" }}"
+  template:
+    metadata:
+      labels:
+        app: "{{ index .Values "web-app" "app" "name" }}"
+    spec:
+      containers:
+        - name: web-app
+          image: "{{ index .Values "web-app" "app" "image" }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ index .Values "web-app" "service" "port" }}
+          env:
+            - name: DOTENV_PRIVATE_KEY_PRODUCTION 
+              valueFrom:
+                secretKeyRef:
+                  name: dotenv-private-key
+                  key: DOTENV_PRIVATE_KEY_PRODUCTION
+            - name: NAMESPACE
+              value: "{{ .Release.Namespace }}"
+          resources: {{- toYaml .Values.resources | nindent 12 }}
