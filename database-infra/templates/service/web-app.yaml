@@ -7,5 +7,6 @@ spec:
   selector:
     app: "{{ index .Values "web-app" "app" "name" }}"
   ports:
-    - port: {{ index .Values "web-app" "service" "port" }}
-      targetPort: {{ index .Values "web-app" "service" "port" }}
+    - name: http
+      port: 80
+      targetPort: 3000

@@ -3,16 +3,24 @@ kind: Ingress
 metadata:
   name: web-app-ingress
   namespace: "{{ .Release.Namespace }}"
+  annotations:
+    kubernetes.io/ingress.class: public
+    cert-manager.io/cluster-issuer: lets-encrypt
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
 spec:
-  ingressClassName: nginx
+  ingressClassName: public
+  tls:
+    - hosts: 
+      - "{{ index .Values "web-app" "ingress" "host" }}"
+      secretName: "{{ index .Values "web-app" "ingress" "tlsSecret" | default "web-app-tls" }}"
   rules:
-  - host: "{{ index .Values "web-app" "ingress" "host" }}"
-    http:
-      paths:
-        - path: /
-          pathType: Prefix
-          backend:
-            service:
-              name: "{{ index .Values "web-app" "service" "name" }}"
-              port:
-                number: {{ index .Values "web-app" "service" "port" }}
+    - host: "{{ index .Values "web-app" "ingress" "host" }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: "{{ index .Values "web-app" "service" "name" }}"
+                port:
+                  number: 80

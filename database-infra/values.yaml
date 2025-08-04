@@ -45,4 +45,17 @@ web-app:
     name: web-app
     port: 3000
   ingress:
-    host: query-proctor.com
+    host: queryproctor.com
+    tlsSecret: web-app-tls
+
+email: jaydenyeo.acs@gmail.com
+
+certificate:
+  commonName: queryproctor.com
+  dnsNames:
+    - queryproctor.com
+    - www.queryproctor.com
+  name: web-app-tls
+
+cert-manager:
+  name: lets-encrypt
