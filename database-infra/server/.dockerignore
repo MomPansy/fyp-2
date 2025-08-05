@@ -1,0 +1,13 @@
+# Exclude compiled binaries
+app 
+server
+
+# Exclude common development files
+*.log
+.DS_Store
+.git
+.gitignore
+README.md
+
+# Exclude test files
+*_test.go

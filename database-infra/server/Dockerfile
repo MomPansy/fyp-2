@@ -1,9 +1,18 @@
-FROM golang:1.24.5 as build
+FROM golang:1.24-alpine as build
 WORKDIR /src
-COPY go.* ./
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
 RUN go mod download
-COPY . . 
-RUN CGO_ENABLED=0 go build -o /db-broker .
+
+# Copy source code
+COPY . .
+
+# Build with optimizations
+RUN --mount=type=cache,id=gomod,target=/go/pkg/mod \
+    --mount=type=cache,id=gobuild,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -trimpath -ldflags='-s -w' -o /db-broker .
 
 FROM gcr.io/distroless/static:nonroot 
 COPY --from=build /db-broker /db-broker

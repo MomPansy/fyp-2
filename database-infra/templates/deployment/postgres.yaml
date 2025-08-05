@@ -15,6 +15,7 @@ spec:
         dialect: postgres
         state: free
     spec:
+      subdomain: pg-sandbox # Enable per-pod DNS
       volumes:
         - name: data
           emptyDir: {}
