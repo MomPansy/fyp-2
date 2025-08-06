@@ -88,8 +88,9 @@ func main() {
 		}
 
 		// Use consistent username 'admin' - tests should use this
-		conn := fmt.Sprintf("postgres://admin:password@%s.%s.%s.svc.cluster.local:5432/default_db?sslmode=disable",
-			pod.Name, "pg-sandbox", ns)
+		conn := fmt.Sprintf(
+			"postgres://admin:password@%s:5432/default_db?sslmode=disable",
+			pod.Status.PodIP)
 
 		log.Printf("Successfully allocated pod %s for dialect %s", pod.Name, d)
 		json.NewEncoder(w).Encode(AllocateResp{Conn: conn, Pod: pod.Name})
