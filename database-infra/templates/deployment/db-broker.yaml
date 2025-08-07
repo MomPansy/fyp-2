@@ -17,7 +17,7 @@ spec:
       containers:
         - name: db-broker
           image: "{{ .Values.image }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
