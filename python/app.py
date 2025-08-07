@@ -11,7 +11,7 @@ app = Flask(__name__)
 # Configure CORS for development and production
 allowed_origins = [
     "http://localhost:5173",  # Vite dev server
-    "https://fyp-node-production.up.railway.app"  # Production URL
+    "https://queryproctor.com"  # Production URL
 ]
 
 cors = CORS(app, origins=allowed_origins, supports_credentials=True)

@@ -1,3 +1,6 @@
+global:
+  environment: prod # Change to 'minikube' for local development
+
 DB_USERNAME: "admin"
 DB_PASSWORD: "password"
 
@@ -59,3 +62,4 @@ certificate:
 
 cert-manager:
   name: lets-encrypt
+  enabled: true # Set to false to disable cert-manager

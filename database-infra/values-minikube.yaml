@@ -1,0 +1,40 @@
+global:
+  environment: minikube
+
+# Override production values for minikube
+db-broker:
+  app:
+    name: db-broker
+  service:
+    name: db-broker
+    port: 8080
+  ingress:
+    host: database-broker.local
+
+web-app:
+  app:
+    name: web-app
+    image: mompansy/fyp-node:latest
+  service:
+    name: web-app
+    port: 3000
+  ingress:
+    host: queryproctor.local
+    # No TLS in minikube
+    tlsSecret: ""
+
+# Disable KEDA in minikube
+keda:
+  enabled: false
+
+# Disable cert-manager related configs
+cert-manager:
+  enabled: false
+
+replicaCount: 1 # Single replica for local development
+
+resources:
+  requests:
+    memory: "128Mi"
+  limits:
+    memory: "256Mi"

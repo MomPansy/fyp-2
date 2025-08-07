@@ -16,7 +16,7 @@ spec:
       containers:
         - name: web-app
           image: "{{ index .Values "web-app" "app" "image" }}"
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always 
           ports:
             - containerPort: {{ index .Values "web-app" "service" "port" }}
           env:

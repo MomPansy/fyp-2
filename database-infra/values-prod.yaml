@@ -1,0 +1,4 @@
+global:
+  environment: prod
+# Production-specific values can be added here
+# This file extends the base values.yaml

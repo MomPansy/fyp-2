@@ -5,18 +5,11 @@ import { auth } from "server/middlewares/auth.ts";
 import { supabase } from "server/lib/supabase.ts";
 import { HTTPException } from "hono/http-exception";
 import {
-  type Allocate,
   allocateDatabase,
   fetchProblemTables,
-  handleError,
-  type ProblemTable,
   releaseDatabase,
 } from "server/utils/database-helpers.ts";
-import {
-  type Dialect,
-  getMappings,
-  SUPPORTED_DIALECTS,
-} from "server/utils/mappings.ts";
+import { getMappings, SUPPORTED_DIALECTS } from "server/utils/mappings.ts";
 import { createPool, getPool, removePool } from "server/utils/pool-manager.ts";
 
 export const route = factory
