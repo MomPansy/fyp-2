@@ -43,30 +43,38 @@ export const route = factory
       const bucket = userId;
       const path = `${problemId}/${tableName}`;
 
-      const { error: storageError } = await supabase.storage.createBucket(
-        bucket,
-        {
-          public: false,
-          allowedMimeTypes: ["text/csv"],
-        },
-      );
+      // get bucket
+      const { data: bucketData } = await supabase.storage
+        .getBucket(bucket);
 
-      if (storageError) {
-        console.error("❌ Failed to create bucket:", {
-          error: storageError.message,
+      if (!bucketData) {
+        const { error: storageError } = await supabase.storage.createBucket(
           bucket,
-          userId,
-        });
+          {
+            public: false,
+            allowedMimeTypes: ["text/csv"],
+          },
+        );
 
-        throw new HTTPException(500, {
-          message: storageError.message || "Failed to create storage bucket",
-        });
+        if (storageError) {
+          console.error("❌ Failed to create bucket:", {
+            error: storageError.message,
+            bucket,
+            userId,
+          });
+          console.error("❌ Bucket creation error:", storageError);
+
+          throw new HTTPException(500, {
+            message: storageError.message || "Failed to create storage bucket",
+          });
+        }
       }
 
       const { data, error } = await supabase.storage.from(bucket)
         .createSignedUploadUrl(path, {
           upsert: true,
         });
+
       if (error) {
         console.error("❌ Supabase storage error:", {
           message: error.message,

@@ -4,6 +4,7 @@ import { factory } from "./factory.ts";
 import { logger } from "hono/logger";
 import { route as exampleRoute } from "./routes/example.ts";
 import { route as problemsRoute } from "./routes/problems/index.ts";
+import { route as pythonRoute } from "./routes/python/index.ts";
 
 const app = factory.createApp();
 
@@ -16,7 +17,8 @@ app.get("/healthz", (c) => {
 export const apiRoutes = app
   .basePath("/api")
   .route("/example", exampleRoute)
-  .route("/problems", problemsRoute);
+  .route("/problems", problemsRoute)
+  .route("/python", pythonRoute);
 
 export type ApiRoutes = typeof apiRoutes;
 

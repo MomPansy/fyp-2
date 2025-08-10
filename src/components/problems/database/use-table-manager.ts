@@ -1,67 +1,43 @@
 import pako from "pako";
-
-const BASE_URL = import.meta.env.DEV
-    ? "http://localhost:5002"
-    : import.meta.env.VITE_FLASK_URL as string;
+import { getAuthHeaders } from "@/lib/api";
 
 type SchemaItem = {
-    type: string;
-    column: string;
+  type: string;
+  column: string;
 };
 
 export async function generateSchema(
-    csvString: string,
+  csvString: string,
 ): Promise<SchemaItem[]> {
-    try {
-        // Compress the CSV data using pako
-        const encoder = new TextEncoder();
-        const csvBytes = encoder.encode(csvString);
-        const compressedData = pako.gzip(csvBytes);
+  try {
+    // Compress the CSV data using pako
+    const encoder = new TextEncoder();
+    const csvBytes = encoder.encode(csvString);
+    const compressedData = pako.gzip(csvBytes);
 
-        // Create a Blob from the compressed data
-        const blob = new Blob([new Uint8Array(compressedData)], {
-            type: "application/octet-stream",
-        });
+    // Create a Blob from the compressed data
+    const blob = new Blob([new Uint8Array(compressedData)], {
+      type: "application/octet-stream",
+    });
 
-        const response = await fetch(`${BASE_URL}/schema`, {
-            method: "POST",
-            headers: {
-                "Content-Encoding": "gzip",
-            },
-            body: blob,
-        });
+    const response = await fetch(`/api/python/schema`, {
+      method: "POST",
+      body: blob,
+      headers: {
+        ...(await getAuthHeaders()),
+        "Content-Encoding": "gzip",
+        "Content-Type": "application/octet-stream",
+      },
+    });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error("Error generating schema:", error);
-        throw error;
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-}
 
-// Alternative version without compression for comparison
-export async function generateSchemaRaw(
-    csvString: string,
-): Promise<SchemaItem[]> {
-    try {
-        const response = await fetch(`${BASE_URL}/schema`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "text/csv",
-            },
-            body: csvString,
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.error("Error generating schema:", error);
-        throw error;
-    }
+    const data = (await response.json()) as SchemaItem[];
+    return data;
+  } catch (error) {
+    console.error("Error generating schema:", error);
+    throw error;
+  }
 }
