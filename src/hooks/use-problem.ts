@@ -1,10 +1,7 @@
 import {
   queryOptions,
   useMutation,
-  usePrefetchQuery,
-  useQuery,
   useQueryClient,
-  useSuspenseQueries,
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { showErrorNotification } from "components/notifications";
@@ -16,15 +13,31 @@ import { supabase } from "lib/supabase.ts";
 import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html";
 import { Database } from "database.gen";
 import { ForeignKeyMapping, TableMetadata } from "server/drizzle/_custom";
+import { Dialect } from "server/utils/mappings";
+import { api } from "@/lib/api";
+
+// Narrow type for convenience
+type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 
 // Query options for use in loaders (router-safe)
-export const problemDetailQueryOptions = (id: string) =>
-  queryOptions({
-    queryKey: problemKeys.detail(id),
+export const problemDetailQueryOptions = <
+  K extends keyof ProblemRow = keyof ProblemRow,
+>(
+  id: string,
+  opts?: { columns?: ReadonlyArray<K> },
+) =>
+  queryOptions<Pick<ProblemRow, K> | null>({
+    queryKey: opts?.columns
+      ? [...problemKeys.detail(id), { select: opts.columns }]
+      : problemKeys.detail(id),
     queryFn: async () => {
+      const selectArg = opts?.columns && opts.columns.length > 0
+        ? (opts.columns.join(",") as string)
+        : "*";
+
       const { data, error } = await supabase
         .from("problems")
-        .select("*")
+        .select(selectArg)
         .eq("id", id)
         .single();
 
@@ -35,7 +48,8 @@ export const problemDetailQueryOptions = (id: string) =>
         }
         throw new Error(error.message);
       }
-      return data;
+      // Cast via unknown because Supabase cannot infer typed selects from dynamic column strings
+      return data as unknown as Pick<ProblemRow, K>;
     },
     retry: (failureCount, error) => {
       // Don't retry on 404s
@@ -242,6 +256,39 @@ export const problemTablesRelationsQueryOptions = (id: string) => {
 
       return groupedMappings;
     },
+  });
+};
+
+// Error body shape returned by the connect endpoint on failure
+type ConnectDbErrorBody = {
+  message?: string;
+  error?: string | { message?: string };
+  code?: string | number;
+  status?: number;
+  details?: string;
+};
+
+export const databaseConnectionQueryOptions = (
+  problemId: string,
+  dialect: Dialect,
+) => {
+  return queryOptions<{
+    key: string;
+    dialect: Dialect;
+  }>({
+    queryKey: ["database", "connect", problemId, dialect],
+    queryFn: async () => {
+      const response = await api.problems.connect.$post({
+        "json": {
+          problemId,
+          dialect,
+        },
+      });
+
+      const data = await response.json();
+      return data;
+    },
+    throwOnError: true,
   });
 };
 

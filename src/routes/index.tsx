@@ -8,6 +8,7 @@ export const Route = createFileRoute('/')({
     try {
       const { payload: jwtPayload } = await queryClient.ensureQueryData(accessTokenQueryOptions);
       payload = jwtPayload;
+      console.log('User payload:', payload);
     } catch (_error) {
       throw redirect({ to: '/login' });
     }

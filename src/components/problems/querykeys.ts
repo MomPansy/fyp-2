@@ -1,4 +1,5 @@
 import { type Database } from "@/database.gen";
+import { Dialect } from "server/utils/mappings";
 
 export const problemKeys = {
     all: ["problems"] as const,
@@ -32,4 +33,10 @@ export const problemTableKeys = {
     ddlScript: (id: string) =>
         [...problemTableKeys.all, "ddlScript", id] as const,
     withRelations: () => [...problemTableKeys.all, "withRelations"] as const,
+};
+
+export const databaseKeys = {
+    all: ["database"] as const,
+    connect: (problemId: string, dialect: Dialect) =>
+        ["database", "connect", problemId, dialect] as const,
 };

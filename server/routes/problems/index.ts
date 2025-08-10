@@ -11,6 +11,11 @@ import {
 } from "server/utils/database-helpers.ts";
 import { getMappings, SUPPORTED_DIALECTS } from "server/utils/mappings.ts";
 import { createPool, getPool, removePool } from "server/utils/pool-manager.ts";
+import {
+  addForeignKeys,
+  createTables,
+  importCsvData,
+} from "server/utils/db-seed.ts";
 
 export const route = factory
   .createApp()
@@ -20,36 +25,42 @@ export const route = factory
     zValidator(
       "json",
       z.object({
-        userId: z.string(),
         problemId: z.string(),
         tableName: z.string(),
       }),
     ),
     async (c) => {
-      const { userId, problemId, tableName } = c.req.valid("json");
+      const { problemId, tableName } = c.req.valid("json");
+      const jwt = c.get("jwtPayload");
+      const userId = jwt?.user_metadata.user_id;
+
+      if (!userId) {
+        throw new HTTPException(401, {
+          message: "Missing user context for file upload",
+        });
+      }
+
       const bucket = userId;
       const path = `${problemId}/${tableName}`;
 
-      try {
-        await supabase.storage.createBucket(bucket, {
+      const { error: storageError } = await supabase.storage.createBucket(
+        bucket,
+        {
           public: false,
           allowedMimeTypes: ["text/csv"],
+        },
+      );
+
+      if (storageError) {
+        console.error("❌ Failed to create bucket:", {
+          error: storageError.message,
+          bucket,
+          userId,
         });
-        console.info("✅ Bucket created successfully");
-      } catch (error: any) {
-        // Only throw if it's not a "bucket already exists" error
-        if (!error.message?.includes("already exists")) {
-          console.error("❌ Failed to create bucket:", {
-            error: error.message,
-            bucket,
-            userId,
-          });
-          throw new HTTPException(500, {
-            message: error.message || "Failed to create storage bucket",
-          });
-        } else {
-          console.info("✅ Bucket already exists, continuing...");
-        }
+
+        throw new HTTPException(500, {
+          message: storageError.message || "Failed to create storage bucket",
+        });
       }
 
       const { data, error } = await supabase.storage.from(bucket)
@@ -92,27 +103,48 @@ export const route = factory
       }),
     ),
     async (c) => {
-      // get tables from problemID
       const { problemId, dialect } = c.req.valid("json");
 
-      // Fetch problem tables
       const problemTables = await fetchProblemTables(problemId);
 
-      // Transform the relations in problemTables to mapped relations
       const processedTables = problemTables.map((table) => ({
         ...table,
         relations: getMappings(dialect, table.relations),
       }));
 
-      // Get database connection
       const { connectionString, podName } = await allocateDatabase(dialect);
-
       const key = `${podName}-${dialect}`;
+      const pool = createPool(key, connectionString);
 
-      // Create and store a connection pool
-      createPool(key, connectionString);
+      // 1) Create tables
+      await createTables(pool, processedTables, dialect);
 
-      return c.json("ok");
+      // 2) Import CSV data
+      try {
+        const jwt = c.get("jwtPayload");
+        const userId = jwt?.user_metadata.user_id;
+        if (!userId) {
+          throw new HTTPException(401, {
+            message: "Missing user context for data import",
+          });
+        }
+        await importCsvData(
+          supabase,
+          userId,
+          pool,
+          processedTables,
+          dialect,
+        );
+      } catch (e) {
+        if (e instanceof HTTPException) throw e;
+        console.error("❌ Data import failed:", e);
+        throw new HTTPException(500, { message: "Failed to import CSV data" });
+      }
+
+      // 3) Add FKs
+      await addForeignKeys(pool, processedTables, dialect);
+
+      return c.json({ key, dialect });
     },
   )
   .post(

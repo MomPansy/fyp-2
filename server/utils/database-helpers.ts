@@ -33,6 +33,7 @@ export const problemTablesSchema = z.object({
     column: z.string(),
     type: z.string(),
   })),
+  data_path: z.string(),
   relations: z.array(z.object({
     baseTableName: z.string(),
     baseColumnName: z.string(),
@@ -58,7 +59,7 @@ export async function fetchProblemTables(
 ): Promise<ProblemTable[]> {
   try {
     const { data, error } = await supabase.from("problem_tables").select(
-      "table_name, ddl_script, column_types, relations",
+      "table_name, ddl_script, column_types, relations, data_path",
     ).eq("problem_id", problemId);
 
     if (error) {

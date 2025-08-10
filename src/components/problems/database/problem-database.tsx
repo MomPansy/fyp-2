@@ -13,6 +13,8 @@ import { useTableSelection } from "../use-table-selection.ts";
 import { ForeignKeyMapping } from "./database-types.ts";
 import { useSaveRelations } from "./use-foreign-key-selection.ts";
 import { TableMetadata } from "../types.ts";
+import { CustomAnchor } from "@/components/buttons/link-button.tsx";
+import { useProblemContext } from "../problem-context.ts";
 
 interface ProblemDatabaseProps {
   tableMetadata: TableMetadata[];
@@ -22,7 +24,7 @@ interface ProblemDatabaseProps {
 export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatabaseProps) {
   const [foreignKeyMappings, setForeignKeyMappings] = useState<ForeignKeyMapping[]>([]);
   const saveRelationsMutation = useSaveRelations();
-
+  const problemId = useProblemContext().problemId;
   const {
     selectedTable1Index,
     selectedTable2Index,
@@ -92,7 +94,7 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
           initialMappings={groupedMappings}
         />
       </Stack>
-      <Group justify="flex-end" mt="md">
+      <Group justify="flex-end" align='center' mt={20}>
         <Button
           variant="outline"
           onClick={handleSave}
@@ -101,9 +103,11 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
         >
           Save Relations
         </Button>
-        <Button>
-          Next Step
-        </Button>
+        <CustomAnchor to={'/admin/problem/$id/create'} params={{ id: problemId }} style={{ textDecoration: 'none' }} preload="intent" >
+          <Button color="blue">
+            Next Step
+          </Button>
+        </CustomAnchor>
       </Group>
     </Paper>
   );

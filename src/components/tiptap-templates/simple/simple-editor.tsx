@@ -187,11 +187,12 @@ const MobileToolbarContent = ({
 
 interface SimpleEditorProps {
   initialContent: HTMLContent
-  onUpdate: UseEditorOptions["onUpdate"]
+  onUpdate?: UseEditorOptions["onUpdate"]
   saveStatus?: React.ReactNode
+  readonly?: boolean
 }
 
-export function SimpleEditor({ onUpdate, initialContent, saveStatus }: SimpleEditorProps) {
+export function SimpleEditor({ onUpdate, initialContent, saveStatus, readonly }: SimpleEditorProps) {
   const isMobile = useMobile()
   const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<
@@ -199,6 +200,7 @@ export function SimpleEditor({ onUpdate, initialContent, saveStatus }: SimpleEdi
   >("main")
   const toolbarRef = React.useRef<HTMLDivElement>(null)
   const editor = useEditor({
+    editable: !readonly,
     immediatelyRender: false,
     editorProps: {
       attributes: {

@@ -13,16 +13,14 @@ export const useDataStorage = () => {
 
   // Call edge function to get signed upload URL and create bucket
   const initializeUpload = async (
-    { problemId, tableName, userId }: {
+    { problemId, tableName }: {
       problemId: string;
       tableName: string;
-      userId: string;
     },
   ) => {
     try {
       const response = await api.problems["init-upload"].$post({
         "json": {
-          userId,
           problemId,
           tableName,
         },
@@ -65,7 +63,6 @@ export const useDataStorage = () => {
       {
         problemId,
         tableName,
-        userId: user_id,
       },
     );
 
@@ -210,7 +207,6 @@ export const useDataStorage = () => {
       return await initializeUpload({
         problemId,
         tableName,
-        userId: user_id,
       });
     },
     onError: (error: Error) => {
