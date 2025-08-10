@@ -23,6 +23,14 @@ web-app:
     # No TLS in minikube
     tlsSecret: ""
 
+flask-app:
+  app:
+    name: flask-app
+    image: mompansy/fyp-python:latest
+  service:
+    name: flask-app
+    port: 5002
+
 # Disable KEDA in minikube
 keda:
   enabled: false
@@ -35,6 +43,6 @@ replicaCount: 1 # Single replica for local development
 
 resources:
   requests:
-    memory: "128Mi"
-  limits:
     memory: "256Mi"
+  limits:
+    memory: "512Mi"

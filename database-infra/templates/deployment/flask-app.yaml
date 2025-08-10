@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: 
+  name: "{{ index .Values "flask-app" "app" "name" }}"
+  namespace: "{{ .Release.Namespace }}"
+spec: 
+  replicas: 1
+  selector: 
+    matchLabels: 
+      app: "{{ index .Values "flask-app" "app" "name" }}"
+  template: 
+    metadata:
+      labels:
+        app: "{{ index .Values "flask-app" "app" "name" }}"
+    spec:
+      containers:
+        - name: flask-app
+          image: "{{ index .Values "flask-app" "app" "image" }}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: {{ index .Values "flask-app" "service" "port" }}
+          env:
+            - name: NAMESPACE
+              value: "{{ .Release.Namespace }}"
+          resources: {{- toYaml .Values.resources | nindent 12 }}

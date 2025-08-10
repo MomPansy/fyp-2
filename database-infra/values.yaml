@@ -51,6 +51,14 @@ web-app:
     host: queryproctor.com
     tlsSecret: web-app-tls
 
+flask-app:
+  app:
+    name: flask-app
+    image: mompansy/fyp-python:latest
+  service:
+    name: flask-app
+    port: 5002
+
 email: jaydenyeo.acs@gmail.com
 
 certificate:
