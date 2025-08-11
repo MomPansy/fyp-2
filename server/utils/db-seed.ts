@@ -12,7 +12,7 @@ export type SeedTable = {
   table_name: string;
   column_types: ColumnType[];
   data_path?: string | null;
-  relations: MappedRelation[];
+  relations: MappedRelation[] | null;
 };
 
 export function quoteIdent(dialect: Dialect, name: string): string {
@@ -125,6 +125,7 @@ export async function addForeignKeys(
   const qi = (s: string) => quoteIdent(dialect, s);
 
   for (const table of tables) {
+    if (!table.relations || table.relations.length === 0) continue;
     for (const rel of table.relations) {
       const constraintName =
         `fk_${rel.baseTableName}_${rel.baseColumnName}_${rel.foreignTableName}`;

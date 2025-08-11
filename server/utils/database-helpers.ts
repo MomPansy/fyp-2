@@ -34,14 +34,14 @@ export const problemTablesSchema = z.object({
     type: z.string(),
   })),
   data_path: z.string(),
-  relations: z.array(z.object({
+  relations: z.nullable(z.array(z.object({
     baseTableName: z.string(),
     baseColumnName: z.string(),
     baseColumnType: z.string(),
     foreignTableName: z.string(),
     foreignTableColumn: z.string(),
     foreignTableType: z.string(),
-  })),
+  }))),
 });
 
 export const allocateSchema = z.object({
@@ -87,7 +87,7 @@ export async function fetchProblemTables(
       try {
         return {
           ...table,
-          relations: table.relations as ForeignKeyMapping[],
+          relations: table.relations as ForeignKeyMapping[] | null,
           column_types: table.column_types as ColumnType[],
         };
       } catch (castError) {

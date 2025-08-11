@@ -209,11 +209,16 @@ export function validateRelation(
 // Main mapping function with enhanced error handling and validation
 export function getMappings(
   dialect: Dialect,
-  relations: ForeignKeyMapping[],
-): MappedRelation[] {
+  relations: ForeignKeyMapping[] | null,
+): MappedRelation[] | null {
   // Validate dialect
   if (!isValidDialect(dialect)) {
     throw new TypeMappingError(dialect, "unknown", "dialect validation");
+  }
+
+  if (!relations || relations.length === 0) {
+    console.warn("No relations provided for mapping.");
+    return null;
   }
 
   // Validate all relations first
