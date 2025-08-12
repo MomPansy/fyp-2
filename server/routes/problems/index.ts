@@ -15,6 +15,7 @@ import {
   addForeignKeys,
   createTables,
   importCsvData,
+  waitForDatabase,
 } from "server/utils/db-seed.ts";
 
 export const route = factory
@@ -123,6 +124,14 @@ export const route = factory
       const { connectionString, podName } = await allocateDatabase(dialect);
       const key = `${podName}-${dialect}`;
       const pool = createPool(key, connectionString);
+
+      // Wait for DB to be ready before issuing DDL/queries
+      try {
+        await waitForDatabase(pool, dialect, { timeoutMs: 60_000, intervalMs: 1_000 });
+      } catch (e) {
+        console.error("❌ Database did not become ready in time:", e);
+        throw new HTTPException(500, { message: "Database not ready" });
+      }
 
       // 1) Create tables
       await createTables(pool, processedTables, dialect);

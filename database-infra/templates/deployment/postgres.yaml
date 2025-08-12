@@ -35,6 +35,22 @@ spec:
               value: "{{ .Values.DB_PASSWORD }}"
             - name: POSTGRES_DB
               value: "default_db"
+          readinessProbe:
+            exec:
+              command:
+                - "pg_isready"
+                - "-U"
+                - "{{ .Values.DB_USERNAME }}"
+                - "-d"
+                - "default_db"
+                - "-h"
+                - "127.0.0.1"
+                - "-p"
+                - "5432"
+            initialDelaySeconds: 2
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data

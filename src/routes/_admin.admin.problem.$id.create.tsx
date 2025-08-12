@@ -27,6 +27,7 @@ export const Route = createFileRoute('/_admin/admin/problem/$id/create')({
       };
       // throw 404 error if problem not found
     } catch (error) {
+      console.error(error);
       throw redirect({
         to: `/admin/problems`,
       });

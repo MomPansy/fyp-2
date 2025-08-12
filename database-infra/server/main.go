@@ -28,6 +28,16 @@ var (
 	)
 )
 
+// Check if a pod is Ready
+func isPodReady(p *corev1.Pod) bool {
+	for _, cond := range p.Status.Conditions {
+		if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+			return true
+		}
+	}
+	return false
+}
+
 type AllocateReq struct {
 	Dialect string `json:"dialect"`
 }
@@ -140,6 +150,9 @@ func updateMetrics(cs *kubernetes.Clientset) {
 	}
 	counts := map[string]int{}
 	for _, p := range pods.Items {
+		if !isPodReady(&p) {
+			continue
+		}
 		d := p.Labels["dialect"]
 		if d != "" {
 			counts[d]++
@@ -152,16 +165,21 @@ func updateMetrics(cs *kubernetes.Clientset) {
 
 func grabOrCreatePod(cs *kubernetes.Clientset, dialect string) (*corev1.Pod, error) {
 	log.Printf("Looking for free pods with dialect=%s", dialect)
-	// 1. look for a free pod
+	// 1. look for a free pod that is Ready
 	pods, err := cs.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("dialect=%s,state=free", dialect),
+		FieldSelector: fields.OneTermEqualSelector("status.phase", "Running").String(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list pods: %v", err)
 	}
-	log.Printf("Found %d free pods", len(pods.Items))
-	if len(pods.Items) > 0 {
-		chosen := pods.Items[0]
+	log.Printf("Found %d free pods (pre-filter)", len(pods.Items))
+	for _, p := range pods.Items {
+		if !isPodReady(&p) {
+			log.Printf("Pod %s is not Ready yet; skipping", p.Name)
+			continue
+		}
+		chosen := p
 		log.Printf("Attempting to mark pod %s as busy", chosen.Name)
 		if err := markBusy(cs, &chosen); err == nil {
 			log.Printf("Successfully marked pod %s as busy", chosen.Name)
@@ -183,8 +201,8 @@ func grabOrCreatePod(cs *kubernetes.Clientset, dialect string) (*corev1.Pod, err
 		return nil, fmt.Errorf("failed to scale deployment: %v", err)
 	}
 
-	// 3. wait for new running pod with timeout
-	log.Printf("Scaling deployment %s and waiting for new pod", depName)
+	// 3. wait for new Ready pod with timeout
+	log.Printf("Scaling deployment %s and waiting for new Ready pod", depName)
 	timeout := time.After(60 * time.Second)
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
@@ -201,9 +219,12 @@ func grabOrCreatePod(cs *kubernetes.Clientset, dialect string) (*corev1.Pod, err
 				log.Printf("Error listing pods: %v", err)
 				continue
 			}
-			if len(pods.Items) > 0 {
-				chosen := pods.Items[0]
-				log.Printf("Found new free pod %s, marking as busy", chosen.Name)
+			for _, p := range pods.Items {
+				if !isPodReady(&p) {
+					continue
+				}
+				chosen := p
+				log.Printf("Found new Ready free pod %s, marking as busy", chosen.Name)
 				if err := markBusy(cs, &chosen); err == nil {
 					log.Printf("Successfully allocated pod %s", chosen.Name)
 					return &chosen, nil
