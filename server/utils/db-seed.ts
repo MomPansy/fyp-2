@@ -1,5 +1,6 @@
 import type { Pool } from "pg";
 import Papa from "papaparse";
+
 import {
   type Dialect,
   getSqlType,
@@ -20,7 +21,7 @@ export function quoteIdent(dialect: Dialect, name: string): string {
     case "mysql":
       return `\`${name.replace(/`/g, "``")}\``;
     case "sqlserver":
-      return `[${name.replace(/\]/g, "]]")}]`;
+      return `[${name.replace(/\]/g, "]] ")}]`;
     default:
       return `"${name.replace(/"/g, '""')}"`;
   }
@@ -42,6 +43,39 @@ export async function createTables(
     } (${columnsDDL});`;
     await pool.query(createSql);
   }
+}
+
+// Wait until the DB is ready to accept queries. Retries SELECT 1 until success or timeout.
+export async function waitForDatabase(
+  pool: Pool,
+  dialect: Dialect,
+  options?: { timeoutMs?: number; intervalMs?: number },
+): Promise<void> {
+  const timeoutMs = options?.timeoutMs ?? 60_000;
+  const intervalMs = options?.intervalMs ?? 1_000;
+  const start = Date.now();
+
+  // Simple health query per dialect (all accept SELECT 1)
+  const healthQuery = "SELECT 1";
+
+  let attempt = 0;
+  let lastErr: unknown;
+  while (Date.now() - start < timeoutMs) {
+    attempt++;
+    try {
+      await pool.query(healthQuery);
+      if (attempt > 1) {
+        console.info(`✅ Database became ready after ${attempt} attempts`);
+      }
+      return;
+    } catch (e) {
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+  }
+  const errMsg =
+    lastErr instanceof Error ? lastErr.message : String(lastErr ?? "unknown error");
+  throw new Error(`Timed out waiting for database to be ready: ${errMsg}`);
 }
 
 export async function importCsvData(
