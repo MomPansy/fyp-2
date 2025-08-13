@@ -151,7 +151,7 @@ function RouteComponent(): JSX.Element {
       <Panel defaultSize={40} minSize={25}>
         <SimpleEditor initialContent={problemDetails.description} readonly />
       </Panel>
-      <PanelResizeHandle />
+      <PanelResizeHandle className="w-2 bg-blue-800" />
       <Panel defaultSize={60} minSize={40}>
         <PanelGroup direction='vertical' className='h-full'>
           <Panel defaultSize={60} minSize={20}>
@@ -204,7 +204,7 @@ function RouteComponent(): JSX.Element {
               </div>
             </div>
           </Panel>
-          <PanelResizeHandle />
+          <PanelResizeHandle className="w-2 bg-blue-800" />
           <Panel defaultSize={40} minSize={15}>
             {/* terminal here */}
             <Box
