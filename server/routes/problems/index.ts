@@ -159,7 +159,13 @@ export const route = factory
       }
 
       // 3) Add FKs
-      await addForeignKeys(pool, processedTables, dialect);
+      try {
+        await addForeignKeys(pool, processedTables, dialect);
+      } catch (e) {
+        if (e instanceof HTTPException) throw e;
+        console.error("❌ Failed to add foreign keys:", e);
+        throw new HTTPException(500, { message: "Failed to add foreign keys" });
+      }
 
       return c.json({ key, dialect });
     },

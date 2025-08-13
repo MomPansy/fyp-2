@@ -288,7 +288,6 @@ export const databaseConnectionQueryOptions = (
       const data = await response.json();
       return data;
     },
-    throwOnError: true,
   });
 };
 

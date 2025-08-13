@@ -25,21 +25,36 @@ export const Route = createFileRoute('/_admin/admin/problem/$id/create')({
         problemDetails,
         databaseConnectionKey
       };
-      // throw 404 error if problem not found
     } catch (error) {
-      console.error(error);
-      throw redirect({
-        to: `/admin/problems`,
-      });
+      console.error('Failed to load problem data:', error);
+      // Return null/undefined to let the component handle placeholders
+      return undefined;
     }
   },
   component: RouteComponent,
 });
 
 function RouteComponent(): JSX.Element {
-  const { problemDetails, databaseConnectionKey } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
+
+  // Provide placeholder data if loader data is not available
+  const problemDetails = loaderData?.problemDetails || {
+    description: `
+      <h2>Problem Description</h2>
+      <p>This is a placeholder problem description. The actual problem data could not be loaded.</p>
+      <p>Please check your connection and try again, or contact support if the issue persists.</p>
+    `
+  };
+
+  const databaseConnectionKey = loaderData?.databaseConnectionKey || {
+    host: 'localhost',
+    port: 5432,
+    database: 'placeholder_db',
+    username: 'placeholder_user'
+  };
+
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
-  const [sqlCode, setSqlCode] = useState<string | undefined>("SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000");
+  const [sqlCode, setSqlCode] = useState<string | undefined>(`SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`);
 
   // SQL dialects and selection state
   const sqlDialects = [

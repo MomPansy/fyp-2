@@ -13,8 +13,8 @@ import { useTableSelection } from "../use-table-selection.ts";
 import { ForeignKeyMapping } from "./database-types.ts";
 import { useSaveRelations } from "./use-foreign-key-selection.ts";
 import { TableMetadata } from "../types.ts";
-import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { useProblemContext } from "../problem-context.ts";
+import { useNavigate } from "@tanstack/react-router";
 
 interface ProblemDatabaseProps {
   tableMetadata: TableMetadata[];
@@ -32,6 +32,8 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
     handleTable2Toggle,
   } = useTableSelection();
 
+  const navigate = useNavigate();
+
   const table1Columns = selectedTable1Index !== null && tableMetadata[selectedTable1Index]
     ? tableMetadata[selectedTable1Index].columnTypes
     : [];
@@ -48,9 +50,23 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
 
     try {
       await saveRelationsMutation.mutateAsync(processedMappings);
-      console.log("Relations saved successfully!", processedMappings);
     } catch (error) {
       console.error("Failed to save relations:", error);
+      throw error; // Re-throw to allow caller to handle
+    }
+  };
+
+  const handleSaveAndNavigate = async () => {
+    try {
+      await handleSave();
+      // Navigation will be handled by the success case
+      navigate({
+        to: `/admin/problem/$id/create`,
+        params: { id: problemId },
+      })
+    } catch (error) {
+      // Error handling - stay on current page
+      console.error("Save failed, not navigating:", error);
     }
   };
 
@@ -103,11 +119,14 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
         >
           Save Relations
         </Button>
-        <CustomAnchor to={'/admin/problem/$id/create'} params={{ id: problemId }} style={{ textDecoration: 'none' }} preload="intent" >
-          <Button color="blue">
-            Next Step
-          </Button>
-        </CustomAnchor>
+        <Button
+          color="blue"
+          onClick={handleSaveAndNavigate}
+          loading={saveRelationsMutation.isPending}
+          disabled={saveRelationsMutation.isPending || foreignKeyMappings.length === 0}
+        >
+          Next Step
+        </Button>
       </Group>
     </Paper>
   );
