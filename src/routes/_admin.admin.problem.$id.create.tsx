@@ -151,7 +151,12 @@ function RouteComponent(): JSX.Element {
       <Panel defaultSize={40} minSize={25}>
         <SimpleEditor initialContent={problemDetails.description} readonly />
       </Panel>
-      <PanelResizeHandle className="w-2 bg-blue-800" />
+      {/* Vertical Resize Handle between Left and Right */}
+      <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-gray-400 transition-colors">
+        <div className="h-full flex items-center justify-center">
+          <div className="w-1 h-8 bg-gray-500 rounded"></div>
+        </div>
+      </PanelResizeHandle>
       <Panel defaultSize={60} minSize={40}>
         <PanelGroup direction='vertical' className='h-full'>
           <Panel defaultSize={60} minSize={20}>
@@ -204,7 +209,11 @@ function RouteComponent(): JSX.Element {
               </div>
             </div>
           </Panel>
-          <PanelResizeHandle className="w-2 bg-blue-800" />
+          <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
+            <div className="w-full flex items-center justify-center">
+              <div className="h-1 w-8 bg-gray-500 rounded"></div>
+            </div>
+          </PanelResizeHandle>
           <Panel defaultSize={40} minSize={15}>
             {/* terminal here */}
             <Box
