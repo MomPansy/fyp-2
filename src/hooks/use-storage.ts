@@ -56,7 +56,7 @@ export const useDataStorage = () => {
     csvString: string;
     tableName: string;
     problemId: string;
-    columnTypes: ColumnType[];
+    columnTypes: Omit<ColumnType, 'isPrimaryKey'>[];
   }) => {
     // Get signed upload URL from edge function
     const { token, path } = await initializeUpload(

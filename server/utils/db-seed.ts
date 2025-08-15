@@ -214,6 +214,7 @@ export async function addForeignKeys(
   let totalConstraints = 0;
   let addedConstraints = 0;
   let skippedConstraints = 0;
+  let failedConstraints = 0;
 
   for (const table of tables) {
     if (!table.relations || table.relations.length === 0) {
@@ -241,17 +242,91 @@ export async function addForeignKeys(
         console.log(`✅ Successfully added foreign key constraint: ${constraintName}`);
       } catch (err: any) {
         const msg = err?.message?.toLowerCase?.() || "";
-        if (!msg.includes("already exists") && !msg.includes("duplicate")) {
-          console.error(`❌ Failed to add foreign key constraint ${constraintName}:`, err);
-          throw err;
-        } else {
+        if (msg.includes("already exists") || msg.includes("duplicate")) {
           skippedConstraints++;
           console.log(`⏭️ Constraint ${constraintName} already exists, skipping`);
+        } else if (msg.includes("no unique constraint") || msg.includes("unique constraint matching")) {
+          failedConstraints++;
+          console.error(`❌ Foreign key constraint ${constraintName} failed: Referenced column '${rel.foreignTableColumn}' in table '${rel.foreignTableName}' must have a unique constraint or be a primary key`);
+          console.log(`💡 Suggestion: Add a unique constraint or primary key to ${rel.foreignTableName}.${rel.foreignTableColumn}, or reference a different column that is unique`);
+          // Don't throw here, continue with other constraints
+        } else if (msg.includes("does not exist") || msg.includes("column") && msg.includes("not found")) {
+          failedConstraints++;
+          console.error(`❌ Foreign key constraint ${constraintName} failed: Column '${rel.foreignTableColumn}' does not exist in table '${rel.foreignTableName}' or column '${rel.baseColumnName}' does not exist in table '${rel.baseTableName}'`);
+          console.log(`💡 Suggestion: Check that the column names are correct and match the actual table schema`);
+          // Don't throw here, continue with other constraints
+        } else {
+          failedConstraints++;
+          console.error(`❌ Failed to add foreign key constraint ${constraintName}:`, err);
+          console.log(`💡 SQL attempted: ${fkSql}`);
+          // Don't throw here, continue with other constraints
         }
       }
     }
   }
   
   console.log(`🎉 Foreign key creation completed!`);
-  console.log(`📊 Summary: ${addedConstraints} added, ${skippedConstraints} skipped, ${totalConstraints} total`);
+  console.log(`📊 Summary: ${addedConstraints} added, ${skippedConstraints} skipped, ${failedConstraints} failed, ${totalConstraints} total`);
+  
+  if (failedConstraints > 0) {
+    console.warn(`⚠️ ${failedConstraints} foreign key constraint(s) failed. Check the logs above for details and suggestions.`);
+    console.log(`💡 Common solutions:`);
+    console.log(`   • Add PRIMARY KEY or UNIQUE constraint to referenced columns`);
+    console.log(`   • Verify column names match the actual table schema`);
+    console.log(`   • Ensure referenced tables exist before creating foreign keys`);
+  }
+}
+
+export async function validateForeignKeyConstraints(
+  pool: Pool,
+  tables: SeedTable[],
+  dialect: Dialect,
+): Promise<void> {
+  console.log(`🔍 Validating foreign key constraints before creation...`);
+  
+  const qi = (s: string) => quoteIdent(dialect, s);
+  let validationErrors = 0;
+
+  for (const table of tables) {
+    if (!table.relations || table.relations.length === 0) continue;
+    
+    for (const rel of table.relations) {
+      // Check if referenced table exists and has the column with appropriate constraints
+      try {
+        // Query to check if the referenced column has a unique constraint or is a primary key
+        const checkConstraintSql = `
+          SELECT 
+            tc.constraint_type,
+            kcu.column_name
+          FROM 
+            information_schema.table_constraints tc
+            JOIN information_schema.key_column_usage kcu 
+              ON tc.constraint_name = kcu.constraint_name
+          WHERE 
+            tc.table_name = $1 
+            AND kcu.column_name = $2
+            AND tc.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+        `;
+        
+        const result = await pool.query(checkConstraintSql, [rel.foreignTableName, rel.foreignTableColumn]);
+        
+        if (result.rows.length === 0) {
+          validationErrors++;
+          console.warn(`⚠️ Validation warning: ${rel.foreignTableName}.${rel.foreignTableColumn} has no unique constraint or primary key`);
+          console.log(`   Foreign key ${rel.baseTableName}.${rel.baseColumnName} → ${rel.foreignTableName}.${rel.foreignTableColumn} will likely fail`);
+        } else {
+          console.log(`✅ Validation passed: ${rel.foreignTableName}.${rel.foreignTableColumn} has ${result.rows[0].constraint_type}`);
+        }
+      } catch (error) {
+        validationErrors++;
+        console.warn(`⚠️ Could not validate constraint for ${rel.foreignTableName}.${rel.foreignTableColumn}:`, error);
+      }
+    }
+  }
+  
+  if (validationErrors > 0) {
+    console.warn(`⚠️ Found ${validationErrors} potential foreign key issues. Proceeding anyway, but some constraints may fail.`);
+  } else {
+    console.log(`✅ All foreign key validations passed!`);
+  }
 }

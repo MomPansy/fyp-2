@@ -5,7 +5,7 @@ import {
   Stack,
   Title,
 } from "@mantine/core";
-import { TableManager } from "./table-manager.tsx";
+import { TableManager } from "./table-manager /table-manager.tsx";
 import { useState } from "react";
 import { TableSelector } from "../table-selector.tsx";
 import { ForeignKeySelector, processForeignKeyMappings } from "./foreign-key-selector.tsx";

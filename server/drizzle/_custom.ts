@@ -13,6 +13,7 @@ export const citext = customType<{
 export type ColumnType = {
     column: string;
     type: string;
+    isPrimaryKey: boolean;
 };
 
 export type TableMetadata = {

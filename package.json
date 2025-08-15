@@ -3,7 +3,7 @@
   "name": "mono-repo-node-template",
   "version": "0.0.0",
   "type": "module",
-  "packageManager": "pnpm@10.7.0",
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "envx": "dotenvx",
     "envx:run": "pnpm envx run --ignore=.env.local --env-file .env.production --env-file .env.local --overload",
@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.33.0",
+    "@electric-sql/pglite": "^0.3.7",
     "@floating-ui/react": "^0.27.13",
     "@hono/node-server": "^1.13.7",
     "@hono/zod-validator": "^0.2.2",
