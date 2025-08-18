@@ -4,6 +4,13 @@ import { ProblemDatabase } from '@/components/problems/database/problem-database
 import { ProblemDatabasePending } from '@/components/problems/database/problem-database-pending';
 import { ProblemDatabaseError } from '@/components/problems/database/problem-database-error';
 import { ProblemContext } from '@/components/problems/problem-context';
+import { PGlite } from "@electric-sql/pglite"
+import { live } from "@electric-sql/pglite/live"
+import { PGliteProvider } from "@electric-sql/pglite-react"
+
+const db = await PGlite.create({
+  extensions: { live }
+})
 
 export const Route = createFileRoute('/_admin/admin/problem/$id/database')({
   loader: async ({ context: { queryClient }, params }) => {
@@ -33,10 +40,12 @@ function RouteComponent() {
 
   return (
     <ProblemContext.Provider value={{ problemId: params.id }}>
-      <ProblemDatabase
-        tableMetadata={tableMetadata}
-        groupedMappings={relations}
-      />
+      <PGliteProvider db={db}>
+        <ProblemDatabase
+          tableMetadata={tableMetadata}
+          groupedMappings={relations}
+        />
+      </PGliteProvider>
     </ProblemContext.Provider>
   );
 }

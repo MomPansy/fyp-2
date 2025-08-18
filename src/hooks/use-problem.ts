@@ -18,7 +18,7 @@ import { api } from "@/lib/api";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
-
+type ProblemTableRow = Database["public"]["Tables"]["problem_tables"]["Row"];
 // Query options for use in loaders (router-safe)
 export const problemDetailQueryOptions = <
   K extends keyof ProblemRow = keyof ProblemRow,
@@ -218,20 +218,27 @@ export const problemTablesColumnTypesQueryOptions = (id: string) => {
   });
 };
 
-export const problemTablesRelationsQueryOptions = (id: string) => {
+export const problemTablesRelationsQueryOptions = (
+  id: string,
+  tableName?: string,
+) => {
   return queryOptions<Record<string, ForeignKeyMapping[]>>({
-    queryKey: problemTableKeys.relationsByProblemId(id),
+    queryKey: tableName
+      ? [...problemTableKeys.relationsByProblemId(id), { tableName }]
+      : problemTableKeys.relationsByProblemId(id),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("problem_tables")
         .select("table_name, relations")
         .eq("problem_id", id);
 
+      if (tableName) {
+        query = query.eq("table_name", tableName);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
-        showErrorNotification({
-          title: "Failed to fetch problem table relations",
-          message: error.message,
-        });
         throw new Error(error.message);
       }
       if (!data || data.length === 0) {
@@ -255,6 +262,35 @@ export const problemTablesRelationsQueryOptions = (id: string) => {
       });
 
       return groupedMappings;
+    },
+  });
+};
+
+export const problemTablesQueryOptions = <
+  K extends keyof ProblemTableRow = keyof ProblemTableRow,
+>(
+  problemId: string,
+  opts?: {
+    columns: ReadonlyArray<K>;
+  },
+) => {
+  return queryOptions<Pick<ProblemTableRow, K> | null>({
+    queryKey: opts?.columns
+      ? [...problemTableKeys.detail(problemId), { select: opts.columns }]
+      : problemTableKeys.detail(problemId),
+    queryFn: async () => {
+      const selectArgs = opts?.columns && opts.columns.length > 0
+        ? (opts.columns.join(",") as string)
+        : "*";
+      const { data, error } = await supabase
+        .from("problem_tables")
+        .select(selectArgs)
+        .eq("problem_id", problemId);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data ? (data as unknown as Pick<ProblemTableRow, K>) : null;
     },
   });
 };
@@ -303,8 +339,11 @@ export const useFetchProblemTablesColumnTypes = (id: string) => {
   });
 };
 
-export const useFetchProblemTablesRelations = (id: string) => {
+export const useFetchProblemTablesRelations = (
+  id: string,
+  tableName?: string,
+) => {
   return useSuspenseQuery({
-    ...problemTablesRelationsQueryOptions(id),
+    ...problemTablesRelationsQueryOptions(id, tableName),
   });
 };

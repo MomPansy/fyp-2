@@ -1,11 +1,16 @@
 /* eslint-disable @typescript-eslint/no-base-to-string */
 import { Modal, LoadingOverlay } from "@mantine/core";
 import { DataConfig } from "./data-config";
-import { useCsvImport } from "./csv-import-context";
 import { ColumnConfig } from "./column-config";
+import { useCsvImportStore } from "./csv-import.store";
 
 export function CSVModal() {
-  const { isOpen, onClose, step } = useCsvImport();
+  const isOpen = useCsvImportStore().isOpen;
+  const onClose = () => {
+    useCsvImportStore.getState().reset();
+    useCsvImportStore.getState().close();
+  };
+  const step = useCsvImportStore().step;
 
   return (
     <Modal
@@ -16,7 +21,6 @@ export function CSVModal() {
     >
       {step === 0 && <DataConfig />}
       {step === 1 && <ColumnConfig />}
-      <LoadingOverlay visible={false} />
     </Modal>
   );
 }

@@ -1,14 +1,17 @@
 import pako from "pako";
 import { getAuthHeaders } from "@/lib/api";
+import { useMutation } from "@tanstack/react-query";
 
 type SchemaItem = {
   type: string;
   column: string;
 };
 
-export async function generateSchema(
-  csvString: string,
-): Promise<SchemaItem[]> {
+interface generateSchemaProps {
+  csvString: string;
+}
+
+async function generateSchema({ csvString }: generateSchemaProps): Promise<SchemaItem[]> {
   try {
     // Compress the CSV data using pako
     const encoder = new TextEncoder();
@@ -41,3 +44,7 @@ export async function generateSchema(
     throw error;
   }
 }
+
+export const inferSchemaMutation = () => useMutation({
+  mutationFn: generateSchema,
+})

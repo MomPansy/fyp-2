@@ -5,7 +5,7 @@ import { supabase } from "../lib/supabase.ts";
 import { problemTableKeys } from "components/problems/querykeys";
 import { ColumnType } from "server/drizzle/_custom";
 import { api } from "@/lib/api";
-import { Database } from "@/database.gen";
+import { Database } from "@/database.gen.ts";
 
 export const useDataStorage = () => {
   const queryClient = useQueryClient();
@@ -56,7 +56,7 @@ export const useDataStorage = () => {
     csvString: string;
     tableName: string;
     problemId: string;
-    columnTypes: Omit<ColumnType, 'isPrimaryKey'>[];
+    columnTypes: Omit<ColumnType, "isPrimaryKey">[];
   }) => {
     // Get signed upload URL from edge function
     const { token, path } = await initializeUpload(
@@ -136,6 +136,7 @@ export const useDataStorage = () => {
               created_at: new Date().toISOString(),
               // Add optimistic flag as custom property (will be filtered out by TypeScript in real data)
               _optimistic: true,
+              relations: [],
             } as Database["public"]["Tables"]["problem_tables"]["Row"] & {
               _optimistic: boolean;
             };
@@ -157,11 +158,7 @@ export const useDataStorage = () => {
           context.previousTables,
         );
       }
-
-      showErrorNotification({
-        title: "Failed to upload file",
-        message: error.message,
-      });
+      console.error("File upload error:", error);
     },
     onSuccess: (_data, variables) => {
       // Invalidate all queries related to this problem's tables to get fresh data
@@ -224,7 +221,7 @@ export const useDataStorage = () => {
   });
 
   return {
-    uploadFile: uploadMutation.mutateAsync,
+    uploadFile: uploadMutation.mutate,
     isUploadLoading: uploadMutation.isPending,
     uploadError: uploadMutation.error,
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
 import { databaseConnectionQueryOptions, problemDetailQueryOptions } from '@/hooks/use-problem';
 import { createFileRoute, redirect } from '@tanstack/react-router';
@@ -13,7 +12,7 @@ export const Route = createFileRoute('/_admin/admin/problem/$id/create')({
   loader: async ({ context: { queryClient }, params }) => {
     try {
       const problemDetails = await queryClient.ensureQueryData(problemDetailQueryOptions(params.id, {
-        columns: ['description']
+        columns: ['description'],
       }))
       const databaseConnectionKey = await queryClient.ensureQueryData(databaseConnectionQueryOptions(params.id, 'postgres'));
 

@@ -1,33 +1,47 @@
 import { Accordion, Button, Flex, Group, ModalBody, Stack, Table, Title, Text } from "@mantine/core";
 import { IconFileTypeCsv } from "@tabler/icons-react";
 import { useState } from "react";
-import { useCsvImport } from "./csv-import-context.tsx";
 import { ToggleButton } from "../../../buttons/toggle-button.tsx";
+import { selectFilteredData, useCsvImportStore } from "./csv-import.store.ts";
+import { unparse } from "papaparse";
+import { inferSchemaMutation } from "../use-table-manager.ts";
+import { showErrorNotification } from "@/components/notifications.ts";
+import { sampleRows } from "./csv-import.service.ts";
 
 export function DataConfig() {
-  const {
-    onClose,
-    fileName,
-    columns,
-    updateFilteredColumns,
-    filteredDataRef,
-    rawData,
-    goToNext,
-    prepareSchema,
-    setColumnTypes,
-  } = useCsvImport();
+  const { fileName, initialColumns, rawData, close, reset, setColumnTypes, setFilteredColumns, next } = useCsvImportStore();
+  const { mutateAsync: inferSchema } = inferSchemaMutation();
 
-  const [accordionOpened, setAccordionOpened] = useState<string[]>([]);
+  const onClose = () => {
+    reset();
+    close();
+  };
+
+
   const [columnsToRemove, setColumnsToRemove] = useState<string[]>([]);
 
-  const visibleColumns = columns.filter(c => !columnsToRemove.includes(c));
+  const visibleColumns = initialColumns.filter(c => !columnsToRemove.includes(c));
 
   const handleContinue = async () => {
     const cols = visibleColumns;
-    updateFilteredColumns(cols); // updates ref synchronously
-    const inferredColumnTypesWithPK = await prepareSchema(filteredDataRef.current);
+    setFilteredColumns(cols);
+    const state = useCsvImportStore.getState();
+    const filteredData = selectFilteredData(state);
+    const sampleData = sampleRows(filteredData, 200);
+    const sampleCsvString = unparse(sampleData, { header: true });
+    const inferred = await inferSchema({
+      csvString: sampleCsvString
+    }, {
+      onError: (error) => {
+        showErrorNotification({
+          title: "Failed to infer schema",
+          message: error instanceof Error ? error.message : "An unexpected error occurred while inferring the schema.",
+        });
+      }
+    });
+    const inferredColumnTypesWithPK = inferred.map(col => ({ ...col, isPrimaryKey: false })); // Ensure isPrimaryKey is false initially
     setColumnTypes(inferredColumnTypesWithPK);
-    goToNext();
+    next();
   };
 
   const onToggle = (label: string, isSelected: boolean) => {
@@ -69,8 +83,6 @@ export function DataConfig() {
         </Stack>
         <Accordion
           multiple
-          value={accordionOpened}
-          onChange={setAccordionOpened}
           styles={{
             control: { paddingLeft: 0, paddingRight: 0 },
             content: { paddingLeft: 0, paddingRight: 0 },
@@ -88,7 +100,7 @@ export function DataConfig() {
                   first 20 columns and first 20 rows).
                 </Text>
                 <Group gap="xs" wrap="wrap">
-                  {columns?.map((column) => (
+                  {initialColumns?.map((column) => (
                     <ToggleButton
                       key={column}
                       label={column}

@@ -6,10 +6,10 @@ import {
   Title,
 } from "@mantine/core";
 import { TableManager } from "./table-manager /table-manager.tsx";
-import { useState } from "react";
-import { TableSelector } from "../table-selector.tsx";
+import { Profiler, useState } from "react";
+import { TableSelector } from "./table-selector.tsx";
 import { ForeignKeySelector, processForeignKeyMappings } from "./foreign-key-selector.tsx";
-import { useTableSelection } from "../use-table-selection.ts";
+import { useTableSelection } from "./use-table-selection.ts";
 import { ForeignKeyMapping } from "./database-types.ts";
 import { useSaveRelations } from "./use-foreign-key-selection.ts";
 import { TableMetadata } from "../types.ts";
@@ -74,6 +74,8 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
     setForeignKeyMappings(mappings);
   };
 
+
+
   return (
     <Paper p={20} withBorder>
       <Stack>
@@ -128,6 +130,6 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
           Next Step
         </Button>
       </Group>
-    </Paper>
+    </Paper >
   );
 }
