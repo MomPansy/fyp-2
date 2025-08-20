@@ -2,21 +2,33 @@ import { Accordion, Button, Flex, Group, ModalBody, Stack, Table, Title, Text } 
 import { IconFileTypeCsv } from "@tabler/icons-react";
 import { useState } from "react";
 import { ToggleButton } from "../../../buttons/toggle-button.tsx";
-import { selectFilteredData, useCsvImportStore } from "./csv-import.store.ts";
+import { useCsvImportStore } from "./csv-import.store.ts";
 import { unparse } from "papaparse";
 import { inferSchemaMutation } from "../use-table-manager.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 import { sampleRows } from "./csv-import.service.ts";
 
 export function DataConfig() {
-  const { fileName, initialColumns, rawData, close, reset, setColumnTypes, setFilteredColumns, next } = useCsvImportStore();
+  // states
+  const fileName = useCsvImportStore(state => state.fileName);
+  const initialColumns = useCsvImportStore(state => state.initialColumns);
+  const rawData = useCsvImportStore(state => state.rawData);
+
+  // actions
+  const setColumnTypes = useCsvImportStore.getState().setColumnTypes;
+  const setFilteredColumns = useCsvImportStore.getState().setFilteredColumns;
+  const getFilteredData = useCsvImportStore.getState().getFilteredData;
+
+  const close = useCsvImportStore.getState().close;
+  const reset = useCsvImportStore.getState().reset;
+  const next = useCsvImportStore.getState().next;
+
   const { mutateAsync: inferSchema } = inferSchemaMutation();
 
   const onClose = () => {
     reset();
     close();
   };
-
 
   const [columnsToRemove, setColumnsToRemove] = useState<string[]>([]);
 
@@ -25,8 +37,8 @@ export function DataConfig() {
   const handleContinue = async () => {
     const cols = visibleColumns;
     setFilteredColumns(cols);
-    const state = useCsvImportStore.getState();
-    const filteredData = selectFilteredData(state);
+    const filteredData = getFilteredData();
+
     const sampleData = sampleRows(filteredData, 200);
     const sampleCsvString = unparse(sampleData, { header: true });
     const inferred = await inferSchema({

@@ -75,7 +75,6 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
   };
 
 
-
   return (
     <Paper p={20} withBorder>
       <Stack>
@@ -83,7 +82,7 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
         <TableManager />
         <Title order={3}>Foreign keys</Title>
 
-        <Stack gap="xs">
+        {/* <Stack gap="xs">
           <TableSelector
             tables={tableMetadata}
             legend="Tables"
@@ -110,7 +109,7 @@ export function ProblemDatabase({ tableMetadata, groupedMappings }: ProblemDatab
           selectedTable2Name={selectedTable2Name}
           onMappingsChange={handleMappingsChange}
           initialMappings={groupedMappings}
-        />
+        /> */}
       </Stack>
       <Group justify="flex-end" align='center' mt={20}>
         <Button
