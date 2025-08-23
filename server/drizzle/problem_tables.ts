@@ -1,5 +1,6 @@
 import {
   foreignKey,
+  integer,
   jsonb,
   pgTable,
   text,
@@ -18,6 +19,8 @@ export const problemTables = pgTable("problem_tables", {
   dataPath: text("data_path").notNull(),
   columnTypes: jsonb("column_types").$type<ColumnType[]>(),
   relations: jsonb("relations").$type<ForeignKeyMapping[]>(),
+  numberOfRows: integer("number_of_rows"),
+  description: text("description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (table) => [
   foreignKey({

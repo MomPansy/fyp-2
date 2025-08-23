@@ -19,6 +19,8 @@ export type ColumnType = {
 export type TableMetadata = {
     tableName: string;
     columnTypes: ColumnType[];
+    numberOfRows: number;
+    description: string;
 };
 
 export type ForeignKeyMapping = {

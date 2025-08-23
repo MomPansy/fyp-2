@@ -40,7 +40,9 @@ export type Database = {
           created_at: string
           data_path: string
           ddl_script: string
+          description: string | null
           id: string
+          number_of_rows: number | null
           problem_id: string
           relations: Json | null
           table_name: string
@@ -50,7 +52,9 @@ export type Database = {
           created_at?: string
           data_path: string
           ddl_script: string
+          description?: string | null
           id?: string
+          number_of_rows?: number | null
           problem_id: string
           relations?: Json | null
           table_name: string
@@ -60,7 +64,9 @@ export type Database = {
           created_at?: string
           data_path?: string
           ddl_script?: string
+          description?: string | null
           id?: string
+          number_of_rows?: number | null
           problem_id?: string
           relations?: Json | null
           table_name?: string

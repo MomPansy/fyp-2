@@ -29,6 +29,20 @@
       "when": 1751652604200,
       "tag": "0003_ambiguous_sandman",
       "breakpoints": false
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755941918694,
+      "tag": "0004_chunky_tusk",
+      "breakpoints": false
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755942764632,
+      "tag": "0005_nosy_zaran",
+      "breakpoints": false
     }
   ]
 }

@@ -15,7 +15,10 @@ export function TableManager() {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        const baseName = file.name
+          .replace(/\.[^/.]+$/, "")       // remove extension
+          .replace(/[^a-zA-Z0-9_]/g, "_") // replace invalid chars with _
+          .toLowerCase();
         storeOpen({
           fileName: baseName,
           columns: results.meta.fields ?? [],

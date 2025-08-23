@@ -1,0 +1,1 @@
+ALTER TABLE "problem_tables" ADD COLUMN "description" text;

@@ -193,11 +193,11 @@ export const useAutoSaveProblemContent = () => {
 
 export const problemTablesColumnTypesQueryOptions = (id: string) => {
   return queryOptions<TableMetadata[]>({
-    queryKey: problemTableKeys.columnTypes(id),
+    queryKey: problemTableKeys.byProblemId(id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("problem_tables")
-        .select("table_name, column_types")
+        .select("table_name, column_types, number_of_rows, description")
         .eq("problem_id", id);
 
       if (error) {
@@ -213,6 +213,8 @@ export const problemTablesColumnTypesQueryOptions = (id: string) => {
       return data.map((item) => ({
         tableName: item.table_name,
         columnTypes: item.column_types,
+        numberOfRows: item.number_of_rows,
+        description: item.description,
       })) as TableMetadata[];
     },
   });

@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState, Fragment } from 'react';
+import { memo, useCallback, useMemo, useState, Fragment } from 'react';
 import {
   Accordion,
   ActionIcon,
@@ -17,6 +17,7 @@ import {
   TextInput,
   SelectProps,
   AccordionPanel,
+  Textarea,
 } from '@mantine/core';
 import { IconAlertCircle, IconArrowRight, IconLink, IconTrash } from '@tabler/icons-react';
 import { unparse } from 'papaparse';
@@ -25,8 +26,8 @@ import { useDataStorage } from '@/hooks/use-storage';
 import { useProblemContext } from '../../problem-context';
 import { showErrorNotification, showSuccessNotification } from '@/components/notifications';
 import { useFetchColumnConfig, useFetchProblemTables } from './hooks';
-import { ForeignKeyMapping } from '../database-types';
 import { ColumnType } from 'server/drizzle/_custom';
+import { usePGlite } from '@electric-sql/pglite-react';
 
 // ---------------------- Pure Utilities ----------------------
 function buildCsvString(filteredData: unknown[], filteredColumns: string[]) {
@@ -47,14 +48,16 @@ function useColumnConfigUpload() {
   const fileName = useCsvImportStore(s => s.fileName);
   const filteredColumns = useCsvImportStore(s => s.filteredColumns);
   const columnTypes = useCsvImportStore(s => s.columnTypes);
-  const getFilteredData = useCsvImportStore.getState().getFilteredData; // pure, safe to use directly
+  const getFilteredData = useCsvImportStore.getState().getFilteredData;
+  const description = useCsvImportStore(s => s.description);
 
   const reset = useCsvImportStore.getState().reset;
   const close = useCsvImportStore.getState().close;
 
-  const finalizeUpload = useCallback(async () => {
+  const finalizeUpload = async () => {
     if (!fileName) return;
     const filteredData = getFilteredData();
+    const numberOfRows = filteredData.length;
     const csvString = buildCsvString(filteredData, filteredColumns);
 
     await uploadFile({
@@ -62,6 +65,8 @@ function useColumnConfigUpload() {
       tableName: fileName,
       problemId,
       columnTypes,
+      numberOfRows,
+      description
     }, {
       onSuccess: () => {
         showSuccessNotification({ title: 'Save successful', message: `Table ${fileName} has been saved successfully.` });
@@ -72,55 +77,9 @@ function useColumnConfigUpload() {
         showErrorNotification({ title: 'Save failed', message: (e as Error)?.message ?? 'Unexpected error.' });
       },
     });
-  }, [fileName, filteredColumns, columnTypes, uploadFile, problemId, getFilteredData, reset, close]);
+  }
 
   return { finalizeUpload };
-}
-
-// Manage foreign key relation local state for a target table
-function useForeignKeyRelations(baseTableName: string | undefined, foreignTableName: string, baseColumnTypes: ColumnType[], foreignColumnTypes: { column: string; type: string }[]) {
-  const [relations, setRelations] = useState<ForeignKeyMapping[]>([{
-    baseTableName: baseTableName || '',
-    baseColumnName: '',
-    baseColumnType: '',
-    foreignTableName,
-    foreignTableColumn: '',
-    foreignTableType: '',
-  }]);
-
-  const addRelation = useCallback(() => {
-    setRelations(prev => ([...prev, {
-      baseTableName: baseTableName || '',
-      baseColumnName: '',
-      baseColumnType: '',
-      foreignTableName,
-      foreignTableColumn: '',
-      foreignTableType: '',
-    }]));
-  }, [foreignTableName, baseTableName]);
-
-  const removeRelation = useCallback((index: number) => {
-    setRelations(prev => prev.filter((_, i) => i !== index));
-  }, []);
-
-  const updateRelationWithType = useCallback((index: number, columnName: string, isBase: boolean) => {
-    const columnData = isBase
-      ? baseColumnTypes.find(c => c.column === columnName)
-      : foreignColumnTypes.find(c => c.column === columnName);
-    if (!columnData) return;
-    setRelations(prev => prev.map((relation, i) => i === index ? {
-      ...relation,
-      ...(isBase ? {
-        baseColumnName: columnName,
-        baseColumnType: columnData.type,
-      } : {
-        foreignTableColumn: columnName,
-        foreignTableType: columnData.type,
-      }),
-    } : relation));
-  }, [baseColumnTypes, foreignColumnTypes]);
-
-  return { relations, addRelation, removeRelation, updateRelationWithType };
 }
 
 // ---------------------- Presentation Subcomponents ----------------------
@@ -176,21 +135,23 @@ const ForeignTableSelector = ({ problemId }: ForeignTableSelectorProps) => {
           clearable
           value={selectedTable}
         />
-        {selectedTable && <RelationConfig tableName={selectedTable} problemId={problemId} />}
+        {selectedTable && <RelationConfig foreignTableName={selectedTable} problemId={problemId} />}
       </Stack>
     </AccordionPanel>
   );
 };
 
-interface RelationConfigProps { tableName: string; problemId: string; }
+interface RelationConfigProps { foreignTableName: string; problemId: string; }
 
-const RelationConfig = memo(({ tableName, problemId }: RelationConfigProps) => {
-  const { data } = useFetchColumnConfig(problemId, tableName);
-  const { column_types } = data;
+const RelationConfig = memo(({ foreignTableName, problemId }: RelationConfigProps) => {
+  const { data: foreignTableConfig } = useFetchColumnConfig(problemId, foreignTableName);
+  const { column_types: foreignTableTypes } = foreignTableConfig;
   const baseColumnTypes = useCsvImportStore(s => s.columnTypes);
-  const baseTableName = useCsvImportStore(s => s.fileName);
 
-  const { relations, addRelation, removeRelation, updateRelationWithType } = useForeignKeyRelations(baseTableName, tableName, baseColumnTypes, column_types);
+  const relations = useCsvImportStore(s => s.relations);
+  const addRelation = useCsvImportStore(s => s.addRelation)
+  const removeRelation = useCsvImportStore(s => s.removeRelation)
+  const updateRelations = useCsvImportStore(s => s.updateRelation)
 
   const baseColumnSelectData = useMemo(() => baseColumnTypes.map(c => ({
     value: c.column,
@@ -200,14 +161,14 @@ const RelationConfig = memo(({ tableName, problemId }: RelationConfigProps) => {
 
   const renderForeignOption: SelectProps['renderOption'] = useCallback((props: { option: { value: string; label: string } }) => {
     const { option } = props;
-    const columnData = column_types.find(c => c.column === option.value);
+    const columnData = foreignTableTypes.find(c => c.column === option.value);
     return (
       <Group>
         <Text size="sm">{option.label}</Text>
         <Code>{columnData?.type}</Code>
       </Group>
     );
-  }, [column_types]);
+  }, [foreignTableTypes]);
 
   const renderBaseOption: SelectProps['renderOption'] = useCallback((props: { option: { value: string; label: string } }) => {
     const { option } = props;
@@ -220,18 +181,9 @@ const RelationConfig = memo(({ tableName, problemId }: RelationConfigProps) => {
     );
   }, [baseColumnTypes]);
 
-  const handleAddRelation = useCallback(() => addRelation(), [addRelation]);
-
-  const handleSaveRelations = useCallback(() => {
-    // TODO: integrate with API call to persist relations
-    // For now just log.
-    // eslint-disable-next-line no-console
-    console.log('Saving relations', relations);
-  }, [relations]);
-
   return (
     <Stack>
-      <Text size="sm">Select columns from <Code>{tableName}</Code> to reference</Text>
+      <Text size="sm">Select columns from <Code>{foreignTableName}</Code> to reference</Text>
       <Stack gap="xs">
         <Grid>
           <Grid.Col span={5}><Text size="xs" fw={400}>Base Column</Text></Grid.Col>
@@ -249,17 +201,17 @@ const RelationConfig = memo(({ tableName, problemId }: RelationConfigProps) => {
                 renderOption={renderBaseOption}
                 placeholder="Select base column"
                 value={relation.baseColumnName}
-                onChange={(value) => updateRelationWithType(index, value || '', true)}
+                onChange={(value) => updateRelations(index, value || '', true, foreignTableTypes)}
               />
             </Grid.Col>
             <Grid.Col span={1}><IconArrowRight /></Grid.Col>
             <Grid.Col span={5}>
               <Select
-                data={column_types.map(c => c.column)}
+                data={foreignTableTypes.map(c => c.column)}
                 renderOption={renderForeignOption}
                 placeholder="Select foreign column"
                 value={relation.foreignTableColumn}
-                onChange={(value) => updateRelationWithType(index, value || '', false)}
+                onChange={(value) => updateRelations(index, value || '', false, foreignTableTypes)}
               />
             </Grid.Col>
             <Grid.Col span={1}>
@@ -270,8 +222,7 @@ const RelationConfig = memo(({ tableName, problemId }: RelationConfigProps) => {
           </Grid>
         ))}
         <Group justify="space-between">
-          <Button variant="light" size="sm" onClick={handleAddRelation} leftSection={<IconLink size={16} />}>Add Relation</Button>
-          <Button variant="default" size="sm" onClick={handleSaveRelations}>Save Relations</Button>
+          <Button variant="light" size="sm" onClick={() => addRelation(foreignTableName)} leftSection={<IconLink size={16} />}>Add Relation</Button>
         </Group>
       </Stack>
     </Stack>
@@ -281,15 +232,19 @@ RelationConfig.displayName = 'RelationConfig';
 
 // ---------------------- Root Component ----------------------
 export function ColumnConfig() {
+  const db = usePGlite();
   const rawDataLength = useCsvImportStore(s => s.rawData.length);
   const filteredColumns = useCsvImportStore(s => s.filteredColumns);
   const columnTypes = useCsvImportStore(s => s.columnTypes);
   const setColumnTypes = useCsvImportStore.getState().setColumnTypes; // action: no subscription needed
   const isPrimaryKeySelected = useCsvImportStore(s => s.columnTypes.some(c => c.isPrimaryKey));
   const fileName = useCsvImportStore(s => s.fileName);
+  const tableDescription = useCsvImportStore(s => s.description);
+  const setTableDescription = useCsvImportStore(s => s.setDescription);
 
   const close = useCsvImportStore.getState().close;
   const reset = useCsvImportStore.getState().reset;
+  const save = useCsvImportStore.getState().save;
 
   const { problemId } = useProblemContext();
   const { finalizeUpload } = useColumnConfigUpload();
@@ -300,6 +255,14 @@ export function ColumnConfig() {
     setColumnTypes(togglePrimaryKey(columnTypes, index));
   }, [columnTypes, setColumnTypes]);
 
+  const onSave = async () => {
+    try {
+      await save(db);
+      await finalizeUpload();
+    } catch (error) {
+      // do nothing
+    }
+  }
   return (
     <ModalBody p={0}>
       <Stack>
@@ -309,6 +272,7 @@ export function ColumnConfig() {
             Tables should have at least one column as the primary key to identify each row.
           </Alert>
         )}
+        <Textarea label='Table Description' value={tableDescription} onChange={(e) => setTableDescription(e.currentTarget.value)} placeholder='Set table description' />
         <Accordion multiple styles={{ control: { paddingLeft: 0, paddingRight: 0 }, content: { paddingLeft: 0, paddingRight: 0 } }}>
           <Accordion.Item value="column-config">
             <Accordion.Control><Text size="sm" fw={500}>Configure Columns</Text></Accordion.Control>
@@ -322,7 +286,7 @@ export function ColumnConfig() {
           </Accordion.Item>
         </Accordion>
         <Flex gap="sm" justify="flex-end">
-          <Button onClick={finalizeUpload} disabled={!fileName}>Save</Button>
+          <Button onClick={onSave} disabled={!fileName || !isPrimaryKeySelected}>Save</Button>
           <Button variant="subtle" color="red" onClick={onClose}>Cancel</Button>
         </Flex>
       </Stack>

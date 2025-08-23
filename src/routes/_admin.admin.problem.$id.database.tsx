@@ -35,8 +35,8 @@ function RouteComponent() {
   const params = Route.useParams();
 
   // Use reactive queries instead of loader data for real-time updates
-  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
-  const { data: relations } = useFetchProblemTablesRelations(params.id);
+  const { data: tableMetadata, isLoading: isLoadingTableMetadata } = useFetchProblemTablesColumnTypes(params.id);
+  const { data: relations, isLoading: isLoadingRelations } = useFetchProblemTablesRelations(params.id);
 
   return (
     <ProblemContext.Provider value={{ problemId: params.id }}>
@@ -44,6 +44,7 @@ function RouteComponent() {
         <ProblemDatabase
           tableMetadata={tableMetadata}
           groupedMappings={relations}
+          isLoading={isLoadingTableMetadata || isLoadingRelations}
         />
       </PGliteProvider>
     </ProblemContext.Provider>

@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { ColumnType } from "server/drizzle/_custom";
+import { problemTableKeys } from "../../querykeys";
 
 // Original shape: an array of rows, each row: { column_types: ColumnType[] }
 interface ColumnConfigValues {
@@ -28,7 +29,7 @@ export const useFetchColumnConfig = (problemId: string, tableName: string) => {
 
 export const useFetchProblemTables = (problemId: string) => {
   return useSuspenseQuery({
-    queryKey: ["problem_tables", problemId],
+    queryKey: problemTableKeys.byProblemId(problemId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("problem_tables")
