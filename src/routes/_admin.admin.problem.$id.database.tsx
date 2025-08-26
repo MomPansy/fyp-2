@@ -7,6 +7,7 @@ import { ProblemContext } from '@/components/problems/problem-context';
 import { PGlite } from "@electric-sql/pglite"
 import { live } from "@electric-sql/pglite/live"
 import { PGliteProvider } from "@electric-sql/pglite-react"
+import { Suspense } from 'react';
 
 const db = await PGlite.create({
   extensions: { live }
@@ -34,18 +35,12 @@ function ProblemDatabaseErrorComponent({ error, reset }: { error: Error; reset: 
 function RouteComponent() {
   const params = Route.useParams();
 
-  // Use reactive queries instead of loader data for real-time updates
-  const { data: tableMetadata, isLoading: isLoadingTableMetadata } = useFetchProblemTablesColumnTypes(params.id);
-  const { data: relations, isLoading: isLoadingRelations } = useFetchProblemTablesRelations(params.id);
-
   return (
     <ProblemContext.Provider value={{ problemId: params.id }}>
       <PGliteProvider db={db}>
-        <ProblemDatabase
-          tableMetadata={tableMetadata}
-          groupedMappings={relations}
-          isLoading={isLoadingTableMetadata || isLoadingRelations}
-        />
+        <Suspense fallback={<ProblemDatabasePending />}>
+          <ProblemDatabase />
+        </Suspense>
       </PGliteProvider>
     </ProblemContext.Provider>
   );

@@ -15,6 +15,7 @@ import { Database } from "database.gen";
 import { ForeignKeyMapping, TableMetadata } from "server/drizzle/_custom";
 import { Dialect } from "server/utils/mappings";
 import { api } from "@/lib/api";
+import { problemLibraryKeys } from "@/components/problems-library/query-keys";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
@@ -131,6 +132,11 @@ export const useAutoSaveProblemName = () => {
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
       >(problemKeys.detail(variables.id), data);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: problemLibraryKeys.all,
+      });
     },
   });
 };

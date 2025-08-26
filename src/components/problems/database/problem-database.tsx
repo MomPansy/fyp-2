@@ -12,21 +12,24 @@ import {
   Title,
 } from "@mantine/core";
 import { TableManager } from "./table-manager /table-manager.tsx";
-import { ForeignKeyMapping } from "./database-types.ts";
 import { TableMetadata } from "../types.ts";
 import { useProblemContext } from "../problem-context.ts";
 import { useNavigate } from "@tanstack/react-router";
 import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
 import { ColumnType } from "server/drizzle/_custom.ts";
 import { useDisclosure } from "@mantine/hooks";
+import { useFetchProblemTablesColumnTypes, useFetchProblemTablesRelations } from "@/hooks/use-problem.ts";
+import { useParams } from '@tanstack/react-router'
 
-interface ProblemDatabaseProps {
-  tableMetadata: TableMetadata[];
-  groupedMappings: Record<string, ForeignKeyMapping[]>;
-  isLoading?: boolean;
-}
 
-export function ProblemDatabase({ tableMetadata, groupedMappings, isLoading }: ProblemDatabaseProps) {
+export function ProblemDatabase() {
+  const params = useParams({
+    from: '/_admin/admin/problem/$id/database'
+  });
+
+  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
+  const { data: relations } = useFetchProblemTablesRelations(params.id);
+
   const [opened, { open, close }] = useDisclosure()
   const problemId = useProblemContext().problemId;
 
@@ -53,7 +56,6 @@ export function ProblemDatabase({ tableMetadata, groupedMappings, isLoading }: P
         <TableManager />
         <DatabaseTable
           tableMetadata={tableMetadata}
-          isLoading={isLoading}
           onViewColumns={open}
         />
       </Stack>
@@ -70,39 +72,12 @@ export function ProblemDatabase({ tableMetadata, groupedMappings, isLoading }: P
   );
 }
 
-function TableSkeleton() {
-  return (
-    <>
-      {Array.from({ length: 3 }).map((_, index) => (
-        <Table.Tr key={index}>
-          <Table.Td>
-            <Skeleton height={20} width="80%" />
-          </Table.Td>
-          <Table.Td>
-            <Skeleton height={20} width="90%" />
-          </Table.Td>
-          <Table.Td>
-            <Skeleton height={20} width="50%" />
-          </Table.Td>
-          <Table.Td>
-            <Skeleton height={32} width="120px" />
-          </Table.Td>
-          <Table.Td>
-            <Skeleton height={32} width={32} />
-          </Table.Td>
-        </Table.Tr>
-      ))}
-    </>
-  );
-}
-
 interface DatabaseTableProps {
   tableMetadata: TableMetadata[];
-  isLoading?: boolean;
   onViewColumns: () => void;
 }
 
-function DatabaseTable({ tableMetadata, isLoading, onViewColumns }: DatabaseTableProps) {
+function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
   return (
     <Table withTableBorder>
       <Table.Thead>
@@ -115,9 +90,7 @@ function DatabaseTable({ tableMetadata, isLoading, onViewColumns }: DatabaseTabl
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody bg='hf-grey'>
-        {isLoading ? (
-          <TableSkeleton />
-        ) : (
+        {
           tableMetadata.map((table) => (
             <Table.Tr key={table.tableName}>
               <Table.Td>{table.tableName}</Table.Td>
@@ -135,7 +108,7 @@ function DatabaseTable({ tableMetadata, isLoading, onViewColumns }: DatabaseTabl
               </Table.Td>
             </Table.Tr>
           ))
-        )}
+        }
       </Table.Tbody>
     </Table>
   );

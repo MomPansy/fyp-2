@@ -1,11 +1,14 @@
 import { useProblemsQuery, fetchProblemsPage } from '@/components/problems-library/hooks';
 import { ProblemListFilters, ProblemListSorting, problemLibraryKeys } from '@/components/problems-library/query-keys';
-import { ActionIcon, Group, Pagination, Paper, Skeleton, Stack, Table, TextInput } from '@mantine/core';
-import { useDebouncedValue, usePagination } from '@mantine/hooks';
-import { IconArrowsUpDown, IconFilter } from '@tabler/icons-react';
-import { createFileRoute } from '@tanstack/react-router';
+import { ActionIcon, Button, Group, LoadingOverlay, Modal, Pagination, Paper, Skeleton, Stack, Table, TextInput } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
+import { IconArrowsUpDown, IconEdit, IconFilter } from '@tabler/icons-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Suspense, useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { problemDetailQueryOptions } from '@/hooks/use-problem';
+import { showErrorNotification } from '@/components/notifications';
+import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
 
 export const Route = createFileRoute('/_admin/admin/problemslibrary')({
   component: RouteComponent,
@@ -102,6 +105,7 @@ function ListContent({ filters, sorting }: ListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const { data } = useProblemsQuery(debouncedFilters, sorting, pageSize, currentPage - 1);
   const { items, totalCount, totalPages } = data;
+  const navigate = useNavigate();
 
   const queryClient = useQueryClient();
 
@@ -150,47 +154,116 @@ function ListContent({ filters, sorting }: ListProps) {
     }
   };
 
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const deselectProblem = () => setSelectedProblemId(null);
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedFilters.search]);
+
   return (
-    <Paper withBorder shadow='sm'>
-      <Table highlightOnHover striped>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Problem Name</Table.Th>
-            <Table.Th>Description</Table.Th>
-            <Table.Th>Created At</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {items.map((problem) => (
-            <Table.Tr key={problem.id}>
-              <Table.Td>{problem.name}</Table.Td>
-              <Table.Td>Summary</Table.Td>
-              <Table.Td>231231</Table.Td>
+    <>
+      <Paper withBorder shadow='sm'>
+        <Table highlightOnHover striped>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Problem Name</Table.Th>
+              <Table.Th>Summary</Table.Th>
+              <Table.Th>Created At</Table.Th>
+              <Table.Th>Action</Table.Th>
             </Table.Tr>
-          ))}
-        </Table.Tbody>
-        <Table.Caption >
-          <Group justify='flex-end'>
-            <Pagination
-              total={totalPages}
-              onChange={setCurrentPage}
-              value={currentPage}
-              p='xs'
-              withEdges
-              getItemProps={(page) => ({
-                onMouseEnter: () => handlePageHover(page),
-              })}
-              getControlProps={(control) => ({
-                onMouseEnter: () => handleControlHover(control),
-              })}
-            />
-          </Group>
-        </Table.Caption>
-      </Table>
-    </Paper>
+          </Table.Thead>
+          <Table.Tbody>
+            {items.map((problem) => (
+              <Table.Tr
+                key={problem.id}
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  // Prevent row click when clicking on the button
+                  if (!e.defaultPrevented) {
+                    setSelectedProblemId(problem.id);
+                  }
+                }}
+              >
+                <Table.Td>{problem.name}</Table.Td>
+                <Table.Td>Summary</Table.Td>
+                <Table.Td>231231</Table.Td>
+                <Table.Td>
+                  <Button
+                    leftSection={<IconEdit />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate({ to: '/admin/problem/$id/details', params: { id: problem.id } });
+                    }}
+                    variant='light'
+                  >
+                    Edit
+                  </Button>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+          <Table.Caption >
+            <Group justify='flex-end'>
+              <Pagination
+                total={totalPages}
+                onChange={setCurrentPage}
+                value={currentPage}
+                p='xs'
+                withEdges
+                getItemProps={(page) => ({
+                  onMouseEnter: () => handlePageHover(page),
+                })}
+                getControlProps={(control) => ({
+                  onMouseEnter: () => handleControlHover(control),
+                })}
+              />
+            </Group>
+          </Table.Caption>
+        </Table>
+      </Paper>
+      {selectedProblemId && (
+        <Suspense fallback={<LoadingOverlay />}>
+          <ProblemPreviewModal
+            onClose={deselectProblem}
+            problemId={selectedProblemId}
+          />
+        </Suspense>
+      )}
+    </>
   );
+}
+
+interface ProblemPreviewModalProps {
+  problemId: string
+  onClose: () => void;
+}
+
+function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
+  const { data: problem } = useSuspenseQuery(problemDetailQueryOptions(problemId, { columns: ['name', 'description'] }));
+
+  if (!problem) {
+    showErrorNotification({ title: "Problem Not Found", message: "The requested problem does not exist." });
+    onClose();
+    return null;
+  }
+
+  return (
+    <Modal
+      opened={true}
+      onClose={onClose}
+      size='auto'
+      title={problem.name}
+    >
+      <Modal.Body >
+        <SimpleEditor initialContent={problem.description} readonly styles={{
+          editor: { maxWidth: '1400px', padding: 0 }
+        }}
+          showToolbar={false}
+        />
+      </Modal.Body>
+
+    </Modal>
+  )
 }

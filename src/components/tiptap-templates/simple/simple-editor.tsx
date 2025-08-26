@@ -64,16 +64,11 @@ import { useMobile } from "@/hooks/use-mobile"
 import { useWindowSize } from "@/hooks/use-window-size"
 import { useCursorVisibility } from "@/hooks/use-cursor-visibility"
 
-// --- Components ---
-import { ThemeToggle } from "@/components/tiptap-templates/simple/theme-toggle"
-
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils"
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss"
-
-import content from "@/components/tiptap-templates/simple/data/content.json"
 
 const MainToolbarContent = ({
   onHighlighterClick,
@@ -190,9 +185,13 @@ interface SimpleEditorProps {
   onUpdate?: UseEditorOptions["onUpdate"]
   saveStatus?: React.ReactNode
   readonly?: boolean
+  styles?: {
+    editor?: React.CSSProperties
+  }
+  showToolbar?: boolean
 }
 
-export function SimpleEditor({ onUpdate, initialContent, saveStatus, readonly }: SimpleEditorProps) {
+export function SimpleEditor({ onUpdate, initialContent, saveStatus, readonly, styles, showToolbar = true }: SimpleEditorProps) {
   const isMobile = useMobile()
   const windowSize = useWindowSize()
   const [mobileView, setMobileView] = React.useState<
@@ -247,40 +246,88 @@ export function SimpleEditor({ onUpdate, initialContent, saveStatus, readonly }:
     }
   }, [isMobile, mobileView])
 
-  return (
-    <EditorContext.Provider value={{ editor }}>
-      <Toolbar
-        ref={toolbarRef}
-        style={
-          isMobile
-            ? {
-              bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
-            }
-            : {}
-        }
-      >
-        {mobileView === "main" ? (
-          <MainToolbarContent
-            onHighlighterClick={() => setMobileView("highlighter")}
-            onLinkClick={() => setMobileView("link")}
-            isMobile={isMobile}
-            saveStatus={saveStatus}
-          />
-        ) : (
-          <MobileToolbarContent
-            type={mobileView === "highlighter" ? "highlighter" : "link"}
-            onBack={() => setMobileView("main")}
-          />
-        )}
-      </Toolbar>
+  // Allow overriding the editor max-width via styles.editor.maxWidth by mapping it
+  // to a CSS variable consumed by the SCSS: --simple-editor-max-width
+  const editorStyle = React.useMemo(() => {
+    const base = styles?.editor ? { ...styles.editor } : undefined;
+    if (!base) return undefined;
 
-      <div className="content-wrapper">
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
-      </div>
-    </EditorContext.Provider>
+    const result: React.CSSProperties = { ...base } as React.CSSProperties;
+
+    // If caller provided maxWidth, forward it into the CSS variable so SCSS can use it
+    const maxW = (base as any).maxWidth;
+    if (maxW !== undefined && maxW !== null) {
+      const value = typeof maxW === 'number' ? `${maxW}px` : String(maxW);
+      (result as any)['--simple-editor-max-width'] = value;
+    }
+
+    // If caller provided padding (desktop), forward it into CSS variable
+    const padding = (base as any).padding;
+    if (padding !== undefined && padding !== null) {
+      const value = typeof padding === 'number' ? `${padding}px` : String(padding);
+      (result as any)['--simple-editor-padding'] = value;
+    }
+
+    // Optional mobile padding override
+    const paddingMobile = (base as any).paddingMobile ?? (base as any).paddingMobile;
+    if (paddingMobile !== undefined && paddingMobile !== null) {
+      const value = typeof paddingMobile === 'number' ? `${paddingMobile}px` : String(paddingMobile);
+      (result as any)['--simple-editor-padding-mobile'] = value;
+    }
+
+    return result;
+  }, [styles?.editor]);
+
+  // Root style to allow instance-level override of toolbar height.
+  // When showToolbar is false, set --tt-toolbar-height to 0 so the content-wrapper
+  // calc(100% - var(--tt-toolbar-height)) expands to full height.
+  const rootStyle = React.useMemo(() => {
+    const s: React.CSSProperties = {};
+    if (!showToolbar) {
+      (s as React.CSSProperties & { [key: string]: any })['--tt-toolbar-height'] = '0px';
+    }
+    return s;
+  }, [showToolbar]);
+
+  return (
+    <div className="simple-editor-root" style={rootStyle}>
+      <EditorContext.Provider value={{ editor }}>
+        {showToolbar && (
+          <Toolbar
+            ref={toolbarRef}
+            style={
+              isMobile
+                ? {
+                  bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
+                }
+                : {}
+            }
+          >
+            {mobileView === "main" ? (
+              <MainToolbarContent
+                onHighlighterClick={() => setMobileView("highlighter")}
+                onLinkClick={() => setMobileView("link")}
+                isMobile={isMobile}
+                saveStatus={saveStatus}
+              />
+            ) : (
+              <MobileToolbarContent
+                type={mobileView === "highlighter" ? "highlighter" : "link"}
+                onBack={() => setMobileView("main")}
+              />
+            )}
+          </Toolbar>
+        )}
+
+        <div className="content-wrapper">
+          <EditorContent
+            editor={editor}
+            role="presentation"
+            className="simple-editor-content"
+            style={editorStyle}
+          />
+        </div>
+      </EditorContext.Provider>
+    </div>
   )
 }
