@@ -1,6 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
 import { Dropzone, DropzoneProps, FileWithPath } from "@mantine/dropzone";
+import { showErrorNotification } from "../notifications";
 
 interface DropCSVProps extends Partial<DropzoneProps> {
   onDrop: (files: FileWithPath[]) => void;
@@ -11,7 +12,12 @@ interface DropCSVProps extends Partial<DropzoneProps> {
 export function DropCSV(props: DropCSVProps) {
   return (
     <Dropzone
-      onReject={(files) => console.warn("rejected files", files)}
+      onReject={(fileRejection) => {
+        showErrorNotification({
+          title: "File Upload Error",
+          message: fileRejection[0].errors[0].message
+        })
+      }}
       {...props}
     >
       <Group justify="center" gap="xl" style={{ pointerEvents: "none" }}>

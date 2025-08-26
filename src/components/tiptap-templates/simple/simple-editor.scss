@@ -58,17 +58,18 @@ body {
 }
 
 .simple-editor-content {
-  max-width: 640px;
+  /* allow overriding max width via CSS variable */
+  max-width: var(--simple-editor-max-width, 800px);
   width: 100%;
   margin: 0 auto;
 }
 
 .simple-editor-content .tiptap.ProseMirror {
-  padding: 3rem 3rem;
+  padding: var(--simple-editor-padding, 3rem 3rem);
 }
 
 @media screen and (max-width: 480px) {
   .simple-editor-content .tiptap.ProseMirror {
-    padding: 1rem 1.5rem;
+    padding: var(--simple-editor-padding-mobile, 1rem 1.5rem);
   }
 }

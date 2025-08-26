@@ -5,7 +5,6 @@ import { supabase } from "../lib/supabase.ts";
 import { problemTableKeys } from "components/problems/querykeys";
 import { ColumnType } from "server/drizzle/_custom";
 import { api } from "@/lib/api";
-import { Database } from "@/database.gen";
 
 export const useDataStorage = () => {
   const queryClient = useQueryClient();
@@ -52,11 +51,15 @@ export const useDataStorage = () => {
     tableName,
     problemId,
     columnTypes,
+    numberOfRows,
+    description,
   }: {
     csvString: string;
     tableName: string;
     problemId: string;
-    columnTypes: ColumnType[];
+    columnTypes: Omit<ColumnType, "isPrimaryKey">[];
+    numberOfRows: number;
+    description: string;
   }) => {
     // Get signed upload URL from edge function
     const { token, path } = await initializeUpload(
@@ -86,6 +89,8 @@ export const useDataStorage = () => {
           data_path: path,
           table_name: tableName,
           column_types: columnTypes,
+          number_of_rows: numberOfRows,
+          description: description,
         });
 
       if (dbError) {
@@ -108,90 +113,10 @@ export const useDataStorage = () => {
   // Mutation for file upload (now uses edge function)
   const uploadMutation = useMutation({
     mutationFn: uploadFileToStorage,
-    onMutate: async (variables) => {
-      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
-      await queryClient.cancelQueries({
-        queryKey: problemTableKeys.byProblemId(variables.problemId),
-      });
-
-      // Snapshot the previous value
-      const previousTables = queryClient.getQueryData<
-        Database["public"]["Tables"]["problem_tables"]["Row"][]
-      >(problemTableKeys.byProblemId(variables.problemId));
-
-      // Optimistically update the cache
-      queryClient.setQueryData<
-        Database["public"]["Tables"]["problem_tables"]["Row"][]
-      >(
-        problemTableKeys.byProblemId(variables.problemId),
-        (old) => {
-          const newTable:
-            Database["public"]["Tables"]["problem_tables"]["Row"] = {
-              id: `temp-${Date.now()}`, // Temporary ID
-              problem_id: variables.problemId,
-              table_name: variables.tableName,
-              column_types: variables.columnTypes as ColumnType[],
-              data_path: "", // Will be updated on success
-              ddl_script: "test",
-              created_at: new Date().toISOString(),
-              // Add optimistic flag as custom property (will be filtered out by TypeScript in real data)
-              _optimistic: true,
-            } as Database["public"]["Tables"]["problem_tables"]["Row"] & {
-              _optimistic: boolean;
-            };
-
-          return old ? [...old, newTable] : [newTable];
-        },
-      );
-
-      // Return a context with the previous and optimistic values
-      return { previousTables, variables };
-    },
-    onError: (error: Error, variables, context) => {
-      // Rollback the optimistic update on error
-      if (context?.previousTables !== undefined) {
-        queryClient.setQueryData<
-          Database["public"]["Tables"]["problem_tables"]["Row"][]
-        >(
-          problemTableKeys.byProblemId(variables.problemId),
-          context.previousTables,
-        );
-      }
-
-      showErrorNotification({
-        title: "Failed to upload file",
-        message: error.message,
-      });
-    },
-    onSuccess: (_data, variables) => {
-      // Invalidate all queries related to this problem's tables to get fresh data
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.byProblemId(variables.problemId),
-      });
-      // Also invalidate column types for this problem
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.columnTypes(variables.problemId),
-      });
-      // Invalidate relations for this problem
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.relationsByProblemId(variables.problemId),
-      });
-      // Invalidate the specific table if needed
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.byTableName(variables.tableName),
-      });
-    },
     onSettled: (_data, _error, variables) => {
       // Always refetch after error or success to ensure we have the latest data
       queryClient.invalidateQueries({
         queryKey: problemTableKeys.byProblemId(variables.problemId),
-      });
-      // Also ensure column types and relations are refetched
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.columnTypes(variables.problemId),
-      });
-      queryClient.invalidateQueries({
-        queryKey: problemTableKeys.relationsByProblemId(variables.problemId),
       });
     },
   });
@@ -224,7 +149,7 @@ export const useDataStorage = () => {
   });
 
   return {
-    uploadFile: uploadMutation.mutateAsync,
+    uploadFile: uploadMutation.mutate,
     isUploadLoading: uploadMutation.isPending,
     uploadError: uploadMutation.error,
 

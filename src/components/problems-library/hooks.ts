@@ -1,0 +1,126 @@
+import { Database } from "@/database.gen";
+import {
+  problemLibraryKeys,
+  ProblemListFilters,
+  ProblemListSorting,
+} from "./query-keys";
+import { supabase } from "@/lib/supabase";
+import {
+  usePrefetchQuery,
+  useSuspenseQuery,
+  UseSuspenseQueryOptions,
+} from "@tanstack/react-query";
+
+export type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
+
+export interface FetchProblemsArgs {
+  filters: ProblemListFilters;
+  sorting: ProblemListSorting;
+  pageIndex?: number;
+  pageSize: number;
+}
+
+export interface ProblemsPage {
+  items: ProblemRow[];
+  totalCount: number; // raw total rows matching filters
+  totalPages: number; // total pages based on pageSize
+}
+
+export const fetchProblemsPage = async ({
+  filters,
+  sorting,
+  pageIndex,
+  pageSize,
+}: FetchProblemsArgs): Promise<ProblemsPage> => {
+  const start = pageIndex ? pageIndex * pageSize : 0;
+  const end = start + pageSize - 1;
+
+  let countQuery = supabase.from("problems").select("id", {
+    count: "exact",
+    head: true,
+  });
+  let dataQuery = supabase.from("problems").select("*");
+
+  // apply search filter
+  if (filters.search) {
+    const term = `%${filters.search}%`;
+    dataQuery = dataQuery.or(`name.ilike.${term},description.ilike.${term}`);
+    countQuery = countQuery.or(`name.ilike.${term},description.ilike.${term}`);
+  }
+
+  // sort
+  if (sorting.sortOptions.length > 0) {
+    for (const sortOption of sorting.sortOptions) {
+      dataQuery = dataQuery.order(sortOption.sortBy, {
+        ascending: sortOption.order === "asc",
+      });
+    }
+  }
+
+  // apply range
+  dataQuery = dataQuery.range(start || 0, end);
+  const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
+
+  const { data: items, error: dataError } = dataResult;
+  const { count, error: countError } = countResult;
+
+  if (dataError || countError) {
+    throw new Error(
+      dataError?.message || countError?.message || "Unknown error",
+    );
+  }
+  const totalCount = count || 0;
+  const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 0;
+
+  return {
+    items: items as ProblemRow[],
+    totalCount,
+    totalPages,
+  };
+};
+
+const problemsQueryOptions = (
+  {
+    filters,
+    sorting,
+    pageSize = 20,
+    pageIndex = 0,
+  }: FetchProblemsArgs,
+): UseSuspenseQueryOptions<ProblemsPage, Error> => {
+  return (
+    {
+      queryKey: problemLibraryKeys.listParams(filters, sorting, pageIndex),
+      queryFn: () =>
+        fetchProblemsPage({
+          filters,
+          sorting,
+          pageIndex,
+          pageSize,
+        }),
+    }
+  );
+};
+
+export const useProblemsQuery = (
+  filters: ProblemListFilters,
+  sorting: ProblemListSorting,
+  pageSize = 20,
+  pageIndex = 0,
+) => {
+  return useSuspenseQuery(
+    problemsQueryOptions({ filters, sorting, pageSize, pageIndex }),
+  );
+};
+
+export const prefetchProblemsQuery = (
+  {
+    filters,
+    sorting,
+    pageSize = 20,
+    pageIndex = 0,
+  }: FetchProblemsArgs,
+) => {
+  return usePrefetchQuery(
+    problemsQueryOptions({ filters, sorting, pageSize, pageIndex }),
+  );
+};

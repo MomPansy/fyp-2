@@ -75,7 +75,6 @@ export function ProblemDescription({
   problemName: initialProblemName,
   problemContent: initialContent
 }: ProblemDescriptionProps) {
-  const navigate = useNavigate();
   const { problemId } = useProblemContext()
 
   const { mutate: saveContentMutate, isPending: saveContentPending, isSuccess: saveContentSuccess } = useAutoSaveProblemContent();

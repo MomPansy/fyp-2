@@ -8,6 +8,7 @@ import {
   Stack,
 } from '@mantine/core';
 import {
+  IconBook,
   IconFilePencil,
   IconHome,
   IconLogout,
@@ -98,7 +99,13 @@ export function Navbar({ close }: { close?: () => void }) {
               </Accordion.Control>
               <Accordion.Panel>
                 <CustomLink
-                  to='/admin/problems'
+                  to='/admin/problemslibrary'
+                  leftSection={<IconBook className="size-5" />}
+                  label="Problems Library"
+                  onClick={close}
+                />
+                <CustomLink
+                  to='/admin/myproblems'
                   leftSection={<IconFilePencil className="size-5" />}
                   label="My Problems"
                   onClick={close}

@@ -1,0 +1,1 @@
+ALTER TABLE "problem_tables" ADD COLUMN "number_of_rows" integer;

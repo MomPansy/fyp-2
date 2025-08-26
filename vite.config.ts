@@ -19,6 +19,9 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    exclude: ['@electric-sql/pglite'],
+  },
   plugins: [
     TanStackRouterVite({ addExtensions: true, semicolons: true }),
     tsconfigPaths(),

@@ -4,6 +4,14 @@ import { ProblemDatabase } from '@/components/problems/database/problem-database
 import { ProblemDatabasePending } from '@/components/problems/database/problem-database-pending';
 import { ProblemDatabaseError } from '@/components/problems/database/problem-database-error';
 import { ProblemContext } from '@/components/problems/problem-context';
+import { PGlite } from "@electric-sql/pglite"
+import { live } from "@electric-sql/pglite/live"
+import { PGliteProvider } from "@electric-sql/pglite-react"
+import { Suspense } from 'react';
+
+const db = await PGlite.create({
+  extensions: { live }
+})
 
 export const Route = createFileRoute('/_admin/admin/problem/$id/database')({
   loader: async ({ context: { queryClient }, params }) => {
@@ -27,16 +35,13 @@ function ProblemDatabaseErrorComponent({ error, reset }: { error: Error; reset: 
 function RouteComponent() {
   const params = Route.useParams();
 
-  // Use reactive queries instead of loader data for real-time updates
-  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
-  const { data: relations } = useFetchProblemTablesRelations(params.id);
-
   return (
     <ProblemContext.Provider value={{ problemId: params.id }}>
-      <ProblemDatabase
-        tableMetadata={tableMetadata}
-        groupedMappings={relations}
-      />
+      <PGliteProvider db={db}>
+        <Suspense fallback={<ProblemDatabasePending />}>
+          <ProblemDatabase />
+        </Suspense>
+      </PGliteProvider>
     </ProblemContext.Provider>
   );
 }

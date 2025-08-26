@@ -1,0 +1,269 @@
+import { useProblemsQuery, fetchProblemsPage } from '@/components/problems-library/hooks';
+import { ProblemListFilters, ProblemListSorting, problemLibraryKeys } from '@/components/problems-library/query-keys';
+import { ActionIcon, Button, Group, LoadingOverlay, Modal, Pagination, Paper, Skeleton, Stack, Table, TextInput } from '@mantine/core';
+import { useDebouncedValue } from '@mantine/hooks';
+import { IconArrowsUpDown, IconEdit, IconFilter } from '@tabler/icons-react';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { Suspense, useState, useEffect } from 'react';
+import { useQueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { problemDetailQueryOptions } from '@/hooks/use-problem';
+import { showErrorNotification } from '@/components/notifications';
+import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+
+export const Route = createFileRoute('/_admin/admin/problemslibrary')({
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const [filters, setFilters] = useState<ProblemListFilters>({ search: undefined });
+  const [sorting, setSorting] = useState<ProblemListSorting>({
+    sortOptions: [{ sortBy: 'created_at', order: 'desc' }],
+  });
+
+  return (
+    <Stack maw='80rem' mx='auto' mt='2rem'>
+      <Header filters={filters} setFilters={setFilters} />
+      <List filters={filters} sorting={sorting} />
+    </Stack>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <Paper withBorder shadow='sm'>
+      <Table striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Problem Name</Table.Th>
+            <Table.Th>Description</Table.Th>
+            <Table.Th>Created At</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Table.Tr key={index}>
+              <Table.Td>
+                <Skeleton height={20} width="80%" />
+              </Table.Td>
+              <Table.Td>
+                <Skeleton height={20} width="90%" />
+              </Table.Td>
+              <Table.Td>
+                <Skeleton height={20} width="50%" />
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+    </Paper>
+  );
+}
+
+interface HeaderProps {
+  filters: ProblemListFilters;
+  setFilters: (filters: ProblemListFilters) => void;
+}
+
+function Header({ filters, setFilters }: HeaderProps) {
+  return (
+    <Group>
+      <TextInput
+        placeholder='Search problems...'
+        value={filters.search ?? ''}
+        onChange={(e) => setFilters({ ...filters, search: e.currentTarget.value })}
+        size='sm'
+        maw='20rem'
+      />
+      <ActionIcon variant='subtle'>
+        <IconArrowsUpDown />
+      </ActionIcon>
+      <ActionIcon variant='subtle'>
+        <IconFilter />
+      </ActionIcon>
+    </Group>
+  );
+}
+
+interface ListProps {
+  filters: ProblemListFilters;
+  sorting: ProblemListSorting;
+}
+
+function List({ filters, sorting }: ListProps) {
+  // Suspense boundary now wraps only the data-dependent subtree; fallback provides full Table structure
+  return (
+    <Suspense fallback={<TableSkeleton />}>
+      <ListContent filters={filters} sorting={sorting} />
+    </Suspense>
+  );
+}
+
+function ListContent({ filters, sorting }: ListProps) {
+  const pageSize = 20; //can be adjusted 
+  const [debouncedSearch] = useDebouncedValue(filters.search, 300);
+  const debouncedFilters = filters.search === debouncedSearch ? filters : { ...filters, search: debouncedSearch };
+  const [currentPage, setCurrentPage] = useState(1);
+  const { data } = useProblemsQuery(debouncedFilters, sorting, pageSize, currentPage - 1);
+  const { items, totalCount, totalPages } = data;
+  const navigate = useNavigate();
+
+  const queryClient = useQueryClient();
+
+  const handlePageHover = (page: number) => {
+    // Only prefetch if it's not the current page
+    if (page !== currentPage) {
+      const pageIndex = page - 1; // Convert to 0-based index
+      queryClient.prefetchQuery({
+        queryKey: problemLibraryKeys.listParams(debouncedFilters, sorting, pageIndex),
+        queryFn: () =>
+          fetchProblemsPage({
+            filters: debouncedFilters,
+            sorting,
+            pageIndex,
+            pageSize,
+          }),
+      });
+    }
+  };
+
+  const handleControlHover = (control: string) => {
+    let targetPage: number | null = null;
+
+    if (control === 'next' && currentPage < totalPages) {
+      targetPage = currentPage + 1;
+    } else if (control === 'previous' && currentPage > 1) {
+      targetPage = currentPage - 1;
+    } else if (control === 'first') {
+      targetPage = 1;
+    } else if (control === 'last') {
+      targetPage = totalPages;
+    }
+
+    if (targetPage && targetPage !== currentPage) {
+      const pageIndex = targetPage - 1; // Convert to 0-based index
+      queryClient.prefetchQuery({
+        queryKey: problemLibraryKeys.listParams(debouncedFilters, sorting, pageIndex),
+        queryFn: () =>
+          fetchProblemsPage({
+            filters: debouncedFilters,
+            sorting,
+            pageIndex,
+            pageSize,
+          }),
+      });
+    }
+  };
+
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const deselectProblem = () => setSelectedProblemId(null);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedFilters.search]);
+
+  return (
+    <>
+      <Paper withBorder shadow='sm'>
+        <Table highlightOnHover striped>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Problem Name</Table.Th>
+              <Table.Th>Summary</Table.Th>
+              <Table.Th>Created At</Table.Th>
+              <Table.Th>Action</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>
+            {items.map((problem) => (
+              <Table.Tr
+                key={problem.id}
+                style={{ cursor: 'pointer' }}
+                onClick={(e) => {
+                  // Prevent row click when clicking on the button
+                  if (!e.defaultPrevented) {
+                    setSelectedProblemId(problem.id);
+                  }
+                }}
+              >
+                <Table.Td>{problem.name}</Table.Td>
+                <Table.Td>Summary</Table.Td>
+                <Table.Td>231231</Table.Td>
+                <Table.Td>
+                  <Button
+                    leftSection={<IconEdit />}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate({ to: '/admin/problem/$id/details', params: { id: problem.id } });
+                    }}
+                    variant='light'
+                  >
+                    Edit
+                  </Button>
+                </Table.Td>
+              </Table.Tr>
+            ))}
+          </Table.Tbody>
+          <Table.Caption >
+            <Group justify='flex-end'>
+              <Pagination
+                total={totalPages}
+                onChange={setCurrentPage}
+                value={currentPage}
+                p='xs'
+                withEdges
+                getItemProps={(page) => ({
+                  onMouseEnter: () => handlePageHover(page),
+                })}
+                getControlProps={(control) => ({
+                  onMouseEnter: () => handleControlHover(control),
+                })}
+              />
+            </Group>
+          </Table.Caption>
+        </Table>
+      </Paper>
+      {selectedProblemId && (
+        <Suspense fallback={<LoadingOverlay />}>
+          <ProblemPreviewModal
+            onClose={deselectProblem}
+            problemId={selectedProblemId}
+          />
+        </Suspense>
+      )}
+    </>
+  );
+}
+
+interface ProblemPreviewModalProps {
+  problemId: string
+  onClose: () => void;
+}
+
+function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
+  const { data: problem } = useSuspenseQuery(problemDetailQueryOptions(problemId, { columns: ['name', 'description'] }));
+
+  if (!problem) {
+    showErrorNotification({ title: "Problem Not Found", message: "The requested problem does not exist." });
+    onClose();
+    return null;
+  }
+
+  return (
+    <Modal
+      opened={true}
+      onClose={onClose}
+      size='auto'
+      title={problem.name}
+    >
+      <Modal.Body >
+        <SimpleEditor initialContent={problem.description} readonly styles={{
+          editor: { maxWidth: '1400px', padding: 0 }
+        }}
+          showToolbar={false}
+        />
+      </Modal.Body>
+
+    </Modal>
+  )
+}

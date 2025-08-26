@@ -13,11 +13,14 @@ export const citext = customType<{
 export type ColumnType = {
     column: string;
     type: string;
+    isPrimaryKey: boolean;
 };
 
 export type TableMetadata = {
     tableName: string;
     columnTypes: ColumnType[];
+    numberOfRows: number;
+    description: string;
 };
 
 export type ForeignKeyMapping = {
