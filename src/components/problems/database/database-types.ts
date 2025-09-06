@@ -1,16 +1,16 @@
-import { ForeignKeyMapping } from "server/drizzle/_custom";
+import { ForeignKeyMapping } from "server/drizzle/_custom.ts";
 
 export interface ColumnType {
-    column: string;
-    type: string;
+  column: string;
+  type: string;
 }
 export interface TableData {
-    tableName: string;
-    columnTypes: ColumnType[];
+  tableName: string;
+  columnTypes: ColumnType[];
 }
 export interface TableSelectionState {
-    selectedTable1Index: number | null;
-    selectedTable2Index: number | null;
+  selectedTable1Index: number | null;
+  selectedTable2Index: number | null;
 }
 
 export type { ForeignKeyMapping };

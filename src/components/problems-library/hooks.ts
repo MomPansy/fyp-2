@@ -1,15 +1,14 @@
-import { Database } from "@/database.gen";
+import {
+  useSuspenseQuery,
+  UseSuspenseQueryOptions,
+} from "@tanstack/react-query";
 import {
   problemLibraryKeys,
   ProblemListFilters,
   ProblemListSorting,
-} from "./query-keys";
-import { supabase } from "@/lib/supabase";
-import {
-  usePrefetchQuery,
-  useSuspenseQuery,
-  UseSuspenseQueryOptions,
-} from "@tanstack/react-query";
+} from "./query-keys.ts";
+import { Database } from "@/database.gen.ts";
+import { supabase } from "@/lib/supabase.ts";
 
 export type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 
@@ -66,10 +65,10 @@ export const fetchProblemsPage = async ({
 
   if (dataError || countError) {
     throw new Error(
-      dataError?.message || countError?.message || "Unknown error",
+      dataError?.message ?? countError?.message ?? "Unknown error",
     );
   }
-  const totalCount = count || 0;
+  const totalCount = count ?? 0;
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 0;
 
   return {
@@ -79,26 +78,22 @@ export const fetchProblemsPage = async ({
   };
 };
 
-const problemsQueryOptions = (
-  {
-    filters,
-    sorting,
-    pageSize = 20,
-    pageIndex = 0,
-  }: FetchProblemsArgs,
-): UseSuspenseQueryOptions<ProblemsPage, Error> => {
-  return (
-    {
-      queryKey: problemLibraryKeys.listParams(filters, sorting, pageIndex),
-      queryFn: () =>
-        fetchProblemsPage({
-          filters,
-          sorting,
-          pageIndex,
-          pageSize,
-        }),
-    }
-  );
+const problemsQueryOptions = ({
+  filters,
+  sorting,
+  pageSize = 20,
+  pageIndex = 0,
+}: FetchProblemsArgs): UseSuspenseQueryOptions<ProblemsPage> => {
+  return {
+    queryKey: problemLibraryKeys.listParams(filters, sorting, pageIndex),
+    queryFn: () =>
+      fetchProblemsPage({
+        filters,
+        sorting,
+        pageIndex,
+        pageSize,
+      }),
+  };
 };
 
 export const useProblemsQuery = (
@@ -108,19 +103,6 @@ export const useProblemsQuery = (
   pageIndex = 0,
 ) => {
   return useSuspenseQuery(
-    problemsQueryOptions({ filters, sorting, pageSize, pageIndex }),
-  );
-};
-
-export const prefetchProblemsQuery = (
-  {
-    filters,
-    sorting,
-    pageSize = 20,
-    pageIndex = 0,
-  }: FetchProblemsArgs,
-) => {
-  return usePrefetchQuery(
     problemsQueryOptions({ filters, sorting, pageSize, pageIndex }),
   );
 };

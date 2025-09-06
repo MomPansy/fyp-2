@@ -4,7 +4,7 @@ import "@mantine/dates/styles.css";
 import "@mantine/dropzone/styles.css";
 
 import "./main.css";
-import 'overlayscrollbars/overlayscrollbars.css';
+import "overlayscrollbars/overlayscrollbars.css";
 
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
@@ -32,7 +32,6 @@ const queryClient = new QueryClient({
 
 // Create a new router instance
 const router = createRouter({ routeTree, context: { queryClient } });
-
 
 // Render the app
 // eslint-disable-next-line @typescript-eslint/no-non-null-assertion

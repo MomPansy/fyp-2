@@ -1,6 +1,6 @@
 import { hc } from "hono/client";
-import { type ApiRoutes } from "server/index.ts";
 import { supabase, supabaseAnonKey } from "./supabase.ts";
+import { type ApiRoutes } from "server/index.ts";
 
 // Helper to attach required auth headers for backend proxy
 export async function getAuthHeaders() {

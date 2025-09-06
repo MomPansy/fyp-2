@@ -1,74 +1,74 @@
 import {
-  ActionIcon,
   Button,
-  Code,
-  Drawer,
-  DrawerBody,
   Group,
+  Modal,
   Paper,
-  Skeleton,
   Stack,
-  Table,
   Title,
 } from "@mantine/core";
-import { TableManager } from "./table-manager /table-manager.tsx";
-import { TableMetadata } from "../types.ts";
-import { useProblemContext } from "../problem-context.ts";
-import { useNavigate } from "@tanstack/react-router";
-import { IconCheck, IconEdit, IconX } from "@tabler/icons-react";
-import { ColumnType } from "server/drizzle/_custom.ts";
+import { useState } from "react";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { IconCheck, IconEdit, IconTrash, IconX } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
-import { useFetchProblemTablesColumnTypes, useFetchProblemTablesRelations } from "@/hooks/use-problem.ts";
-import { useParams } from '@tanstack/react-router'
-
+import { TableManager } from "./table-manager/table-manager.tsx";
+import { useCsvImportStore } from "./table-manager/csv-import.store.ts";
+import { CSVModal } from "./table-manager/csv-modal.tsx";
+import {
+  TableMetadata,
+  useDeleteProblemTableMutation,
+  useFetchProblemTablesColumnTypes,
+  useFetchTableDataMutation,
+} from "@/hooks/use-problem.ts";
+import { ColumnType } from "server/drizzle/_custom.ts";
+import { showErrorNotification } from "@/components/notifications.ts";
 
 export function ProblemDatabase() {
   const params = useParams({
-    from: '/_admin/admin/problem/$id/database'
+    from: "/_admin/admin/problem/$id/database",
   });
 
   const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
-  const { data: relations } = useFetchProblemTablesRelations(params.id);
-
-  const [opened, { open, close }] = useDisclosure()
-  const problemId = useProblemContext().problemId;
-
+  const [opened, { open, close }] = useDisclosure();
+  const { id: problemId } = useParams({
+    from: "/_admin/admin/problem/$id/database",
+  });
   const navigate = useNavigate();
 
-  const handleSaveAndNavigate = async () => {
+  const handleSaveAndNavigate = () => {
     try {
+      await handleSave();
       // Navigation will be handled by the success case
       navigate({
         to: `/admin/problem/$id/create`,
         params: { id: problemId },
-      })
+      });
     } catch (error) {
       // Error handling - stay on current page
       console.error("Save failed, not navigating:", error);
     }
   };
 
-
   return (
-    <Paper p={20} >
+    <Paper p={20}>
       <Stack>
-        <Title>Database Tables</Title>
+        <Group justify="space-between" align="center">
+          <Title>Database Tables</Title>
+        </Group>
         <TableManager />
-        <DatabaseTable
-          tableMetadata={tableMetadata}
-          onViewColumns={open}
-        />
+        <DatabaseTable tableMetadata={tableMetadata} onViewColumns={open} />
       </Stack>
-      <Group justify="flex-end" align='center' mt={20}>
-        <Button
-          color="blue"
-          onClick={handleSaveAndNavigate}
-        >
+      <Group justify="flex-end" align="center" mt={20}>
+        <Button color="blue" onClick={handleSaveAndNavigate}>
           Next Step
         </Button>
       </Group>
-      <ColumnMetadataDrawer columnTypes={tableMetadata[0]?.columnTypes || []} opened={opened} onClose={close} />
-    </Paper >
+      <ColumnMetadataDrawer
+        columnTypes={tableMetadata[0].columnTypes}
+        opened={opened}
+        onClose={close}
+      />
+      <CSVModal />
+    </Paper>
   );
 }
 
@@ -78,23 +78,82 @@ interface DatabaseTableProps {
 }
 
 function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
-  return (
-    <Table withTableBorder>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Table Name</Table.Th>
-          <Table.Th>Description</Table.Th>
-          <Table.Th>Rows</Table.Th>
-          <Table.Th>Columns</Table.Th>
-          <Table.Th>Action</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody bg='hf-grey'>
+  const params = useParams({
+    from: "/_admin/admin/problem/$id/database",
+  });
+
+  const [opened, { open, close }] = useDisclosure();
+
+  const { mutate } = useFetchTableDataMutation();
+  const { mutate: deleteTable } = useDeleteProblemTableMutation();
+
+  const handleEdit = (table: TableMetadata) => {
+    const tableId = table.tableId;
+    mutate(tableId, {
+      onSuccess: (data) => {
+        useCsvImportStore.getState().openExisting({
+          tableId: tableId,
+          fileName: data.table_name,
+          columns: table.columnTypes.map((c) => c.column),
+          rawData: data.rawData,
+          columnTypes: table.columnTypes,
+          relations: data.relations,
+          description: table.description,
+          tableMetadata: tableMetadata,
+        });
+      },
+    });
+  };
+
+  const [tableToDelete, setTableToDelete] = useState<string | null>(null);
+
+  const handleDeleteClick = (tableId: string) => {
+    setTableToDelete(tableId);
+    open();
+  };
+
+  const handleDeleteConfirm = () => {
+    if (tableToDelete) {
+      deleteTable(
+        { tableId: tableToDelete, problemId: params.id },
         {
-          tableMetadata.map((table) => (
+          onError: (error) => {
+            showErrorNotification({
+              title: "Failed to delete table",
+              message: error.message,
+            });
+          },
+          onSuccess: () => {
+            close();
+            setTableToDelete(null);
+          },
+        },
+      );
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    close();
+    setTableToDelete(null);
+  };
+
+  return (
+    <>
+      <Table withTableBorder>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Table Name</Table.Th>
+            <Table.Th>Description</Table.Th>
+            <Table.Th>Rows</Table.Th>
+            <Table.Th>Columns</Table.Th>
+            <Table.Th>Action</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody bg="hf-grey">
+          {tableMetadata.map((table) => (
             <Table.Tr key={table.tableName}>
               <Table.Td>{table.tableName}</Table.Td>
-              <Table.Td>{table.description}</Table.Td>
+              <Table.Td>{table.description || "Table Description"}</Table.Td>
               <Table.Td>{table.numberOfRows || "N/A"}</Table.Td>
               <Table.Td>
                 <Button variant="gradient" onClick={onViewColumns}>
@@ -102,15 +161,68 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
                 </Button>
               </Table.Td>
               <Table.Td>
-                <ActionIcon variant="subtle" >
-                  <IconEdit />
-                </ActionIcon>
+                <Group justify="space-between" w="5rem">
+                  <ActionIcon
+                    variant="subtle"
+                    onClick={() => handleEdit(table)}
+                  >
+                    <IconEdit />
+                  </ActionIcon>
+                  <ActionIcon
+                    variant="subtle"
+                    onClick={() => handleDeleteClick(table.tableId)}
+                    c="red"
+                  >
+                    <IconTrash />
+                  </ActionIcon>
+                </Group>
               </Table.Td>
             </Table.Tr>
-          ))
-        }
-      </Table.Tbody>
-    </Table>
+          ))}
+        </Table.Tbody>
+      </Table>
+      <DeleteConfirmationModal
+        isOpened={opened}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+      />
+    </>
+  );
+}
+
+function DeleteConfirmationModal({
+  isOpened,
+  onClose,
+  onConfirm,
+}: {
+  isOpened: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <Modal
+      opened={isOpened}
+      onClose={onClose}
+      title="Confirm Deletion"
+      centered
+    >
+      <Modal.Body p="0">
+        <Stack>
+          <p>
+            Are you sure you want to delete this table? This action cannot be
+            undone.
+          </p>
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={onConfirm}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal.Body>
+    </Modal>
   );
 }
 
@@ -120,17 +232,21 @@ interface ColumnMetadataDrawerProps {
   onClose: () => void;
 }
 
-function ColumnMetadataDrawer({ columnTypes, opened, onClose }: ColumnMetadataDrawerProps) {
+function ColumnMetadataDrawer({
+  columnTypes,
+  opened,
+  onClose,
+}: ColumnMetadataDrawerProps) {
   return (
     <Drawer
       title="Column Metadata"
       opened={opened}
       onClose={onClose}
-      position='right'
-      size='lg'
+      position="right"
+      size="lg"
     >
       <DrawerBody>
-        <Table withTableBorder >
+        <Table withTableBorder>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Column Name</Table.Th>
@@ -138,19 +254,21 @@ function ColumnMetadataDrawer({ columnTypes, opened, onClose }: ColumnMetadataDr
               <Table.Th>Primary Key</Table.Th>
             </Table.Tr>
           </Table.Thead>
-          <Table.Tbody bg='hf-grey'>
+          <Table.Tbody bg="hf-grey">
             {columnTypes.map((column) => (
               <Table.Tr key={column.column}>
                 <Table.Td>{column.column}</Table.Td>
-                <Table.Td><Code>
-                  {column.type}
-                </Code></Table.Td>
-                <Table.Td>{column.isPrimaryKey ? <IconCheck /> : <IconX />}</Table.Td>
+                <Table.Td>
+                  <Code>{column.type}</Code>
+                </Table.Td>
+                <Table.Td>
+                  {column.isPrimaryKey ? <IconCheck /> : <IconX />}
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
         </Table>
       </DrawerBody>
     </Drawer>
-  )
+  );
 }

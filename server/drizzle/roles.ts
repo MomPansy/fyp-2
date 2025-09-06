@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { pgTable, timestamp } from "drizzle-orm/pg-core";
-import { userRoles } from "./user_roles";
-import { citext } from "./_custom";
+import { userRoles } from "./user_roles.ts";
+import { citext } from "./_custom.ts";
 
 export const roles = pgTable("roles", {
   id: citext("id").notNull().primaryKey(),
@@ -15,6 +15,6 @@ export const roles = pgTable("roles", {
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
 });
 
-export const rolesRelations = relations(roles, ({many}) => ({
+export const rolesRelations = relations(roles, ({ many }) => ({
   userRoles: many(userRoles),
 }));

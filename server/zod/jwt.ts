@@ -2,10 +2,12 @@ import { z } from "zod";
 
 export const jwtPayloadSchema = z.object({
   aal: z.string(),
-  amr: z.array(z.object({
-    method: z.string(),
-    timestamp: z.number(),
-  })),
+  amr: z.array(
+    z.object({
+      method: z.string(),
+      timestamp: z.number(),
+    }),
+  ),
   app_metadata: z.object({
     provider: z.string(),
     providers: z.array(z.string()),

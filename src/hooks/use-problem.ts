@@ -4,37 +4,47 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { showErrorNotification } from "components/notifications";
+import { Dialect } from "server/problem-database/mappings.ts";
+import { showErrorNotification } from "components/notifications.ts";
 import {
   problemKeys,
   problemTableKeys,
 } from "components/problems/querykeys.ts";
 import { supabase } from "lib/supabase.ts";
-import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html";
+import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html.ts";
 import { Database } from "database.gen";
-import { ForeignKeyMapping, TableMetadata } from "server/drizzle/_custom";
-import { Dialect } from "server/utils/mappings";
-import { api } from "@/lib/api";
-import { problemLibraryKeys } from "@/components/problems-library/query-keys";
+import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
+import { api } from "@/lib/api.ts";
+import { problemLibraryKeys } from "@/components/problems-library/query-keys.ts";
+import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 type ProblemTableRow = Database["public"]["Tables"]["problem_tables"]["Row"];
+export type Row = Record<string, unknown>;
+export interface TableMetadata {
+  tableId: string;
+  tableName: string;
+  columnTypes: ColumnType[];
+  numberOfRows: number;
+  description: string;
+  relations: ForeignKeyMapping[];
+  dataPath: string;
+}
 // Query options for use in loaders (router-safe)
 export const problemDetailQueryOptions = <
   K extends keyof ProblemRow = keyof ProblemRow,
 >(
   id: string,
-  opts?: { columns?: ReadonlyArray<K> },
+  opts?: { columns?: readonly K[] },
 ) =>
   queryOptions<Pick<ProblemRow, K> | null>({
     queryKey: opts?.columns
       ? [...problemKeys.detail(id), { select: opts.columns }]
       : problemKeys.detail(id),
     queryFn: async () => {
-      const selectArg = opts?.columns && opts.columns.length > 0
-        ? (opts.columns.join(",") as string)
-        : "*";
+      const selectArg =
+        opts?.columns && opts.columns.length > 0 ? opts.columns.join(",") : "*";
 
       const { data, error } = await supabase
         .from("problems")
@@ -63,19 +73,18 @@ export const problemDetailQueryOptions = <
 
 // Separate function for creating new problems (router-safe)
 export const createNewProblem = async (id: string) => {
-  const { data, error } = await supabase.from("problems").upsert({
-    id: id,
-    name: "Untitled",
-    description: DEFAULT_PROBLEM_TEMPLATE,
-  })
+  const { data, error } = await supabase
+    .from("problems")
+    .upsert({
+      id: id,
+      name: "Untitled",
+      description: DEFAULT_PROBLEM_TEMPLATE,
+    })
     .select()
     .single();
 
   if (error) {
     throw new Error(error.message);
-  }
-  if (!data) {
-    throw new Error("Failed to create new problem");
   }
   return data;
 };
@@ -83,9 +92,7 @@ export const createNewProblem = async (id: string) => {
 export const useAutoSaveProblemName = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (
-      { id, name }: { id: string; name: string },
-    ) => {
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
       const { data, error } = await supabase
         .from("problems")
         .update({ name })
@@ -109,15 +116,13 @@ export const useAutoSaveProblemName = () => {
 
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(
-        problemKeys.detail(id),
-        (oldData) =>
-          oldData
-            ? ({
+      >(problemKeys.detail(id), (oldData) =>
+        oldData
+          ? {
               ...oldData,
               name,
-            })
-            : undefined,
+            }
+          : undefined,
       );
 
       return { previousData };
@@ -133,20 +138,13 @@ export const useAutoSaveProblemName = () => {
         Database["public"]["Tables"]["problems"]["Insert"]
       >(problemKeys.detail(variables.id), data);
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: problemLibraryKeys.all,
-      });
-    },
   });
 };
 
 export const useAutoSaveProblemContent = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (
-      { id, content }: { id: string; content: string },
-    ) => {
+    mutationFn: async ({ id, content }: { id: string; content: string }) => {
       const { data, error } = await supabase
         .from("problems")
         .update({ description: content })
@@ -170,15 +168,13 @@ export const useAutoSaveProblemContent = () => {
 
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(
-        problemKeys.detail(id),
-        (oldData) =>
-          oldData
-            ? ({
+      >(problemKeys.detail(id), (oldData) =>
+        oldData
+          ? {
               ...oldData,
               description: content,
-            })
-            : undefined,
+            }
+          : undefined,
       );
 
       return { previousData };
@@ -199,11 +195,13 @@ export const useAutoSaveProblemContent = () => {
 
 export const problemTablesColumnTypesQueryOptions = (id: string) => {
   return queryOptions<TableMetadata[]>({
-    queryKey: problemTableKeys.byProblemId(id),
+    queryKey: problemTableKeys.metadataByProblemId(id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("problem_tables")
-        .select("table_name, column_types, number_of_rows, description")
+        .select(
+          "id, table_name, column_types, number_of_rows, description, relations, data_path",
+        )
         .eq("problem_id", id);
 
       if (error) {
@@ -213,57 +211,52 @@ export const problemTablesColumnTypesQueryOptions = (id: string) => {
         });
         throw new Error(error.message);
       }
-      if (!data || data.length === 0) {
-        return [];
-      }
+
       return data.map((item) => ({
+        tableId: item.id,
         tableName: item.table_name,
-        columnTypes: item.column_types,
+        columnTypes: item.column_types as unknown as ColumnType[],
         numberOfRows: item.number_of_rows,
         description: item.description,
+        relations: item.relations as unknown as ForeignKeyMapping[],
+        dataPath: item.data_path,
       })) as TableMetadata[];
+    },
+    retry: (failureCount, error) => {
+      // Don't retry on 404s
+      if (error.message.includes("PGRST116")) {
+        return false;
+      }
+      return failureCount < 3;
     },
   });
 };
 
-export const problemTablesRelationsQueryOptions = (
-  id: string,
-  tableName?: string,
-) => {
+export const problemTablesRelationsQueryOptions = (id: string) => {
   return queryOptions<Record<string, ForeignKeyMapping[]>>({
-    queryKey: tableName
-      ? [...problemTableKeys.relationsByProblemId(id), { tableName }]
-      : problemTableKeys.relationsByProblemId(id),
+    queryKey: problemTableKeys.relationsByProblemId(id),
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("problem_tables")
         .select("table_name, relations")
         .eq("problem_id", id);
 
-      if (tableName) {
-        query = query.eq("table_name", tableName);
-      }
-
-      const { data, error } = await query;
-
       if (error) {
+        showErrorNotification({
+          title: "Failed to fetch problem table relations",
+          message: error.message,
+        });
         throw new Error(error.message);
-      }
-      if (!data || data.length === 0) {
-        return {};
       }
 
       const groupedMappings: Record<string, ForeignKeyMapping[]> = {};
 
       data.forEach((item) => {
-        const foreignKeyMapping = (item.relations || []) as ForeignKeyMapping[];
-        if (foreignKeyMapping && foreignKeyMapping.length > 0) {
+        const foreignKeyMapping = (item.relations ??
+          []) as unknown as ForeignKeyMapping[];
+        if (foreignKeyMapping.length > 0) {
           foreignKeyMapping.forEach((mapping) => {
-            const pairKey =
-              `${mapping.baseTableName}_to_${mapping.foreignTableName}`;
-            if (!groupedMappings[pairKey]) {
-              groupedMappings[pairKey] = [];
-            }
+            const pairKey = `${mapping.baseTableName}_to_${mapping.foreignTableName}`;
             groupedMappings[pairKey].push(mapping);
           });
         }
@@ -279,7 +272,7 @@ export const problemTablesQueryOptions = <
 >(
   problemId: string,
   opts?: {
-    columns: ReadonlyArray<K>;
+    columns: readonly K[];
   },
 ) => {
   return queryOptions<Pick<ProblemTableRow, K> | null>({
@@ -287,9 +280,8 @@ export const problemTablesQueryOptions = <
       ? [...problemTableKeys.detail(problemId), { select: opts.columns }]
       : problemTableKeys.detail(problemId),
     queryFn: async () => {
-      const selectArgs = opts?.columns && opts.columns.length > 0
-        ? (opts.columns.join(",") as string)
-        : "*";
+      const selectArgs =
+        opts?.columns && opts.columns.length > 0 ? opts.columns.join(",") : "*";
       const { data, error } = await supabase
         .from("problem_tables")
         .select(selectArgs)
@@ -298,18 +290,9 @@ export const problemTablesQueryOptions = <
       if (error) {
         throw new Error(error.message);
       }
-      return data ? (data as unknown as Pick<ProblemTableRow, K>) : null;
+      return data as unknown as Pick<ProblemTableRow, K>;
     },
   });
-};
-
-// Error body shape returned by the connect endpoint on failure
-type ConnectDbErrorBody = {
-  message?: string;
-  error?: string | { message?: string };
-  code?: string | number;
-  status?: number;
-  details?: string;
 };
 
 export const databaseConnectionQueryOptions = (
@@ -323,22 +306,113 @@ export const databaseConnectionQueryOptions = (
     queryKey: ["database", "connect", problemId, dialect],
     queryFn: async () => {
       const response = await api.problems.connect.$post({
-        "json": {
+        json: {
           problemId,
           dialect,
         },
       });
 
       const data = await response.json();
-      return data;
+      return {
+        key: data.podName,
+        dialect: data.dialect,
+      };
     },
   });
 };
 
-export const usePrefetchProblemTablesColumnTypes = (id: string) => {
-  useQueryClient().prefetchQuery({
-    ...problemTablesColumnTypesQueryOptions(id),
+export function useFetchTableDataMutation() {
+  return useMutation({
+    mutationFn: async (tableId: string) => {
+      const { data, error } = await supabase
+        .from("problem_tables")
+        .select("*")
+        .eq("id", tableId)
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // fetch data from data_path
+      if (!data.data_path) {
+        throw new Error("No data path found");
+      }
+
+      // Download and parse CSV data
+      const csvResult = await downloadAndParseCsv<Row>(
+        data.data_path,
+        "tables",
+      );
+
+      return {
+        ...data,
+        rawData: csvResult.data,
+        relations: data.relations as unknown as ForeignKeyMapping[],
+        column_types: data.column_types as unknown as ColumnType[],
+      };
+    },
+    onError: (error) => {
+      showErrorNotification({
+        title: "Failed to fetch table data",
+        message: error.message,
+      });
+    },
   });
+}
+
+export function useDeleteProblemTableMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      tableId,
+      problemId,
+    }: {
+      tableId: string;
+      problemId: string;
+    }) => {
+      // eslint-disable-next-line drizzle/enforce-delete-with-where
+      const { data, error: dbError } = await supabase
+        .from("problem_tables")
+        .delete()
+        .eq("id", tableId)
+        .eq("problem_id", problemId)
+        .select()
+        .single();
+
+      if (dbError) {
+        throw new Error(dbError.message);
+      }
+
+      // delete data from storage
+      if (data.data_path) {
+        const { error: storageError } = await supabase.storage
+          .from("tables")
+          .remove([data.data_path]);
+
+        if (storageError) {
+          throw new Error(storageError.message);
+        }
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.metadataByProblemId(data.problem_id),
+      });
+    },
+  });
+}
+
+export const usePrefetchProblemTablesColumnTypes = (id: string) => {
+  const queryClient = useQueryClient();
+
+  return () => {
+    queryClient.prefetchQuery({
+      ...problemTablesColumnTypesQueryOptions(id),
+    });
+  };
 };
 
 export const useFetchProblemTablesColumnTypes = (id: string) => {
@@ -347,11 +421,8 @@ export const useFetchProblemTablesColumnTypes = (id: string) => {
   });
 };
 
-export const useFetchProblemTablesRelations = (
-  id: string,
-  tableName?: string,
-) => {
+export const useFetchProblemTablesRelations = (id: string) => {
   return useSuspenseQuery({
-    ...problemTablesRelationsQueryOptions(id, tableName),
+    ...problemTablesRelationsQueryOptions(id),
   });
 };

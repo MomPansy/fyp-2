@@ -2,8 +2,12 @@ import { Burger, Drawer, Paper } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { Outlet } from "@tanstack/react-router";
 import { Suspense } from "react";
-import { Navbar } from "./navbar";
-import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./resizable";
+import { Navbar } from "./navbar.tsx";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "./resizable.tsx";
 
 export function Sidebar() {
   const [opened, { close, toggle }] = useDisclosure(false);
@@ -27,7 +31,7 @@ export function Sidebar() {
             <Navbar close={close} />
           </Drawer>
         </div>
-        <Paper h="100vh" style={{ overflow: 'auto' }}>
+        <Paper h="100vh" style={{ overflow: "auto" }}>
           <Suspense>
             <Outlet />
           </Suspense>

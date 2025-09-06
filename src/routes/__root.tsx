@@ -1,11 +1,14 @@
+import { useEffect } from "react";
+import { Button, Center, Stack, Text, Title } from "@mantine/core";
+import { type QueryClient } from "@tanstack/react-query";
 
-import { useEffect } from 'react';
-import { Button, Center, Stack, Text, Title } from '@mantine/core';
-import { type QueryClient } from '@tanstack/react-query';
-
-import { createRootRouteWithContext, Outlet, useNavigate } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import {
+  createRootRouteWithContext,
+  Outlet,
+  useNavigate,
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -26,14 +29,14 @@ function Component() {
         </>
       )}
     </>
-  )
+  );
 }
 
 export default function NotFoundComponent() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    navigate({ to: '/' });
+    navigate({ to: "/" });
   }, [navigate]);
 
   return (
@@ -51,8 +54,8 @@ export default function NotFoundComponent() {
           <Button
             w="50%"
             color="hf-orange"
-            onClick={() => (window.location.href = '/')}
-            style={{ marginLeft: 'auto', marginRight: 'auto' }}
+            onClick={() => (window.location.href = "/")}
+            style={{ marginLeft: "auto", marginRight: "auto" }}
           >
             Home
           </Button>

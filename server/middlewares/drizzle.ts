@@ -1,14 +1,13 @@
-import { sql } from 'drizzle-orm';
-import { type PgTransactionConfig } from 'drizzle-orm/pg-core';
-import { type MiddlewareHandler } from 'hono';
-import { createMiddleware } from 'hono/factory';
-import { HTTPException } from 'hono/http-exception';
-import postgres from 'postgres';
+import { sql } from "drizzle-orm";
+import { type PgTransactionConfig } from "drizzle-orm/pg-core";
+import { type MiddlewareHandler } from "hono";
+import { createMiddleware } from "hono/factory";
+import { HTTPException } from "hono/http-exception";
+import postgres from "postgres";
 
-import { type Variables as AppVariables } from 'server/env.ts';
-import { type Tx, type PostgresOptions, db } from 'server/lib/db.ts';
-
-import { type Variables as AuthVariables } from './auth.ts';
+import { type Variables as AuthVariables } from "./auth.ts";
+import { type Variables as AppVariables } from "server/env.ts";
+import { type Tx, type PostgresOptions, db } from "server/lib/db.ts";
 
 export type Variables = AppVariables & AuthVariables;
 
@@ -50,7 +49,7 @@ export function drizzle(
 export function drizzle(options: Options & { lazy?: boolean } = {}) {
   return createMiddleware<{ Variables: TxVariables | WithTxVariables }>(
     async (c, next) => {
-      const jwtPayload = c.get('jwtPayload');
+      const jwtPayload = c.get("jwtPayload");
       if (options.dangerouslyUseServiceRole === false) {
         if (!jwtPayload) {
           throw new Error(
@@ -78,7 +77,7 @@ export function drizzle(options: Options & { lazy?: boolean } = {}) {
               return await callback(tx);
             }, options.txConfig);
           };
-          c.set('withTx', withTx);
+          c.set("withTx", withTx);
           await next();
         } else {
           await db.transaction(async (tx) => {
@@ -92,20 +91,20 @@ export function drizzle(options: Options & { lazy?: boolean } = {}) {
             } else {
               await tx.execute(sql`set local role authenticated`);
             }
-            c.set('tx', tx);
+            c.set("tx", tx);
             await next();
           }, options.txConfig);
         }
       } catch (error) {
         if (error instanceof postgres.PostgresError) {
-          if (error.code === 'P0001' && error.message.startsWith('auth.')) {
+          if (error.code === "P0001" && error.message.startsWith("auth.")) {
             throw new HTTPException(401, {
-              res: Response.json({ error: 'unauthorized' }, { status: 401 }),
+              res: Response.json({ error: "unauthorized" }, { status: 401 }),
             });
           }
-          if (error.code === '42501') {
+          if (error.code === "42501") {
             throw new HTTPException(403, {
-              res: Response.json({ error: 'forbidden' }, { status: 403 }),
+              res: Response.json({ error: "forbidden" }, { status: 403 }),
             });
           }
         }

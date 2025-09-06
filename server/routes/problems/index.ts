@@ -1,22 +1,40 @@
-import { factory } from "server/factory.ts";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
+import { HTTPException } from "hono/http-exception";
+import { seedDatabase } from "server/problem-database/db-seed/index.ts";
+import { factory } from "server/factory.ts";
 import { auth } from "server/middlewares/auth.ts";
 import { supabase } from "server/lib/supabase.ts";
-import { HTTPException } from "hono/http-exception";
 import {
   allocateDatabase,
   fetchProblemTables,
   releaseDatabase,
-} from "server/utils/database-helpers.ts";
-import { getMappings, SUPPORTED_DIALECTS } from "server/utils/mappings.ts";
-import { createPool, getPool, removePool } from "server/utils/pool-manager.ts";
+} from "server/problem-database/hooks.ts";
 import {
-  addForeignKeys,
-  createTables,
-  importCsvData,
-  waitForDatabase,
-} from "server/utils/db-seed.ts";
+  getColumnMappings,
+  getRelationsMappings,
+  SUPPORTED_DIALECTS,
+} from "server/problem-database/mappings.ts";
+import {
+  createPool,
+  getPool,
+  removePool,
+} from "server/problem-database/pool-manager.ts";
+import type { SeedTable } from "server/problem-database/db-seed";
+import {
+  executeMysqlQuery,
+  executeOracleQuery,
+  executePostgresQuery,
+  executeSqliteQuery,
+  executeSqlServerQuery,
+} from "server/problem-database/db-seed/query-executors.ts";
+import type {
+  MysqlPool,
+  OraclePool,
+  PostgresPool,
+  SqlitePool,
+  SqlServerPool,
+} from "server/problem-database/pools.ts";
 
 export const route = factory
   .createApp()
@@ -41,18 +59,18 @@ export const route = factory
         });
       }
 
-      const bucket = userId;
-      const path = `${problemId}/${tableName}`;
+      const bucket = "tables";
+      const path = `${userId}/${problemId}/${tableName}`;
 
+      // Ensure bucket exists or create it
       // get bucket
-      const { data: bucketData } = await supabase.storage
-        .getBucket(bucket);
+      const { data: bucketData } = await supabase.storage.getBucket(bucket);
 
       if (!bucketData) {
         const { error: storageError } = await supabase.storage.createBucket(
           bucket,
           {
-            public: false,
+            public: true,
             allowedMimeTypes: ["text/csv"],
           },
         );
@@ -71,7 +89,8 @@ export const route = factory
         }
       }
 
-      const { data, error } = await supabase.storage.from(bucket)
+      const { data, error } = await supabase.storage
+        .from(bucket)
         .createSignedUploadUrl(path, {
           upsert: true,
         });
@@ -86,12 +105,6 @@ export const route = factory
         });
         throw new HTTPException(500, {
           message: `Failed to create signed upload URL: ${error.message}`,
-        });
-      }
-      if (!data) {
-        console.error("❌ No upload URL generated - data is null/undefined");
-        throw new HTTPException(500, {
-          message: "No upload URL generated",
         });
       }
 
@@ -116,58 +129,26 @@ export const route = factory
 
       const problemTables = await fetchProblemTables(problemId);
 
-      const processedTables = problemTables.map((table) => ({
-        ...table,
-        relations: getMappings(dialect, table.relations),
+      const processedTables: SeedTable[] = problemTables.map((table) => ({
+        table_name: table.table_name,
+        column_types: getColumnMappings(dialect, table.column_types),
+        data_path: table.data_path,
+        relations: getRelationsMappings(dialect, table.relations),
       }));
 
       const { connectionString, podName } = await allocateDatabase(dialect);
-      const key = `${podName}-${dialect}`;
-      const pool = createPool(key, connectionString);
 
-      // Wait for DB to be ready before issuing DDL/queries
-      try {
-        await waitForDatabase(pool, dialect, { timeoutMs: 60_000, intervalMs: 1_000 });
-      } catch (e) {
-        console.error("❌ Database did not become ready in time:", e);
-        throw new HTTPException(500, { message: "Database not ready" });
-      }
+      // transfer connection string storage to redis
+      const key = `${podName}-${dialect}`;
+      const pool = await createPool(key, connectionString, dialect);
 
       // 1) Create tables
-      await createTables(pool, processedTables, dialect);
+      await seedDatabase(pool, processedTables, dialect);
 
-      // 2) Import CSV data
-      try {
-        const jwt = c.get("jwtPayload");
-        const userId = jwt?.user_metadata.user_id;
-        if (!userId) {
-          throw new HTTPException(401, {
-            message: "Missing user context for data import",
-          });
-        }
-        await importCsvData(
-          supabase,
-          userId,
-          pool,
-          processedTables,
-          dialect,
-        );
-      } catch (e) {
-        if (e instanceof HTTPException) throw e;
-        console.error("❌ Data import failed:", e);
-        throw new HTTPException(500, { message: "Failed to import CSV data" });
-      }
-
-      // 3) Add FKs
-      try {
-        await addForeignKeys(pool, processedTables, dialect);
-      } catch (e) {
-        if (e instanceof HTTPException) throw e;
-        console.error("❌ Failed to add foreign keys:", e);
-        throw new HTTPException(500, { message: "Failed to add foreign keys" });
-      }
-
-      return c.json({ key, dialect });
+      return c.json({
+        podName,
+        dialect,
+      });
     },
   )
   .post(
@@ -178,25 +159,47 @@ export const route = factory
       z.object({
         podName: z.string(),
         sql: z.string(),
+        dialect: z.string(),
       }),
     ),
     async (c) => {
-      const { podName, sql } = c.req.valid("json");
+      const { podName, sql, dialect } = c.req.valid("json");
       const pool = getPool(podName);
 
-      if (!pool) {
+      if (!pool || !dialect) {
         throw new HTTPException(404, {
-          message:
-            `No active connection pool found for pod: ${podName}. Please connect first.`,
+          message: `No active connection pool found for pod: ${podName}. Please connect first.`,
         });
       }
 
       try {
-        const result = await pool.query(sql);
-        return c.json(result);
-      } catch (error: any) {
+        let result;
+        switch (dialect) {
+          case "postgres":
+            result = await executePostgresQuery(pool as PostgresPool, sql);
+            break;
+          case "mysql":
+            result = await executeMysqlQuery(pool as MysqlPool, sql);
+            break;
+          case "sqlite":
+            result = await executeSqliteQuery(pool as SqlitePool, sql);
+            break;
+          case "sqlserver":
+            result = await executeSqlServerQuery(pool as SqlServerPool, sql);
+            break;
+          case "oracle":
+            result = await executeOracleQuery(pool as OraclePool, sql);
+            break;
+          default:
+            throw new HTTPException(400, {
+              message: `Unsupported dialect: ${dialect}`,
+            });
+        }
+        return c.json(result as Record<string, unknown>);
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         throw new HTTPException(400, {
-          message: `Query failed: ${error.message}`,
+          message: `Query failed: ${message}`,
         });
       }
     },

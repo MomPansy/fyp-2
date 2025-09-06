@@ -5,9 +5,9 @@ import * as problems from "./problems.ts";
 import * as problemTables from "./problem_tables.ts";
 
 export default {
-    ...users,
-    ...userRoles,
-    ...userProblems,
-    ...problems,
-    ...problemTables,
+  ...users,
+  ...userRoles,
+  ...userProblems,
+  ...problems,
+  ...problemTables,
 };

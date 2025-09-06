@@ -13,13 +13,13 @@ export type ProblemSortField = keyof SortOptions;
 export type SortDirection = "asc" | "desc";
 
 export interface ProblemListSorting {
-  sortOptions: Array<{
+  sortOptions: {
     sortBy: ProblemSortField;
     order: SortDirection;
-  }>;
+  }[];
 }
 
-export interface ProblemListFilters {
+export interface ProblemListFilters extends Record<string, unknown> {
   search?: string;
 }
 
@@ -30,7 +30,9 @@ export interface ProblemListFilters {
 // result is {a: 1, f: [1]}
 // since result is a subset of input, we can type it as Partial<T>
 
-const normalizeFilters = <T extends Record<string, any>>(f: T): Partial<T> => {
+const normalizeFilters = <T extends Record<string, unknown>>(
+  f: T,
+): Partial<T> => {
   return Object.fromEntries(
     Object.entries(f).filter(([, v]) => {
       if (v === undefined || v === null) return false;
@@ -107,7 +109,5 @@ export const problemLibraryKeys = {
 
   // Detail item key
   detail: (id: string) =>
-    [
-      { ...problemLibraryKeys.all[0], entity: "detail", id },
-    ] as const,
+    [{ ...problemLibraryKeys.all[0], entity: "detail", id }] as const,
 };

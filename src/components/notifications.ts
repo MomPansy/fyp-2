@@ -2,12 +2,12 @@ import {
   NotificationData,
   NotificationsStore,
   notifications,
-} from '@mantine/notifications';
+} from "@mantine/notifications";
 
 import {
   DEFAULT_ERROR_NOTIFICATION,
   DEFAULT_SUCCESS_NOTIFICATION,
-} from 'lib/const.ts';
+} from "lib/const.ts";
 
 export function showSuccessNotification(
   notificationData: NotificationData = {
@@ -19,8 +19,8 @@ export function showSuccessNotification(
     {
       ...notificationData,
       message: notificationData.message ?? DEFAULT_SUCCESS_NOTIFICATION,
-      title: notificationData.title ?? 'Success',
-      color: notificationData.color ?? 'teal',
+      title: notificationData.title ?? "Success",
+      color: notificationData.color ?? "teal",
     },
     store,
   );
@@ -36,8 +36,8 @@ export function showErrorNotification(
     {
       ...notificationData,
       message: notificationData.message ?? DEFAULT_ERROR_NOTIFICATION,
-      title: notificationData.title ?? 'Error',
-      color: notificationData.color ?? 'red',
+      title: notificationData.title ?? "Error",
+      color: notificationData.color ?? "red",
     },
     store,
   );

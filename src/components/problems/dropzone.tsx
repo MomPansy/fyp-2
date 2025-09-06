@@ -1,7 +1,7 @@
 import { Group, Text } from "@mantine/core";
 import { IconUpload, IconX, IconFile } from "@tabler/icons-react";
 import { Dropzone, DropzoneProps, FileWithPath } from "@mantine/dropzone";
-import { showErrorNotification } from "../notifications";
+import { showErrorNotification } from "../notifications.ts";
 
 interface DropCSVProps extends Partial<DropzoneProps> {
   onDrop: (files: FileWithPath[]) => void;
@@ -15,8 +15,8 @@ export function DropCSV(props: DropCSVProps) {
       onReject={(fileRejection) => {
         showErrorNotification({
           title: "File Upload Error",
-          message: fileRejection[0].errors[0].message
-        })
+          message: fileRejection[0].errors[0].message,
+        });
       }}
       {...props}
     >
@@ -44,7 +44,7 @@ export function DropCSV(props: DropCSVProps) {
             Drag and drop CSV files here, or click to select files
           </Text>
           <Text size="sm" c="dimmed" inline mt={7}>
-            Attach as many files as you like.
+            Attach one CSV file at a time.
           </Text>
         </div>
       </Group>

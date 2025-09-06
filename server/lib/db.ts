@@ -1,6 +1,6 @@
-import { appEnvVariables } from "server/env.ts";
 import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
+import { appEnvVariables } from "server/env.ts";
 import drizzleSchema from "server/drizzle/_index.ts";
 
 const connectionString = appEnvVariables.DB_URL;
@@ -13,5 +13,5 @@ export type PostgresOptions = postgres.Options<
 >;
 
 export type Tx = Parameters<
-  Parameters<PostgresJsDatabase<typeof drizzleSchema>['transaction']>[0]
+  Parameters<PostgresJsDatabase<typeof drizzleSchema>["transaction"]>[0]
 >[0];

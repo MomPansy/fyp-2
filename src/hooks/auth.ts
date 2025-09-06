@@ -4,9 +4,9 @@ import {
   useSuspenseQuery,
 } from "@tanstack/react-query";
 import { jwtDecode } from "jwt-decode";
+import { showError } from "../utils/notifications.tsx";
 import { type JwtPayload } from "server/zod/jwt.ts";
 import { supabase } from "lib/supabase.ts";
-import { showError } from "utils/notifications";
 
 export const accessTokenQueryOptions = queryOptions<{
   raw: string;

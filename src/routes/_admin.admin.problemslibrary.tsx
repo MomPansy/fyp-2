@@ -1,27 +1,49 @@
-import { useProblemsQuery, fetchProblemsPage } from '@/components/problems-library/hooks';
-import { ProblemListFilters, ProblemListSorting, problemLibraryKeys } from '@/components/problems-library/query-keys';
-import { ActionIcon, Button, Group, LoadingOverlay, Modal, Pagination, Paper, Skeleton, Stack, Table, TextInput } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks';
-import { IconArrowsUpDown, IconEdit, IconFilter } from '@tabler/icons-react';
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { Suspense, useState, useEffect } from 'react';
-import { useQueryClient, useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { problemDetailQueryOptions } from '@/hooks/use-problem';
-import { showErrorNotification } from '@/components/notifications';
-import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+import {
+  ActionIcon,
+  Button,
+  Group,
+  LoadingOverlay,
+  Modal,
+  Pagination,
+  Paper,
+  Skeleton,
+  Stack,
+  Table,
+  TextInput,
+} from "@mantine/core";
+import { useDebouncedValue } from "@mantine/hooks";
+import { IconArrowsUpDown, IconEdit, IconFilter } from "@tabler/icons-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Suspense, useState, useEffect } from "react";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import {
+  ProblemListFilters,
+  ProblemListSorting,
+  problemLibraryKeys,
+} from "@/components/problems-library/query-keys.ts";
+import {
+  useProblemsQuery,
+  fetchProblemsPage,
+} from "@/components/problems-library/hooks.ts";
+import { problemDetailQueryOptions } from "@/hooks/use-problem.ts";
+import { showErrorNotification } from "@/components/notifications.ts";
+import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 
-export const Route = createFileRoute('/_admin/admin/problemslibrary')({
+export const Route = createFileRoute("/_admin/admin/problemslibrary")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const [filters, setFilters] = useState<ProblemListFilters>({ search: undefined });
+  const [filters, setFilters] = useState<ProblemListFilters>({
+    search: undefined,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sorting, setSorting] = useState<ProblemListSorting>({
-    sortOptions: [{ sortBy: 'created_at', order: 'desc' }],
+    sortOptions: [{ sortBy: "created_at", order: "desc" }],
   });
 
   return (
-    <Stack maw='80rem' mx='auto' mt='2rem'>
+    <Stack maw="80rem" mx="auto" mt="2rem">
       <Header filters={filters} setFilters={setFilters} />
       <List filters={filters} sorting={sorting} />
     </Stack>
@@ -30,7 +52,7 @@ function RouteComponent() {
 
 function TableSkeleton() {
   return (
-    <Paper withBorder shadow='sm'>
+    <Paper withBorder shadow="sm">
       <Table striped highlightOnHover>
         <Table.Thead>
           <Table.Tr>
@@ -68,16 +90,18 @@ function Header({ filters, setFilters }: HeaderProps) {
   return (
     <Group>
       <TextInput
-        placeholder='Search problems...'
-        value={filters.search ?? ''}
-        onChange={(e) => setFilters({ ...filters, search: e.currentTarget.value })}
-        size='sm'
-        maw='20rem'
+        placeholder="Search problems..."
+        value={filters.search ?? ""}
+        onChange={(e) =>
+          setFilters({ ...filters, search: e.currentTarget.value })
+        }
+        size="sm"
+        maw="20rem"
       />
-      <ActionIcon variant='subtle'>
+      <ActionIcon variant="subtle">
         <IconArrowsUpDown />
       </ActionIcon>
-      <ActionIcon variant='subtle'>
+      <ActionIcon variant="subtle">
         <IconFilter />
       </ActionIcon>
     </Group>
@@ -99,12 +123,20 @@ function List({ filters, sorting }: ListProps) {
 }
 
 function ListContent({ filters, sorting }: ListProps) {
-  const pageSize = 20; //can be adjusted 
+  const pageSize = 20; //can be adjusted
   const [debouncedSearch] = useDebouncedValue(filters.search, 300);
-  const debouncedFilters = filters.search === debouncedSearch ? filters : { ...filters, search: debouncedSearch };
+  const debouncedFilters =
+    filters.search === debouncedSearch
+      ? filters
+      : { ...filters, search: debouncedSearch };
   const [currentPage, setCurrentPage] = useState(1);
-  const { data } = useProblemsQuery(debouncedFilters, sorting, pageSize, currentPage - 1);
-  const { items, totalCount, totalPages } = data;
+  const { data } = useProblemsQuery(
+    debouncedFilters,
+    sorting,
+    pageSize,
+    currentPage - 1,
+  );
+  const { items, totalPages } = data;
   const navigate = useNavigate();
 
   const queryClient = useQueryClient();
@@ -114,7 +146,11 @@ function ListContent({ filters, sorting }: ListProps) {
     if (page !== currentPage) {
       const pageIndex = page - 1; // Convert to 0-based index
       queryClient.prefetchQuery({
-        queryKey: problemLibraryKeys.listParams(debouncedFilters, sorting, pageIndex),
+        queryKey: problemLibraryKeys.listParams(
+          debouncedFilters,
+          sorting,
+          pageIndex,
+        ),
         queryFn: () =>
           fetchProblemsPage({
             filters: debouncedFilters,
@@ -129,20 +165,24 @@ function ListContent({ filters, sorting }: ListProps) {
   const handleControlHover = (control: string) => {
     let targetPage: number | null = null;
 
-    if (control === 'next' && currentPage < totalPages) {
+    if (control === "next" && currentPage < totalPages) {
       targetPage = currentPage + 1;
-    } else if (control === 'previous' && currentPage > 1) {
+    } else if (control === "previous" && currentPage > 1) {
       targetPage = currentPage - 1;
-    } else if (control === 'first') {
+    } else if (control === "first") {
       targetPage = 1;
-    } else if (control === 'last') {
+    } else if (control === "last") {
       targetPage = totalPages;
     }
 
     if (targetPage && targetPage !== currentPage) {
       const pageIndex = targetPage - 1; // Convert to 0-based index
       queryClient.prefetchQuery({
-        queryKey: problemLibraryKeys.listParams(debouncedFilters, sorting, pageIndex),
+        queryKey: problemLibraryKeys.listParams(
+          debouncedFilters,
+          sorting,
+          pageIndex,
+        ),
         queryFn: () =>
           fetchProblemsPage({
             filters: debouncedFilters,
@@ -154,7 +194,9 @@ function ListContent({ filters, sorting }: ListProps) {
     }
   };
 
-  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(null);
+  const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
+    null,
+  );
   const deselectProblem = () => setSelectedProblemId(null);
 
   // Reset to page 1 when filters change
@@ -164,7 +206,7 @@ function ListContent({ filters, sorting }: ListProps) {
 
   return (
     <>
-      <Paper withBorder shadow='sm'>
+      <Paper withBorder shadow="sm">
         <Table highlightOnHover striped>
           <Table.Thead>
             <Table.Tr>
@@ -178,7 +220,7 @@ function ListContent({ filters, sorting }: ListProps) {
             {items.map((problem) => (
               <Table.Tr
                 key={problem.id}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: "pointer" }}
                 onClick={(e) => {
                   // Prevent row click when clicking on the button
                   if (!e.defaultPrevented) {
@@ -194,9 +236,12 @@ function ListContent({ filters, sorting }: ListProps) {
                     leftSection={<IconEdit />}
                     onClick={(e) => {
                       e.preventDefault();
-                      navigate({ to: '/admin/problem/$id/details', params: { id: problem.id } });
+                      navigate({
+                        to: "/admin/problem/$id/details",
+                        params: { id: problem.id },
+                      });
                     }}
-                    variant='light'
+                    variant="light"
                   >
                     Edit
                   </Button>
@@ -204,13 +249,13 @@ function ListContent({ filters, sorting }: ListProps) {
               </Table.Tr>
             ))}
           </Table.Tbody>
-          <Table.Caption >
-            <Group justify='flex-end'>
+          <Table.Caption>
+            <Group justify="flex-end">
               <Pagination
                 total={totalPages}
                 onChange={setCurrentPage}
                 value={currentPage}
-                p='xs'
+                p="xs"
                 withEdges
                 getItemProps={(page) => ({
                   onMouseEnter: () => handlePageHover(page),
@@ -236,34 +281,36 @@ function ListContent({ filters, sorting }: ListProps) {
 }
 
 interface ProblemPreviewModalProps {
-  problemId: string
+  problemId: string;
   onClose: () => void;
 }
 
 function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
-  const { data: problem } = useSuspenseQuery(problemDetailQueryOptions(problemId, { columns: ['name', 'description'] }));
+  const { data: problem } = useSuspenseQuery(
+    problemDetailQueryOptions(problemId, { columns: ["name", "description"] }),
+  );
 
   if (!problem) {
-    showErrorNotification({ title: "Problem Not Found", message: "The requested problem does not exist." });
+    showErrorNotification({
+      title: "Problem Not Found",
+      message: "The requested problem does not exist.",
+    });
     onClose();
     return null;
   }
 
   return (
-    <Modal
-      opened={true}
-      onClose={onClose}
-      size='auto'
-      title={problem.name}
-    >
-      <Modal.Body >
-        <SimpleEditor initialContent={problem.description} readonly styles={{
-          editor: { maxWidth: '1400px', padding: 0 }
-        }}
+    <Modal opened={true} onClose={onClose} size="auto" title={problem.name}>
+      <Modal.Body>
+        <SimpleEditor
+          initialContent={problem.description}
+          readonly
+          styles={{
+            editor: { maxWidth: "1400px", padding: 0 },
+          }}
           showToolbar={false}
         />
       </Modal.Body>
-
     </Modal>
-  )
+  );
 }

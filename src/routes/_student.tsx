@@ -1,7 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { Sidebar } from 'components/sidebar';
+import { createFileRoute } from "@tanstack/react-router";
+import { Sidebar } from "components/sidebar.tsx";
 
-export const Route = createFileRoute('/_student')({
+export const Route = createFileRoute("/_student")({
   component: RouteComponent,
 });
 

@@ -61,10 +61,12 @@ export function EditorTerminal() {
   const [terminalOutput, setTerminalOutput] = useState<
     typeof sampleTestResult | null
   >(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleEditorDidMount: EditorProps["onMount"] = (editor) => {
     editorRef.current = editor;
   };
@@ -81,6 +83,7 @@ export function EditorTerminal() {
   };
 
   // Submit SQL query
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const submitQuery = () => {
     setIsSubmitting(true);
 
@@ -111,41 +114,39 @@ export function EditorTerminal() {
           {terminalOutput.message}
         </Text>
 
-        {terminalOutput.data && (
-          <Box className="overflow-auto max-h-64">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  {Object.keys(terminalOutput.data[0]).map((key) => (
-                    <th
-                      key={key}
-                      className="border border-gray-300 px-4 py-2 text-left"
+        <Box className="overflow-auto max-h-64">
+          <table className="min-w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                {Object.keys(terminalOutput.data[0]).map((key) => (
+                  <th
+                    key={key}
+                    className="border border-gray-300 px-4 py-2 text-left"
+                  >
+                    {key}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {terminalOutput.data.map((row, rowIndex) => (
+                <tr
+                  key={rowIndex}
+                  className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                >
+                  {Object.values(row).map((value, valueIndex) => (
+                    <td
+                      key={valueIndex}
+                      className="border border-gray-300 px-4 py-2"
                     >
-                      {key}
-                    </th>
+                      {value}
+                    </td>
                   ))}
                 </tr>
-              </thead>
-              <tbody>
-                {terminalOutput.data.map((row, rowIndex) => (
-                  <tr
-                    key={rowIndex}
-                    className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    {Object.values(row).map((value, valueIndex) => (
-                      <td
-                        key={valueIndex}
-                        className="border border-gray-300 px-4 py-2"
-                      >
-                        {value}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Box>
-        )}
+              ))}
+            </tbody>
+          </table>
+        </Box>
       </div>
     );
   };

@@ -1,15 +1,17 @@
-
-import { ProblemContext } from "@/components/problems/problem-context";
 import { createFileRoute } from "@tanstack/react-router";
-import { ProblemDescription } from "components/problems/details/problem-description";
-import { problemDetailQueryOptions, createNewProblem } from "@/hooks/use-problem";
-
+import { ProblemDescription } from "components/problems/details/problem-description.tsx";
+import {
+  problemDetailQueryOptions,
+  createNewProblem,
+} from "@/hooks/use-problem.ts";
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
   loader: async ({ context: { queryClient }, params }) => {
     try {
       // Try to fetch existing problem
-      const existingProblem = await queryClient.ensureQueryData(problemDetailQueryOptions(params.id));
+      const existingProblem = await queryClient.ensureQueryData(
+        problemDetailQueryOptions(params.id),
+      );
 
       // If problem exists, return it
       if (existingProblem) {
@@ -20,17 +22,24 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
       const newProblem = await createNewProblem(params.id);
 
       // Update the cache with the new problem and return it
-      queryClient.setQueryData(problemDetailQueryOptions(params.id).queryKey, newProblem);
+      queryClient.setQueryData(
+        problemDetailQueryOptions(params.id).queryKey,
+        newProblem,
+      );
 
       return newProblem;
     } catch (error) {
-      throw new Error(`Failed to load or create problem: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Failed to load or create problem: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   },
   // Add proper error handling
   errorComponent: ({ error }: { error: Error }) => (
     <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-      <h2 className="text-xl font-semibold text-red-600">Failed to Load Problem</h2>
+      <h2 className="text-xl font-semibold text-red-600">
+        Failed to Load Problem
+      </h2>
       <p className="text-gray-600">{error.message}</p>
       <button
         onClick={() => window.location.reload()}
@@ -54,15 +63,12 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
 });
 
 function RouteComponent() {
-  const problem = Route.useLoaderData()
-  const { id } = Route.useParams();
+  const problem = Route.useLoaderData();
 
   return (
-    <ProblemContext.Provider value={{ problemId: id }}>
-      <ProblemDescription
-        problemName={problem.name}
-        problemContent={problem?.description || ''}
-      />
-    </ProblemContext.Provider >
+    <ProblemDescription
+      problemName={problem.name}
+      problemContent={problem.description || ""}
+    />
   );
 }

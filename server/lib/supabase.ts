@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { type Database } from "../../src/database.local.ts";
+import { type Database } from "../../src/database.gen.ts";
 import { appEnvVariables } from "server/env.ts";
 
 export const supabaseUrl = appEnvVariables.SUPABASE_URL;

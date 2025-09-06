@@ -1,4 +1,3 @@
-
 import {
   Button,
   Paper,
@@ -6,35 +5,37 @@ import {
   TextInput,
   Title,
   Container,
-} from '@mantine/core';
-import classes from './login.module.css';
-import { useForm } from '@mantine/form';
-import { notifications } from '@mantine/notifications';
-import { z } from 'zod';
-import { zodResolver } from 'mantine-form-zod-resolver';
-import { supabase } from 'lib/supabase.ts';
-import { showError } from 'utils/notifications.tsx';
-import { useMutation } from '@tanstack/react-query';
+} from "@mantine/core";
+import { useForm } from "@mantine/form";
+import { notifications } from "@mantine/notifications";
+import { z } from "zod";
+import { zodResolver } from "mantine-form-zod-resolver";
+import { useMutation } from "@tanstack/react-query";
+import classes from "./login.module.css";
+import { supabase } from "lib/supabase.ts";
+import { showError } from "utils/notifications.tsx";
 
-const redirectUrl = import.meta.env.DEV ? 'http://localhost:5173' : import.meta.env.VITE_APP_URL;
+const redirectUrl = import.meta.env.DEV
+  ? "http://localhost:5173"
+  : (import.meta.env.VITE_APP_URL as string);
 
 export function Login() {
   const magicLinkForm = useForm({
-    mode: 'uncontrolled',
+    mode: "uncontrolled",
     initialValues: {
-      email: '',
+      email: "",
     },
     validate: zodResolver(z.object({ email: z.string().email() })),
   });
 
   const magicLinkMutation = useMutation({
-    mutationKey: ['auth', 'signin', 'magic-link'],
+    mutationKey: ["auth", "signin", "magic-link"],
     mutationFn: async (values: typeof magicLinkForm.values) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         email: values.email,
         options: {
           emailRedirectTo: redirectUrl,
-        }
+        },
       });
       if (error) {
         throw error;
@@ -44,9 +45,9 @@ export function Login() {
     onSuccess: () => {
       magicLinkForm.reset();
       notifications.show({
-        title: 'Check your email',
-        message: 'We sent you a login link. Check your email inbox.',
-        color: 'green',
+        title: "Check your email",
+        message: "We sent you a login link. Check your email inbox.",
+        color: "green",
       });
     },
     onError: (error) => {
@@ -56,17 +57,18 @@ export function Login() {
 
   const { isPending } = magicLinkMutation;
 
-
   return (
-    <form onSubmit={magicLinkForm.onSubmit((values) => {
-      magicLinkMutation.mutate(values);
-    })}>
+    <form
+      onSubmit={magicLinkForm.onSubmit((values) => {
+        magicLinkMutation.mutate(values);
+      })}
+    >
       <Container size={500} my={40}>
         <Title ta="center" className={classes.title}>
           Query Proctor
         </Title>
 
-        <Text className={classes.subtitle} >
+        <Text className={classes.subtitle}>
           Welcome back! Log into Query Proctor with your email address.
         </Text>
 
@@ -77,8 +79,21 @@ export function Login() {
             </Text>
           ) : (
             <>
-              <TextInput label="Email" placeholder="example@email.com" required radius="md" {...magicLinkForm.getInputProps('email')} />
-              <Button fullWidth mt="xl" radius="md" type='submit' loading={isPending} disabled={isPending}>
+              <TextInput
+                label="Email"
+                placeholder="example@email.com"
+                required
+                radius="md"
+                {...magicLinkForm.getInputProps("email")}
+              />
+              <Button
+                fullWidth
+                mt="xl"
+                radius="md"
+                type="submit"
+                loading={isPending}
+                disabled={isPending}
+              >
                 Sign in
               </Button>
             </>

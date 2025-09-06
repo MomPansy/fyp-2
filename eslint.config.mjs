@@ -12,7 +12,7 @@ export default tseslint.config(
   { ignores: ['dist'] },
   {
     files: ['**/*.{ts,tsx}'],
-    ignores: ['node_modules', 'dist', '**/*.gen.ts'],
+    ignores: ['node_modules', 'dist', '**/*.gen.ts', 'src/components/tiptap/**', 'src/lib/tiptap-utils.ts', 'supabase/**'],
     extends: [
       eslint.configs.recommended,
       ...tseslint.configs.recommendedTypeChecked,
@@ -39,7 +39,7 @@ export default tseslint.config(
     },
     settings: {
       'import-x/parsers': {
-        '@typescript-eslint/parser': ['.ts', '.tsx'],
+        '@typescript-eslint/parser': ['.ts'],
       },
       'import-x/resolver': 'oxc',
       'import/resolver': {
@@ -47,32 +47,34 @@ export default tseslint.config(
           extensions: ['.js', '.jsx', '.ts', '.tsx', '.css']
         },
       },
-      rules: {
-        ...reactHooksPlugin.configs.recommended.rules,
-        'react-refresh/only-export-components': [
-          'warn',
-          { allowConstantExport: true },
-        ],
-        'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
-        'import-x/extensions': ['error', 'ignorePackages'],
-        'import-x/order': ['error'],
-        'import-x/no-named-as-default-member': ['off'],
-        'drizzle/enforce-delete-with-where': ['error'],
-        'drizzle/enforce-update-with-where': ['error'],
-        '@typescript-eslint/no-confusing-void-expression': [
-          'error',
-          { ignoreArrowShorthand: true },
-        ],
-        '@typescript-eslint/no-misused-promises': [
-          'error',
-          {
-            checksVoidReturn: {
-              arguments: false,
-              attributes: false,
-            },
-          },
-        ],
-        "@typescript-eslint/no-floating-promises": ["off"],
-      },
     },
+    rules: {
+      ...reactHooksPlugin.configs.recommended.rules,
+      'react-refresh/only-export-components': [
+        'warn',
+        { allowConstantExport: true },
+      ],
+      'no-console': ['error', { allow: ['info', 'warn', 'error'] }],
+      'import-x/extensions': ['error', 'ignorePackages'],
+      'import-x/order': ['error'],
+      'import-x/no-named-as-default-member': ['off'],
+      'drizzle/enforce-delete-with-where': ['error'],
+      'drizzle/enforce-update-with-where': ['error'],
+      '@typescript-eslint/no-confusing-void-expression': [
+        'error',
+        { ignoreArrowShorthand: true },
+      ],
+      '@typescript-eslint/no-misused-promises': [
+        'error',
+        {
+          checksVoidReturn: {
+            arguments: false,
+            attributes: false,
+          },
+        },
+      ],
+      "@typescript-eslint/no-floating-promises": ["off"],
+      "@typescript-eslint/restrict-template-expressions": ["off"],
+    },
+  },
 );

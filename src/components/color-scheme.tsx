@@ -2,12 +2,12 @@ import {
   ActionIcon,
   useComputedColorScheme,
   useMantineColorScheme,
-} from '@mantine/core';
-import { IconMoonStars, IconSun } from '@tabler/icons-react';
+} from "@mantine/core";
+import { IconMoonStars, IconSun } from "@tabler/icons-react";
 
 export function ColorScheme() {
   const { setColorScheme } = useMantineColorScheme();
-  const computedColorScheme = useComputedColorScheme('light', {
+  const computedColorScheme = useComputedColorScheme("light", {
     getInitialValueInEffect: true,
   });
 
@@ -17,7 +17,7 @@ export function ColorScheme() {
       size="lg"
       aria-label="Toggle color scheme"
       onClick={() => {
-        setColorScheme(computedColorScheme === 'light' ? 'dark' : 'light');
+        setColorScheme(computedColorScheme === "light" ? "dark" : "light");
       }}
     >
       <IconMoonStars className="block size-5 dark:hidden" />
