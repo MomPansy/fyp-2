@@ -6,57 +6,54 @@ import {
   NavLinkProps,
   Group,
   Stack,
-} from '@mantine/core';
+} from "@mantine/core";
 import {
   IconBook,
   IconFilePencil,
   IconHome,
   IconLogout,
-} from '@tabler/icons-react';
-import { useNavigate, LinkComponent, createLink } from '@tanstack/react-router';
-import { ColorScheme } from 'components/color-scheme.tsx';
+} from "@tabler/icons-react";
+import { useNavigate, LinkComponent, createLink } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { forwardRef, useCallback } from "react";
+import { ColorScheme } from "components/color-scheme.tsx";
 import {
   showErrorNotification,
   showSuccessNotification,
-} from 'components/notifications.ts';
-import { supabase } from 'lib/supabase.ts';
-import { useAccessToken } from 'hooks/auth.ts';
-import { useQueryClient } from '@tanstack/react-query';
-import { forwardRef, useCallback } from 'react';
+} from "components/notifications.ts";
+import { supabase } from "lib/supabase.ts";
+import { useAccessToken } from "hooks/auth.ts";
 
 // Browser-compatible UUID generation
 const generateUUID = () => {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined") {
     return crypto.randomUUID();
   }
   // Fallback for environments without crypto.randomUUID
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 };
-interface MantineNavLinkProps extends Omit<NavLinkProps, 'href'> {
+type MantineNavLinkProps = Omit<NavLinkProps, "href">;
 
-}
+const MantineLinkComponent = forwardRef<HTMLAnchorElement, MantineNavLinkProps>(
+  (props, ref) => {
+    return <NavLink ref={ref} {...props} />;
+  },
+);
 
-const MantineLinkComponent = forwardRef<
-  HTMLAnchorElement, MantineNavLinkProps
->((props, ref) => {
-  return <NavLink ref={ref} {...props} />
-})
-
-const CreatedLinkComponent = createLink(MantineLinkComponent)
+const CreatedLinkComponent = createLink(MantineLinkComponent);
 
 export const CustomLink: LinkComponent<typeof MantineLinkComponent> = (
   props,
 ) => {
-  return <CreatedLinkComponent preload="intent" {...props} />
-}
-
+  return <CreatedLinkComponent preload="intent" {...props} />;
+};
 
 export function Navbar({ close }: { close?: () => void }) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data } = useAccessToken();
 
@@ -71,14 +68,13 @@ export function Navbar({ close }: { close?: () => void }) {
       });
     } else {
       showSuccessNotification({
-        message: 'Successfully logged out!',
+        message: "Successfully logged out!",
       });
       queryClient.invalidateQueries({
-        queryKey: ['accessToken'],
-      })
+        queryKey: ["accessToken"],
+      });
     }
-    console.log('Logging out');
-    navigate({ to: '/login' });
+    navigate({ to: "/login" });
   };
 
   return (
@@ -88,7 +84,11 @@ export function Navbar({ close }: { close?: () => void }) {
       </div>
       <div className="flex flex-1 flex-col justify-between gap-4">
         <section className="flex flex-col gap-2">
-          <CustomLink to='/admin/dashboard' leftSection={<IconHome className='size-5' />} label="Dashboard" />
+          <CustomLink
+            to="/admin/dashboard"
+            leftSection={<IconHome className="size-5" />}
+            label="Dashboard"
+          />
           <Accordion>
             <Accordion.Item value="problems">
               <Accordion.Control>
@@ -99,19 +99,19 @@ export function Navbar({ close }: { close?: () => void }) {
               </Accordion.Control>
               <Accordion.Panel>
                 <CustomLink
-                  to='/admin/problemslibrary'
+                  to="/admin/problemslibrary"
                   leftSection={<IconBook className="size-5" />}
                   label="Problems Library"
                   onClick={close}
                 />
                 <CustomLink
-                  to='/admin/myproblems'
+                  to="/admin/myproblems"
                   leftSection={<IconFilePencil className="size-5" />}
                   label="My Problems"
                   onClick={close}
                 />
                 <CustomLink
-                  to='/admin/problem/$id/details'
+                  to="/admin/problem/$id/details"
                   params={{ id: createProblemId() }}
                   leftSection={<IconFilePencil className="size-5" />}
                   label="Create Problem"
@@ -123,7 +123,7 @@ export function Navbar({ close }: { close?: () => void }) {
         </section>
         <Stack>
           <Group>
-            <Avatar color='initials' name={data.payload.email} />
+            <Avatar color="initials" name={data.payload.email} />
             <div className="text-center text-sm text-gray-500">
               {data.payload.email}
             </div>

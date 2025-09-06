@@ -129,27 +129,24 @@ export const useDataStorage = () => {
       // Optimistically update the cache
       queryClient.setQueryData<
         Database["public"]["Tables"]["problem_tables"]["Row"][]
-      >(
-        problemTableKeys.byProblemId(variables.problemId),
-        (old) => {
-          const newTable:
-            Database["public"]["Tables"]["problem_tables"]["Row"] = {
-              id: `temp-${Date.now()}`, // Temporary ID
-              problem_id: variables.problemId,
-              table_name: variables.tableName,
-              column_types: variables.columnTypes as ColumnType[],
-              data_path: "", // Will be updated on success
-              ddl_script: "test",
-              created_at: new Date().toISOString(),
-              // Add optimistic flag as custom property (will be filtered out by TypeScript in real data)
-              _optimistic: true,
-            } as Database["public"]["Tables"]["problem_tables"]["Row"] & {
-              _optimistic: boolean;
-            };
+      >(problemTableKeys.byProblemId(variables.problemId), (old) => {
+        const newTable: Database["public"]["Tables"]["problem_tables"]["Row"] =
+          {
+            id: `temp-${Date.now()}`, // Temporary ID
+            problem_id: variables.problemId,
+            table_name: variables.tableName,
+            column_types: variables.columnTypes as ColumnType[],
+            data_path: "", // Will be updated on success
+            ddl_script: "test",
+            created_at: new Date().toISOString(),
+            // Add optimistic flag as custom property (will be filtered out by TypeScript in real data)
+            _optimistic: true,
+          } as Database["public"]["Tables"]["problem_tables"]["Row"] & {
+            _optimistic: boolean;
+          };
 
-          return old ? [...old, newTable] : [newTable];
-        },
-      );
+        return old ? [...old, newTable] : [newTable];
+      });
 
       // Return a context with the previous and optimistic values
       return { previousTables, variables };

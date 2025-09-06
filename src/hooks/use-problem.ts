@@ -15,7 +15,6 @@ import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-h
 import { Database } from "database.gen";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
-import { problemLibraryKeys } from "@/components/problems-library/query-keys.ts";
 import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
 
 // Narrow type for convenience
@@ -313,9 +312,11 @@ export const databaseConnectionQueryOptions = (
       });
 
       const data = await response.json();
+
+      const key = `${data.podName}-${data.dialect}`;
       return {
-        key: data.podName,
-        dialect: data.dialect,
+        key,
+        dialect,
       };
     },
   });

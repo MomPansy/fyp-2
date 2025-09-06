@@ -5,6 +5,7 @@ import {
   text,
   timestamp,
   uuid,
+  integer,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { problems } from "./problems.ts";

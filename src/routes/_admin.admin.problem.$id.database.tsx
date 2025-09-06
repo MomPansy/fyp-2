@@ -11,7 +11,6 @@ import { ProblemDatabase } from "@/components/problems/database/problem-database
 import { ProblemDatabasePending } from "@/components/problems/database/problem-database-pending.tsx";
 import { ProblemDatabaseError } from "@/components/problems/database/problem-database-error.tsx";
 
-export const Route = createFileRoute('/_admin/admin/problem/$id/database')({
 const db = await PGlite.create({
   extensions: { live },
 });

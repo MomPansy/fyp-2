@@ -1,9 +1,13 @@
 import {
+  ActionIcon,
   Button,
+  Code,
+  Drawer,
   Group,
   Modal,
   Paper,
   Stack,
+  Table,
   Title,
 } from "@mantine/core";
 import { useState } from "react";
@@ -34,18 +38,11 @@ export function ProblemDatabase() {
   });
   const navigate = useNavigate();
 
-  const handleSaveAndNavigate = () => {
-    try {
-      await handleSave();
-      // Navigation will be handled by the success case
-      navigate({
-        to: `/admin/problem/$id/create`,
-        params: { id: problemId },
-      });
-    } catch (error) {
-      // Error handling - stay on current page
-      console.error("Save failed, not navigating:", error);
-    }
+  const nextStep = () => {
+    navigate({
+      to: `/admin/problem/$id/create`,
+      params: { id: problemId },
+    });
   };
 
   return (
@@ -58,7 +55,7 @@ export function ProblemDatabase() {
         <DatabaseTable tableMetadata={tableMetadata} onViewColumns={open} />
       </Stack>
       <Group justify="flex-end" align="center" mt={20}>
-        <Button color="blue" onClick={handleSaveAndNavigate}>
+        <Button color="blue" onClick={nextStep}>
           Next Step
         </Button>
       </Group>
@@ -245,7 +242,7 @@ function ColumnMetadataDrawer({
       position="right"
       size="lg"
     >
-      <DrawerBody>
+      <Drawer.Body>
         <Table withTableBorder>
           <Table.Thead>
             <Table.Tr>
@@ -268,7 +265,7 @@ function ColumnMetadataDrawer({
             ))}
           </Table.Tbody>
         </Table>
-      </DrawerBody>
+      </Drawer.Body>
     </Drawer>
   );
 }
