@@ -5,14 +5,14 @@ import { isNodeSelection, type Editor } from "@tiptap/react";
 import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
 
 // --- Icons ---
-import { BlockQuoteIcon } from "@/components/tiptap-icons/block-quote-icon";
+import { BlockQuoteIcon } from "@/components/tiptap/tiptap-icons/block-quote-icon";
 
 // --- Lib ---
 import { isNodeInSchema } from "@/lib/tiptap-utils";
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button";
-import { Button } from "@/components/tiptap-ui-primitive/button";
+import type { ButtonProps } from "@/components/tiptap/tiptap-ui-primitive/button";
+import { Button } from "@/components/tiptap/tiptap-ui-primitive/button";
 
 export interface BlockquoteButtonProps extends Omit<ButtonProps, "type"> {
   /**

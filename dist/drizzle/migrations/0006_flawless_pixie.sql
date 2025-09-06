@@ -1,0 +1,1 @@
+ALTER TABLE "problem_tables" DROP COLUMN "ddl_script";

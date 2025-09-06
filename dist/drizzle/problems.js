@@ -4,7 +4,10 @@ const problems = pgTable("problems", {
   name: text("name").notNull(),
   description: text("description").notNull(),
   answer: jsonb("answer"),
-  created_at: timestamp("created_at", { precision: 3, withTimezone: true }).$default(() => /* @__PURE__ */ new Date()),
+  created_at: timestamp("created_at", {
+    precision: 3,
+    withTimezone: true
+  }).$default(() => /* @__PURE__ */ new Date()),
   updated_at: timestamp("updated_at", { precision: 3, withTimezone: true }).$default(() => /* @__PURE__ */ new Date()).$onUpdate(() => /* @__PURE__ */ new Date()),
   archived_at: timestamp("archived_at", { precision: 3, withTimezone: true })
 });

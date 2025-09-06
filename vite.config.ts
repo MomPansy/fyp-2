@@ -8,6 +8,7 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig({
   build: {
     outDir: "dist/static",
+    target: "esnext",
   },
   server: {
     host: "127.0.0.1",
@@ -21,7 +22,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["@electric-sql/pglite"],
+    esbuildOptions: { target: "esnext" },
   },
+  esbuild: { supported: { "top-level-await": true } }, // quiet the warning,
   plugins: [
     tanstackRouter({ addExtensions: true, semicolons: true }),
     tsconfigPaths(),

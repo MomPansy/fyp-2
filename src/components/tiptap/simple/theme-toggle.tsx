@@ -4,11 +4,11 @@ import * as React from "react";
 import { useMantineColorScheme } from "@mantine/core";
 
 // --- UI Primitives ---
-import { Button } from "@/components/tiptap-ui-primitive/button";
+import { Button } from "../tiptap-ui-primitive/button";
 
 // --- Icons ---
-import { MoonStarIcon } from "@/components/tiptap-icons/moon-star-icon";
-import { SunIcon } from "@/components/tiptap-icons/sun-icon";
+import { MoonStarIcon } from "../tiptap-icons/moon-star-icon";
+import { SunIcon } from "../tiptap-icons/sun-icon";
 
 export function ThemeToggle() {
   const { colorScheme, setColorScheme } = useMantineColorScheme();

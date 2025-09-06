@@ -16,10 +16,9 @@ import {
   FloatingPortal,
   type Placement,
   type UseFloatingReturn,
-  type ReferenceType,
   FloatingDelayGroup,
 } from "@floating-ui/react";
-import "@/components/tiptap-ui-primitive/tooltip/tooltip.scss";
+import "./tooltip.scss";
 
 interface TooltipProviderProps {
   children: React.ReactNode;
@@ -162,9 +161,9 @@ export const TooltipTrigger = React.forwardRef<
   const childrenRef = React.isValidElement(children)
     ? parseInt(React.version, 10) >= 19
       ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (children as { props: { ref?: React.Ref<any> } }).props.ref
+      (children as { props: { ref?: React.Ref<any> } }).props.ref
       : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (children as any).ref
+      (children as any).ref
     : undefined;
   const ref = useMergeRefs([context.refs.setReference, propRef, childrenRef]);
 

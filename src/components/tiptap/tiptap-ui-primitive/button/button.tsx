@@ -3,11 +3,11 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/tiptap-ui-primitive/tooltip";
+} from "@/components/tiptap/tiptap-ui-primitive/tooltip";
 
-import "@/components/tiptap-ui-primitive/button/button-colors.scss";
-import "@/components/tiptap-ui-primitive/button/button-group.scss";
-import "@/components/tiptap-ui-primitive/button/button.scss";
+import "./button-colors.scss";
+import "./button-group.scss";
+import "./button.scss";
 
 type PlatformShortcuts = Record<string, string>;
 
