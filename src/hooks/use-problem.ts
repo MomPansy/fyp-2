@@ -16,6 +16,7 @@ import { Database } from "database.gen";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
 import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
+import { problemLibraryKeys } from "@/components/problems-library/query-keys.ts";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
@@ -30,6 +31,7 @@ export interface TableMetadata {
   relations: ForeignKeyMapping[];
   dataPath: string;
 }
+
 // Query options for use in loaders (router-safe)
 export const problemDetailQueryOptions = <
   K extends keyof ProblemRow = keyof ProblemRow,
@@ -136,6 +138,10 @@ export const useAutoSaveProblemName = () => {
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
       >(problemKeys.detail(variables.id), data);
+
+      queryClient.invalidateQueries({
+        queryKey: problemLibraryKeys.all,
+      });
     },
   });
 };
@@ -188,6 +194,9 @@ export const useAutoSaveProblemContent = () => {
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
       >(problemKeys.detail(variables.id), data);
+      queryClient.invalidateQueries({
+        queryKey: problemLibraryKeys.all,
+      });
     },
   });
 };
@@ -227,41 +236,6 @@ export const problemTablesColumnTypesQueryOptions = (id: string) => {
         return false;
       }
       return failureCount < 3;
-    },
-  });
-};
-
-export const problemTablesRelationsQueryOptions = (id: string) => {
-  return queryOptions<Record<string, ForeignKeyMapping[]>>({
-    queryKey: problemTableKeys.relationsByProblemId(id),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("problem_tables")
-        .select("table_name, relations")
-        .eq("problem_id", id);
-
-      if (error) {
-        showErrorNotification({
-          title: "Failed to fetch problem table relations",
-          message: error.message,
-        });
-        throw new Error(error.message);
-      }
-
-      const groupedMappings: Record<string, ForeignKeyMapping[]> = {};
-
-      data.forEach((item) => {
-        const foreignKeyMapping = (item.relations ??
-          []) as unknown as ForeignKeyMapping[];
-        if (foreignKeyMapping.length > 0) {
-          foreignKeyMapping.forEach((mapping) => {
-            const pairKey = `${mapping.baseTableName}_to_${mapping.foreignTableName}`;
-            groupedMappings[pairKey].push(mapping);
-          });
-        }
-      });
-
-      return groupedMappings;
     },
   });
 };
@@ -406,6 +380,79 @@ export function useDeleteProblemTableMutation() {
   });
 }
 
+export function useDeleteProblemMutation() {
+  const queryClient = useQueryClient();
+  return useMutation<unknown, Error, { problemId: string }>({
+    mutationFn: async ({ problemId }: { problemId: string }) => {
+      // get all tables for the problem
+      const { data: tables, error: tablesError } = await supabase
+        .from("problem_tables")
+        .select("id, data_path")
+        .eq("problem_id", problemId);
+
+      if (tablesError) {
+        throw new Error(
+          "Error fetching problem table details" + tablesError.message,
+        );
+      }
+
+      const dataPaths = tables.map((table) => table.data_path);
+      if (dataPaths.length > 0) {
+        // delete all data files from storage
+        const { error: storageError } = await supabase.storage
+          .from("tables")
+          .remove(dataPaths);
+
+        if (storageError) {
+          throw new Error(
+            "Error deleting problem table data" + storageError.message,
+          );
+        }
+      }
+      const tableIds = tables.map((table) => table.id);
+      // delete all tables
+      // eslint-disable-next-line drizzle/enforce-delete-with-where
+      const { error: tableDeleteError } = await supabase
+        .from("problem_tables")
+        .delete()
+        .in("id", tableIds);
+
+      if (tableDeleteError) {
+        throw new Error(
+          "Error deleting problem tables" + tableDeleteError.message,
+        );
+      }
+      // delete the problem itself
+      // eslint-disable-next-line drizzle/enforce-delete-with-where
+      const { error: problemDeleteError } = await supabase
+        .from("problems")
+        .delete()
+        .eq("id", problemId);
+
+      if (problemDeleteError) {
+        throw new Error("Error deleting problem" + problemDeleteError.message);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: problemKeys.detail(variables.problemId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.metadataByProblemId(variables.problemId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: problemTableKeys.byProblemId(variables.problemId),
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: problemLibraryKeys.all,
+      });
+    },
+  });
+}
+
 export const usePrefetchProblemTablesColumnTypes = (id: string) => {
   const queryClient = useQueryClient();
 
@@ -419,11 +466,5 @@ export const usePrefetchProblemTablesColumnTypes = (id: string) => {
 export const useFetchProblemTablesColumnTypes = (id: string) => {
   return useSuspenseQuery({
     ...problemTablesColumnTypesQueryOptions(id),
-  });
-};
-
-export const useFetchProblemTablesRelations = (id: string) => {
-  return useSuspenseQuery({
-    ...problemTablesRelationsQueryOptions(id),
   });
 };

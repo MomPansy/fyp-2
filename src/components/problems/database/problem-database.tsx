@@ -27,15 +27,10 @@ import { ColumnType } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
 export function ProblemDatabase() {
-  const params = useParams({
-    from: "/_admin/admin/problem/$id/database",
-  });
-
-  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(params.id);
-  const [opened, { open, close }] = useDisclosure();
   const { id: problemId } = useParams({
     from: "/_admin/admin/problem/$id/database",
   });
+  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(problemId);
   const navigate = useNavigate();
 
   const nextStep = () => {
@@ -52,18 +47,13 @@ export function ProblemDatabase() {
           <Title>Database Tables</Title>
         </Group>
         <TableManager />
-        <DatabaseTable tableMetadata={tableMetadata} onViewColumns={open} />
+        <DatabaseTable tableMetadata={tableMetadata} />
       </Stack>
       <Group justify="flex-end" align="center" mt={20}>
         <Button color="blue" onClick={nextStep}>
           Next Step
         </Button>
       </Group>
-      <ColumnMetadataDrawer
-        columnTypes={tableMetadata[0].columnTypes}
-        opened={opened}
-        onClose={close}
-      />
       <CSVModal />
     </Paper>
   );
@@ -71,15 +61,37 @@ export function ProblemDatabase() {
 
 interface DatabaseTableProps {
   tableMetadata: TableMetadata[];
-  onViewColumns: () => void;
 }
 
-function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
+function DatabaseTable({ tableMetadata }: DatabaseTableProps) {
   const params = useParams({
     from: "/_admin/admin/problem/$id/database",
   });
 
-  const [opened, { open, close }] = useDisclosure();
+  const [
+    deleteConfirmationModalOpened,
+    { open: openConfirmationModal, close: closeConfirmationModal },
+  ] = useDisclosure();
+
+  const [
+    columnsDrawerOpened,
+    { open: openColumnsDrawer, close: closeColumnsDrawer },
+  ] = useDisclosure();
+
+  const [columnsDrawerTable, setColumnsDrawerTable] = useState<ColumnType[]>(
+    [],
+  );
+
+  const handleViewColumns = (columnTypes: ColumnType[] | undefined) => {
+    if (!columnTypes) return;
+    setColumnsDrawerTable(columnTypes);
+    openColumnsDrawer();
+  };
+
+  const handleCloseColumnsDrawer = () => {
+    closeColumnsDrawer();
+    setColumnsDrawerTable([]);
+  };
 
   const { mutate } = useFetchTableDataMutation();
   const { mutate: deleteTable } = useDeleteProblemTableMutation();
@@ -106,7 +118,7 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
 
   const handleDeleteClick = (tableId: string) => {
     setTableToDelete(tableId);
-    open();
+    openConfirmationModal();
   };
 
   const handleDeleteConfirm = () => {
@@ -121,7 +133,7 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
             });
           },
           onSuccess: () => {
-            close();
+            closeConfirmationModal();
             setTableToDelete(null);
           },
         },
@@ -130,7 +142,7 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
   };
 
   const handleDeleteCancel = () => {
-    close();
+    closeConfirmationModal();
     setTableToDelete(null);
   };
 
@@ -153,8 +165,13 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
               <Table.Td>{table.description || "Table Description"}</Table.Td>
               <Table.Td>{table.numberOfRows || "N/A"}</Table.Td>
               <Table.Td>
-                <Button variant="gradient" onClick={onViewColumns}>
-                  {table.columnTypes.length} Columns
+                <Button
+                  variant="gradient"
+                  onClick={() => handleViewColumns(table.columnTypes)}
+                  disabled={!table.columnTypes}
+                >
+                  {table.columnTypes.length > 0 ? table.columnTypes.length : 0}
+                  &nbsp; Columns
                 </Button>
               </Table.Td>
               <Table.Td>
@@ -179,9 +196,14 @@ function DatabaseTable({ tableMetadata, onViewColumns }: DatabaseTableProps) {
         </Table.Tbody>
       </Table>
       <DeleteConfirmationModal
-        isOpened={opened}
+        isOpened={deleteConfirmationModalOpened}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
+      />
+      <ColumnMetadataDrawer
+        columnTypes={columnsDrawerTable}
+        opened={columnsDrawerOpened}
+        onClose={handleCloseColumnsDrawer}
       />
     </>
   );
@@ -243,28 +265,32 @@ function ColumnMetadataDrawer({
       size="lg"
     >
       <Drawer.Body>
-        <Table withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Column Name</Table.Th>
-              <Table.Th>Data Type</Table.Th>
-              <Table.Th>Primary Key</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody bg="hf-grey">
-            {columnTypes.map((column) => (
-              <Table.Tr key={column.column}>
-                <Table.Td>{column.column}</Table.Td>
-                <Table.Td>
-                  <Code>{column.type}</Code>
-                </Table.Td>
-                <Table.Td>
-                  {column.isPrimaryKey ? <IconCheck /> : <IconX />}
-                </Table.Td>
+        {columnTypes.length === 0 ? (
+          <p>No columns to display.</p>
+        ) : (
+          <Table withTableBorder>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Column Name</Table.Th>
+                <Table.Th>Data Type</Table.Th>
+                <Table.Th>Primary Key</Table.Th>
               </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
+            </Table.Thead>
+            <Table.Tbody bg="hf-grey">
+              {columnTypes.map((column) => (
+                <Table.Tr key={column.column}>
+                  <Table.Td>{column.column}</Table.Td>
+                  <Table.Td>
+                    <Code>{column.type}</Code>
+                  </Table.Td>
+                  <Table.Td>
+                    {column.isPrimaryKey ? <IconCheck /> : <IconX />}
+                  </Table.Td>
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
+        )}
       </Drawer.Body>
     </Drawer>
   );

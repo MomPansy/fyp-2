@@ -102,7 +102,19 @@ export const useProblemsQuery = (
   pageSize = 20,
   pageIndex = 0,
 ) => {
+  // If search term is invalid (empty or only whitespace), set search to undefined
+  // This will be handled by normalizeFilters in the query key
+  const normalizedFilters = {
+    ...filters,
+    search: filters.search?.trim() ? filters.search.trim() : undefined,
+  };
+
   return useSuspenseQuery(
-    problemsQueryOptions({ filters, sorting, pageSize, pageIndex }),
+    problemsQueryOptions({
+      filters: normalizedFilters,
+      sorting,
+      pageSize,
+      pageIndex,
+    }),
   );
 };

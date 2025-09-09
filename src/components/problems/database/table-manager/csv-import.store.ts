@@ -235,11 +235,14 @@ export const useCsvImportStore = create<CsvImportState>()(
       const createAndSeedTable = async (
         tableName: string,
         columnTypes: ColumnType[],
-        relations: ForeignKeyMapping[],
+        relations: ForeignKeyMapping[] | undefined,
         data: Row[],
       ) => {
         await createTablesColumns(db, tableName, columnTypes);
-        await setRelations(db, tableName, relations);
+        if (relations && relations.length > 0) {
+          await setRelations(db, tableName, relations);
+        }
+
         await seedTableData(db, tableName, data, columnTypes);
       };
 

@@ -11,8 +11,13 @@ import {
   Table,
   TextInput,
 } from "@mantine/core";
-import { useDebouncedValue } from "@mantine/hooks";
-import { IconArrowsUpDown, IconEdit, IconFilter } from "@tabler/icons-react";
+import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
+import {
+  IconArrowsUpDown,
+  IconEdit,
+  IconFilter,
+  IconTrash,
+} from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useState, useEffect } from "react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
@@ -25,7 +30,10 @@ import {
   useProblemsQuery,
   fetchProblemsPage,
 } from "@/components/problems-library/hooks.ts";
-import { problemDetailQueryOptions } from "@/hooks/use-problem.ts";
+import {
+  problemDetailQueryOptions,
+  useDeleteProblemMutation,
+} from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 
@@ -123,6 +131,7 @@ function List({ filters, sorting }: ListProps) {
 }
 
 function ListContent({ filters, sorting }: ListProps) {
+  const { mutate } = useDeleteProblemMutation();
   const pageSize = 20; //can be adjusted
   const [debouncedSearch] = useDebouncedValue(filters.search, 300);
   const debouncedFilters =
@@ -140,6 +149,16 @@ function ListContent({ filters, sorting }: ListProps) {
   const navigate = useNavigate();
 
   const queryClient = useQueryClient();
+
+  const [
+    deleteConfirmationModalOpened,
+    { open: openConfirmationModal, close: closeConfirmationModal },
+  ] = useDisclosure();
+
+  const [problemToDelete, setProblemToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const handlePageHover = (page: number) => {
     // Only prefetch if it's not the current page
@@ -199,6 +218,43 @@ function ListContent({ filters, sorting }: ListProps) {
   );
   const deselectProblem = () => setSelectedProblemId(null);
 
+  const reset = () => {
+    deselectProblem();
+  };
+
+  const handleDeleteClick = (problem: { id: string; name: string }) => {
+    setProblemToDelete(problem);
+    openConfirmationModal();
+  };
+
+  const handleDeleteConfirm = () => {
+    if (problemToDelete) {
+      mutate(
+        {
+          problemId: problemToDelete.id,
+        },
+        {
+          onError: (error) => {
+            showErrorNotification({
+              title: "Failed to delete problem",
+              message: error.message,
+            });
+          },
+          onSuccess: () => {
+            reset();
+            closeConfirmationModal();
+            setProblemToDelete(null);
+          },
+        },
+      );
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    closeConfirmationModal();
+    setProblemToDelete(null);
+  };
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -245,6 +301,19 @@ function ListContent({ filters, sorting }: ListProps) {
                   >
                     Edit
                   </Button>
+                  <Button
+                    leftSection={<IconTrash />}
+                    color="red"
+                    ml={10}
+                    variant="light"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      handleDeleteClick({ id: problem.id, name: problem.name });
+                    }}
+                  >
+                    Delete
+                  </Button>
                 </Table.Td>
               </Table.Tr>
             ))}
@@ -276,7 +345,51 @@ function ListContent({ filters, sorting }: ListProps) {
           />
         </Suspense>
       )}
+      <DeleteConfirmationModal
+        isOpened={deleteConfirmationModalOpened}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        problemName={problemToDelete?.name}
+      />
     </>
+  );
+}
+
+function DeleteConfirmationModal({
+  isOpened,
+  onClose,
+  onConfirm,
+  problemName,
+}: {
+  isOpened: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  problemName?: string;
+}) {
+  return (
+    <Modal
+      opened={isOpened}
+      onClose={onClose}
+      title="Confirm Deletion"
+      centered
+    >
+      <Modal.Body p="0">
+        <Stack>
+          <p>
+            Are you sure you want to delete the problem &nbsp;
+            <strong>"{problemName}"</strong>? This action cannot be undone.
+          </p>
+          <Group justify="flex-end">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button color="red" onClick={onConfirm}>
+              Delete
+            </Button>
+          </Group>
+        </Stack>
+      </Modal.Body>
+    </Modal>
   );
 }
 
