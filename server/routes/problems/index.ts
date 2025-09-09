@@ -20,7 +20,7 @@ import {
   getPool,
   removePool,
 } from "server/problem-database/pool-manager.ts";
-import type { SeedTable } from "server/problem-database/db-seed";
+import type { SeedTable } from "server/problem-database/db-seed/index.ts";
 import {
   executeMysqlQuery,
   executeOracleQuery,

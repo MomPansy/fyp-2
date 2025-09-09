@@ -1,4 +1,4 @@
-import type { Dialect } from "server/problem-database/mappings";
+import type { Dialect } from "server/problem-database/mappings.ts";
 
 export function quoteIdent(dialect: Dialect, name: string): string {
   switch (dialect) {
