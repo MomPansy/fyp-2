@@ -1,6 +1,6 @@
 import { Pool as PgPool } from "pg";
 import * as mysql from "mysql2/promise";
-import * as sqlite3 from "sqlite3";
+import Database from "better-sqlite3";
 import mssql from "mssql";
 import oracledb from "oracledb";
 import { Dialect } from "./mappings.ts";
@@ -18,6 +18,7 @@ export interface SqlitePool {
     affectedRows?: number;
   }>;
   end: () => Promise<void>;
+  db: Database.Database;
 }
 export type SqlServerPool = mssql.ConnectionPool;
 export interface OraclePool {
@@ -83,25 +84,37 @@ export function newMysqlPool(dsn: string, onClose?: () => void): MysqlPool {
 }
 
 export function newSqlitePool(dsn: string, onClose?: () => void): SqlitePool {
-  const db = new sqlite3.Database(dsn);
+  const db = new Database(dsn);
   const sqlitePool: SqlitePool = {
-    query: (text: string, params?: unknown[]) => {
+    db,
+    query: (sql: string, params?: unknown[]) => {
       return new Promise((resolve, reject) => {
-        db.all(text, params ?? [], (err: Error | null, rows: unknown[]) => {
-          if (err) reject(err);
-          else resolve({ rows: rows as Record<string, unknown>[] });
-        });
+        try {
+          // Handle SELECT queries
+          if (sql.trim().toLowerCase().startsWith("select")) {
+            const stmt = db.prepare(sql);
+            const rows = stmt.all(params ?? []);
+            resolve({ rows: rows as Record<string, unknown>[] });
+          } else {
+            // Handle INSERT, UPDATE, DELETE queries
+            const stmt = db.prepare(sql);
+            const result = stmt.run(params ?? []);
+            resolve({
+              rows: [],
+              rowCount: result.changes,
+              affectedRows: result.changes,
+            });
+          }
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
       });
     },
     end: () => {
-      return new Promise<void>((resolve, reject) => {
-        db.close((err: Error | null) => {
-          if (err) reject(err);
-          else {
-            if (onClose) onClose();
-            resolve();
-          }
-        });
+      return new Promise<void>((resolve) => {
+        db.close();
+        if (onClose) onClose();
+        resolve();
       });
     },
   };

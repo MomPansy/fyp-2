@@ -1,6 +1,6 @@
 import { Pool as PgPool } from "pg";
 import * as mysql from "mysql2/promise";
-import * as sqlite3 from "sqlite3";
+import Database from "better-sqlite3";
 import mssql from "mssql";
 import oracledb from "oracledb";
 function newSandboxPool(dsn, onClose) {
@@ -36,25 +36,35 @@ function newMysqlPool(dsn, onClose) {
   return pool;
 }
 function newSqlitePool(dsn, onClose) {
-  const db = new sqlite3.Database(dsn);
+  const db = new Database(dsn);
   const sqlitePool = {
-    query: (text, params) => {
+    db,
+    query: (sql, params) => {
       return new Promise((resolve, reject) => {
-        db.all(text, params ?? [], (err, rows) => {
-          if (err) reject(err);
-          else resolve({ rows });
-        });
+        try {
+          if (sql.trim().toLowerCase().startsWith("select")) {
+            const stmt = db.prepare(sql);
+            const rows = stmt.all(params ?? []);
+            resolve({ rows });
+          } else {
+            const stmt = db.prepare(sql);
+            const result = stmt.run(params ?? []);
+            resolve({
+              rows: [],
+              rowCount: result.changes,
+              affectedRows: result.changes
+            });
+          }
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
       });
     },
     end: () => {
-      return new Promise((resolve, reject) => {
-        db.close((err) => {
-          if (err) reject(err);
-          else {
-            if (onClose) onClose();
-            resolve();
-          }
-        });
+      return new Promise((resolve) => {
+        db.close();
+        if (onClose) onClose();
+        resolve();
       });
     }
   };
