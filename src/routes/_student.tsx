@@ -6,5 +6,6 @@ export const Route = createFileRoute("/_student")({
 });
 
 function RouteComponent() {
+  // some trivial change to force a re run
   return <Sidebar />;
 }
