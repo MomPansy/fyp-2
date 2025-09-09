@@ -1,7 +1,7 @@
 import { Pool as PgPool } from "pg";
 import * as mysql from "mysql2/promise";
 import * as sqlite3 from "sqlite3";
-import { ConnectionPool as MssqlPool } from "mssql";
+import mssql from "mssql";
 import oracledb from "oracledb";
 function newSandboxPool(dsn, onClose) {
   return newPostgresPool(dsn, onClose);
@@ -61,7 +61,7 @@ function newSqlitePool(dsn, onClose) {
   return sqlitePool;
 }
 function newSqlServerPool(dsn, onClose) {
-  const pool = new MssqlPool(dsn);
+  const pool = new mssql.ConnectionPool(dsn);
   const originalClose = pool.close.bind(pool);
   pool.close = async () => {
     await originalClose();

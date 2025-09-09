@@ -5,41 +5,41 @@ import {
   isNumericType,
   isTextType,
   quoteIdent
-} from "./helpers.ts";
-import { sortTablesByDependencies } from "./sort-tables.ts";
-import { narrowPool } from "./query-executors.ts";
-import { getDatabaseOperations } from "./operations.ts";
-import { seedTable } from "./generic-seeding.ts";
+} from "./helpers.js";
+import { sortTablesByDependencies } from "./sort-tables.js";
+import { narrowPool } from "./query-executors.js";
+import { getDatabaseOperations } from "./operations.js";
+import { seedTable } from "./generic-seeding.js";
 import {
   createTablePostgres,
   ensureForeignTableExistsPostgres,
   seedTablePostgres,
   setRelationsPostgres
-} from "./dialects/postgres.ts";
+} from "./dialects/postgres.js";
 import {
   createTableMysql,
   ensureForeignTableExistsMysql,
   seedTableMysql,
   setRelationsMysql
-} from "./dialects/mysql.ts";
+} from "./dialects/mysql.js";
 import {
   createTableSqlite,
   ensureForeignTableExistsSqlite,
   seedTableSqlite,
   setRelationsSqlite
-} from "./dialects/sqlite.ts";
+} from "./dialects/sqlite.js";
 import {
   createTableSqlServer,
   ensureForeignTableExistsSqlServer,
   seedTableSqlServer,
   setRelationsSqlServer
-} from "./dialects/sqlserver.ts";
+} from "./dialects/sqlserver.js";
 import {
   createTableOracle,
   ensureForeignTableExistsOracle,
   seedTableOracle,
   setRelationsOracle
-} from "./dialects/oracle.ts";
+} from "./dialects/oracle.js";
 import { sortTablesByDependencies as sortTablesByDependencies2 } from "./sort-tables.js";
 import { getDatabaseOperations as getDatabaseOperations2 } from "./operations.js";
 async function createAndSeedTable(pool, table, dialect) {

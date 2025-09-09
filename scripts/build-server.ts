@@ -28,14 +28,14 @@ import { build } from "esbuild";
           build.onLoad({ filter: /\.ts$/ }, async (args) => {
             const source = await readFile(args.path, "utf8");
 
-            // Regular expression to match import statements
+            // Regular expression to match import statements (including export...from statements)
             const importRegex =
-              /import\s+([\s\S]*?)\s+from\s+(['"])([^'"]+?)\2/g;
+              /(import\s+[\s\S]*?\s+from\s+|export\s+[\s\S]*?\s+from\s+)(['"])([^'"]+?)\2/g;
 
             // Replace matched import statements
             const updatedSource = source.replace(
               importRegex,
-              (match, imports: string, quote: string, importPath: string) => {
+              (match, prefix: string, quote: string, importPath: string) => {
                 let newImportPath = importPath;
                 const importingFileDir = path.dirname(args.path);
 
@@ -77,7 +77,7 @@ import { build } from "esbuild";
                 }
                 // else: Leave other imports (e.g., node_modules) unchanged
                 // Return the updated import statement
-                return `import ${imports} from ${quote}${newImportPath}${quote}`;
+                return `${prefix}${quote}${newImportPath}${quote}`;
               },
             );
 

@@ -1,7 +1,7 @@
 import { Pool as PgPool } from "pg";
 import * as mysql from "mysql2/promise";
 import * as sqlite3 from "sqlite3";
-import { ConnectionPool as MssqlPool } from "mssql";
+import mssql from "mssql";
 import oracledb from "oracledb";
 import { Dialect } from "./mappings.ts";
 
@@ -19,7 +19,7 @@ export interface SqlitePool {
   }>;
   end: () => Promise<void>;
 }
-export type SqlServerPool = MssqlPool;
+export type SqlServerPool = mssql.ConnectionPool;
 export interface OraclePool {
   query: (
     sql: string,
@@ -112,7 +112,7 @@ export function newSqlServerPool(
   dsn: string,
   onClose?: () => void,
 ): SqlServerPool {
-  const pool = new MssqlPool(dsn);
+  const pool = new mssql.ConnectionPool(dsn);
   const originalClose = pool.close.bind(pool);
   pool.close = async () => {
     await originalClose();
