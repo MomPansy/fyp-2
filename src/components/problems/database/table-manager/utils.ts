@@ -224,7 +224,7 @@ export async function seedTableData(
         } else if (colType === "BOOLEAN") {
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           rowValues.push(value ? "TRUE" : "FALSE");
-        } else if (colType === "INTEGER" || colType === "DOUBLE PRECISION") {
+        } else if (colType === "INTEGER" || colType === "NUMERIC") {
           rowValues.push(String(value));
         } else {
           // Default to text handling for unknown types
