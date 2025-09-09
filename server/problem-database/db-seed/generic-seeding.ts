@@ -24,7 +24,7 @@ import {
   executeSqlServerQuery,
 } from "./query-executors.ts";
 import type { QueryResult, SeedTable } from "./types.ts";
-import { type Dialect, getSqlType } from "server/problem-database/mappings.ts";
+import { type Dialect } from "server/problem-database/mappings.ts";
 import { supabase } from "server/lib/supabase.ts";
 
 export async function seedTable(
@@ -87,7 +87,7 @@ export async function seedTable(
           return;
         }
 
-        const colType = getSqlType(dialect, columnTypes[index].type);
+        const colType = columnTypes[index].type;
         if (isTextType(colType)) {
           // Escape single quotes to prevent SQL injection
           const escapedValue = String(value).replace(/'/g, "''");

@@ -4,10 +4,7 @@ import { quoteIdent } from "../helpers.ts";
 import { executeSqliteQuery } from "../query-executors.ts";
 import { seedTable } from "../generic-seeding.ts";
 import type { SeedTable } from "../types.ts";
-import {
-  getSqlType,
-  type MappedRelation,
-} from "server/problem-database/mappings.ts";
+import { type MappedRelation } from "server/problem-database/mappings.ts";
 
 export async function createTableSqlite(
   pool: SqlitePool,
@@ -21,10 +18,9 @@ export async function createTableSqlite(
 
   const columnsDDL = table.column_types
     .map((col) => {
-      return `${quoteIdent("sqlite", col.column)} ${getSqlType(
-        "sqlite",
-        col.type,
-      )} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+      return `${quoteIdent("sqlite", col.column)} ${col.type} ${
+        col.isPrimaryKey ? "PRIMARY KEY" : ""
+      }`;
     })
     .join(", ");
 

@@ -4,10 +4,7 @@ import { isCountResult, quoteIdent } from "../helpers.ts";
 import { executeSqlServerQuery } from "../query-executors.ts";
 import { seedTable } from "../generic-seeding.ts";
 import type { SeedTable } from "../types.ts";
-import {
-  getSqlType,
-  type MappedRelation,
-} from "server/problem-database/mappings.ts";
+import { type MappedRelation } from "server/problem-database/mappings.ts";
 
 export async function createTableSqlServer(
   pool: SqlServerPool,
@@ -21,10 +18,9 @@ export async function createTableSqlServer(
 
   const columnsDDL = table.column_types
     .map((col) => {
-      return `${quoteIdent("sqlserver", col.column)} ${getSqlType(
-        "sqlserver",
-        col.type,
-      )} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+      return `${quoteIdent("sqlserver", col.column)} ${col.type} ${
+        col.isPrimaryKey ? "PRIMARY KEY" : ""
+      }`;
     })
     .join(", ");
 
