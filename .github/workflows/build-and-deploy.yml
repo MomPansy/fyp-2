@@ -56,7 +56,7 @@ jobs:
         if: steps.node_changes.outputs.node_changes == 'true'
         run: |
           TAG=${GITHUB_SHA::7}
-          docker build --no-cache -t mompansy/fyp-node:$TAG .
+          docker build -t mompansy/fyp-node:$TAG .
           docker tag mompansy/fyp-node:$TAG mompansy/fyp-node:latest
           docker push mompansy/fyp-node:$TAG
           docker push mompansy/fyp-node:latest

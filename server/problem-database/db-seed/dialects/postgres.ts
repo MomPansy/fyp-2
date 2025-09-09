@@ -79,7 +79,7 @@ export async function setRelationsPostgres(
         REFERENCES ${quoteIdent("postgres", foreignTableName)}(${quoteIdent(
           "postgres",
           foreignTableColumn,
-        )});
+        )})
         ON DELETE CASCADE
       `;
 
