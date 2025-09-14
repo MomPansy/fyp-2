@@ -5,9 +5,8 @@ import { useMutationState } from "@tanstack/react-query";
 
 // Define the expected structure of the SQL execution result
 interface SqlExecutionResult {
-  success: boolean;
-  message: string;
-  data: Record<string, unknown>[] | undefined;
+  rows: Record<string, unknown>[];
+  rowCount: number;
 }
 
 export function Terminal() {
@@ -42,16 +41,16 @@ export function Terminal() {
 
     return (
       <div className="p-4">
-        <Text c={t.success ? "green" : "red"} fw={600} mb="md">
-          {t.message}
+        <Text c="green" fw={600} mb="md">
+          Query executed successfully - {t.rowCount} rows returned
         </Text>
 
-        {t.data && t.data.length > 0 ? (
+        {t.rows.length > 0 ? (
           <Box className="overflow-auto max-h-64">
             <table className="min-w-full border-collapse">
               <thead>
                 <tr className="bg-gray-100">
-                  {Object.keys(t.data[0]).map((key: string) => (
+                  {Object.keys(t.rows[0]).map((key: string) => (
                     <th
                       key={key}
                       className="border border-gray-300 px-4 py-2 text-left"
@@ -62,7 +61,7 @@ export function Terminal() {
                 </tr>
               </thead>
               <tbody>
-                {t.data.map(
+                {t.rows.map(
                   (row: Record<string, unknown>, rowIndex: number) => (
                     <tr
                       key={rowIndex}
@@ -84,7 +83,11 @@ export function Terminal() {
               </tbody>
             </table>
           </Box>
-        ) : null}
+        ) : (
+          <Text c="dimmed" p="md">
+            No data returned from query
+          </Text>
+        )}
       </div>
     );
   };
