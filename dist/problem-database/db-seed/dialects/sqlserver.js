@@ -2,9 +2,6 @@ import { HTTPException } from "hono/http-exception";
 import { isCountResult, quoteIdent } from "../helpers.js";
 import { executeSqlServerQuery } from "../query-executors.js";
 import { seedTable } from "../generic-seeding.js";
-import {
-  getSqlType
-} from "../../mappings.js";
 async function createTableSqlServer(pool, table) {
   if (!table.column_types) {
     throw new HTTPException(400, {
@@ -12,10 +9,7 @@ async function createTableSqlServer(pool, table) {
     });
   }
   const columnsDDL = table.column_types.map((col) => {
-    return `${quoteIdent("sqlserver", col.column)} ${getSqlType(
-      "sqlserver",
-      col.type
-    )} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+    return `${quoteIdent("sqlserver", col.column)} ${col.type} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
   }).join(", ");
   const createSql = `IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='${table.table_name}' AND xtype='U')
     CREATE TABLE ${quoteIdent("sqlserver", table.table_name)} (${columnsDDL});`;

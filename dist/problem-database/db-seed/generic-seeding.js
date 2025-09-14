@@ -13,7 +13,6 @@ import {
   executeSqliteQuery,
   executeSqlServerQuery
 } from "./query-executors.js";
-import { getSqlType } from "../mappings.js";
 import { supabase } from "../../lib/supabase.js";
 async function seedTable(pool, table, dialect) {
   if (!table.data_path) {
@@ -59,7 +58,7 @@ async function seedTable(pool, table, dialect) {
           rowValues.push("NULL");
           return;
         }
-        const colType = getSqlType(dialect, columnTypes[index].type);
+        const colType = columnTypes[index].type;
         if (isTextType(colType)) {
           const escapedValue = String(value).replace(/'/g, "''");
           rowValues.push(`'${escapedValue}'`);

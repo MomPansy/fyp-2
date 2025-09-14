@@ -30,7 +30,7 @@ const DATA_TYPES = [
 ];
 const POSTGRES_TYPES = [
   "INTEGER",
-  "DOUBLE PRECISION",
+  "NUMERIC",
   "TEXT",
   "BOOLEAN",
   "DATE",
@@ -120,7 +120,7 @@ class TypeMappingError extends Error {
 const SQL_TYPE_MAP = {
   postgres: {
     integer: "INTEGER",
-    number: "DOUBLE PRECISION",
+    number: "NUMERIC",
     string: "TEXT",
     boolean: "BOOLEAN",
     date: "DATE",

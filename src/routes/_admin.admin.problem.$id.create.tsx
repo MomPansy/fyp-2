@@ -53,37 +53,7 @@ function RouteComponent() {
     `,
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const databaseConnectionKey = loaderData?.databaseConnectionKey;
-
-  // Sample test result data (reference from EditorTerminal)
-  const sampleTestResult = {
-    success: true,
-    message: "Test passed successfully",
-    data: [
-      {
-        ID: 3878,
-        NAME: "New York",
-        COUNTRYCODE: "USA",
-        DISTRICT: "New York",
-        POPULATION: 8008278,
-      },
-      {
-        ID: 3805,
-        NAME: "Los Angeles",
-        COUNTRYCODE: "USA",
-        DISTRICT: "California",
-        POPULATION: 3694820,
-      },
-      {
-        ID: 3812,
-        NAME: "Chicago",
-        COUNTRYCODE: "USA",
-        DISTRICT: "Illinois",
-        POPULATION: 2896016,
-      },
-    ],
-  };
 
   return (
     <PanelGroup direction="horizontal" className="h-full">
@@ -95,9 +65,7 @@ function RouteComponent() {
         </div>
       </PanelResizeHandle>
       <PanelGroup direction="vertical" className="h-full">
-        <SqlEditor
-          podName={databaseConnectionKey?.podName}
-        />
+        <SqlEditor podName={databaseConnectionKey?.podName} />
         <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
           <div className="w-full flex items-center justify-center">
             <div className="h-1 w-8 bg-gray-500 rounded"></div>

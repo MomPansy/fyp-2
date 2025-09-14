@@ -130,7 +130,8 @@ const route = factory.createApp().post(
   ),
   async (c) => {
     const { podName, sql, dialect } = c.req.valid("json");
-    const pool = getPool(podName);
+    const key = `${podName}-${dialect}`;
+    const pool = getPool(key);
     if (!pool || !dialect) {
       throw new HTTPException(404, {
         message: `No active connection pool found for pod: ${podName}. Please connect first.`

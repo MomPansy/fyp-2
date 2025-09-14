@@ -1,9 +1,6 @@
 import { HTTPException } from "hono/http-exception";
 import { isExistsResult, quoteIdent } from "../helpers.js";
 import { seedTable } from "../generic-seeding.js";
-import {
-  getSqlType
-} from "../../mappings.js";
 async function createTablePostgres(pool, table) {
   if (!table.column_types) {
     throw new HTTPException(400, {
@@ -11,7 +8,7 @@ async function createTablePostgres(pool, table) {
     });
   }
   const columnsDDL = table.column_types.map((col) => {
-    return `${col.column} ${getSqlType("postgres", col.type)} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+    return `${col.column} ${col.type} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
   }).join(", ");
   const createSql = `CREATE TABLE IF NOT EXISTS ${quoteIdent(
     "postgres",
@@ -57,7 +54,7 @@ async function setRelationsPostgres(pool, baseTableName, relations) {
         REFERENCES ${quoteIdent("postgres", foreignTableName)}(${quoteIdent(
         "postgres",
         foreignTableColumn
-      )});
+      )})
         ON DELETE CASCADE
       `;
       console.info(

@@ -2,9 +2,6 @@ import { HTTPException } from "hono/http-exception";
 import { isCountResult, quoteIdent } from "../helpers.js";
 import { executeOracleQuery } from "../query-executors.js";
 import { seedTable } from "../generic-seeding.js";
-import {
-  getSqlType
-} from "../../mappings.js";
 async function createTableOracle(pool, table) {
   if (!table.column_types) {
     throw new HTTPException(400, {
@@ -12,10 +9,7 @@ async function createTableOracle(pool, table) {
     });
   }
   const columnsDDL = table.column_types.map((col) => {
-    return `${quoteIdent("oracle", col.column)} ${getSqlType(
-      "oracle",
-      col.type
-    )} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+    return `${quoteIdent("oracle", col.column)} ${col.type} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
   }).join(", ");
   const tableExistsQuery = `SELECT COUNT(*) as count FROM user_tables WHERE table_name = UPPER('${table.table_name}')`;
   try {

@@ -2,9 +2,6 @@ import { HTTPException } from "hono/http-exception";
 import { quoteIdent } from "../helpers.js";
 import { executeSqliteQuery } from "../query-executors.js";
 import { seedTable } from "../generic-seeding.js";
-import {
-  getSqlType
-} from "../../mappings.js";
 async function createTableSqlite(pool, table) {
   if (!table.column_types) {
     throw new HTTPException(400, {
@@ -12,10 +9,7 @@ async function createTableSqlite(pool, table) {
     });
   }
   const columnsDDL = table.column_types.map((col) => {
-    return `${quoteIdent("sqlite", col.column)} ${getSqlType(
-      "sqlite",
-      col.type
-    )} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
+    return `${quoteIdent("sqlite", col.column)} ${col.type} ${col.isPrimaryKey ? "PRIMARY KEY" : ""}`;
   }).join(", ");
   const createSql = `CREATE TABLE IF NOT EXISTS ${quoteIdent(
     "sqlite",

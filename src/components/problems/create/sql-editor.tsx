@@ -12,10 +12,6 @@ import { useExecuteSQLMutation } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
 interface SqlEditorProps {
-  onTest: () => void;
-  onSubmit: () => void;
-  isTesting: boolean;
-  isSubmitting: boolean;
   podName?: string;
 }
 
@@ -33,7 +29,7 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
   label: dialectLabels[dialect],
 }));
 
-export function SqlEditor({ podName, isSubmitting }: SqlEditorProps) {
+export function SqlEditor({ podName }: SqlEditorProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const { mutate, isPending } = useExecuteSQLMutation();
@@ -97,7 +93,7 @@ export function SqlEditor({ podName, isSubmitting }: SqlEditorProps) {
               color="green"
               leftSection={<IconCheck size={16} />}
               onClick={handleTest}
-              loading={isSubmitting}
+              loading={isPending}
             >
               Save Answer
             </Button>
