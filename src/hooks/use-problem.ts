@@ -293,6 +293,9 @@ export const databaseConnectionQueryOptions = (
         dialect,
       };
     },
+    // Increase timeout for long-running database operations
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (was cacheTime in v4)
   });
 };
 
