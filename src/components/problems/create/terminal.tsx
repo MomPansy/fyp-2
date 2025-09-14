@@ -7,7 +7,7 @@ import { useMutationState } from "@tanstack/react-query";
 interface SqlExecutionResult {
   success: boolean;
   message: string;
-  data: Record<string, unknown>[];
+  data: Record<string, unknown>[] | undefined;
 }
 
 export function Terminal() {
@@ -46,7 +46,7 @@ export function Terminal() {
           {t.message}
         </Text>
 
-        {t.data.length > 0 ? (
+        {t.data && t.data.length > 0 ? (
           <Box className="overflow-auto max-h-64">
             <table className="min-w-full border-collapse">
               <thead>

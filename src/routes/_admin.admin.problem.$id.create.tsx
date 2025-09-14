@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   databaseConnectionQueryOptions,
   problemDetailQueryOptions,
@@ -57,22 +57,26 @@ function RouteComponent() {
 
   return (
     <PanelGroup direction="horizontal" className="h-full">
-      <ProblemDescription description={problemDetails.description} />
+      <Panel defaultSize={40} minSize={25}>
+        <ProblemDescription description={problemDetails.description} />
+      </Panel>
       {/* Vertical Resize Handle between Left and Right */}
       <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-gray-400 transition-colors">
         <div className="h-full flex items-center justify-center">
           <div className="w-1 h-8 bg-gray-500 rounded"></div>
         </div>
       </PanelResizeHandle>
-      <PanelGroup direction="vertical" className="h-full">
-        <SqlEditor podName={databaseConnectionKey?.podName} />
-        <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
-          <div className="w-full flex items-center justify-center">
-            <div className="h-1 w-8 bg-gray-500 rounded"></div>
-          </div>
-        </PanelResizeHandle>
-        <Terminal />
-      </PanelGroup>
+      <Panel defaultSize={60} minSize={40}>
+        <PanelGroup direction="vertical" className="h-full">
+          <SqlEditor podName={databaseConnectionKey?.podName} />
+          <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
+            <div className="w-full flex items-center justify-center">
+              <div className="h-1 w-8 bg-gray-500 rounded"></div>
+            </div>
+          </PanelResizeHandle>
+          <Terminal />
+        </PanelGroup>
+      </Panel>
     </PanelGroup>
   );
 }
