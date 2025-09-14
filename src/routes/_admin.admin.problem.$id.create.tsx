@@ -18,8 +18,7 @@ import {
   problemDetailQueryOptions,
 } from "@/hooks/use-problem.ts";
 import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
-
-//TODO: /connect timeout
+import { PendingComponent } from "@/components/problems/create/route-skeleton.tsx";
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -48,8 +47,10 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
     }
   },
   component: RouteComponent,
+  pendingComponent: PendingComponent,
 });
 
+// TODO: pending component and skeleton
 function RouteComponent() {
   const loaderData = Route.useLoaderData();
 
