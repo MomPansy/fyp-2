@@ -4,6 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
+import { QueryResult } from "server/problem-database/db-seed/types.ts";
 import { Dialect } from "server/problem-database/mappings.ts";
 import { showErrorNotification } from "components/notifications.ts";
 import {
@@ -17,6 +18,7 @@ import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
 import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
 import { problemLibraryKeys } from "@/components/problems-library/query-keys.ts";
+import { PROBLEM_EXECUTE_SQL_MUTATION_KEY } from "@/components/problems/create/mutation-key.ts";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
@@ -268,14 +270,49 @@ export const problemTablesQueryOptions = <
   });
 };
 
+interface ExecuteSQLMutationOptions {
+  podName: string;
+  dialect: Dialect;
+  sql: string;
+}
+
+export const useExecuteSQLMutation = () => {
+  return useMutation<QueryResult, Error, ExecuteSQLMutationOptions>({
+    mutationKey: [PROBLEM_EXECUTE_SQL_MUTATION_KEY],
+    mutationFn: async ({
+      podName,
+      dialect,
+      sql,
+    }: ExecuteSQLMutationOptions) => {
+      const response = await api.problems.execute.$post({
+        json: {
+          podName,
+          sql,
+          dialect,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error("Failed to execute SQL");
+      }
+      return data;
+    },
+    onError: (error) => {
+      showErrorNotification({
+        title: "Failed to execute SQL",
+        message: error.message || "An unknown error occurred",
+      });
+    },
+  });
+};
+
 export const databaseConnectionQueryOptions = (
   problemId: string,
   dialect: Dialect,
 ) => {
-  return queryOptions<{
-    key: string;
-    dialect: Dialect;
-  }>({
+  return queryOptions({
     queryKey: ["database", "connect", problemId, dialect],
     queryFn: async () => {
       const response = await api.problems.connect.$post({
@@ -287,10 +324,14 @@ export const databaseConnectionQueryOptions = (
 
       const data = await response.json();
 
-      const key = `${data.podName}-${data.dialect}`;
+      const { podName } = data;
+
+      const key = `${podName}-${dialect}`;
+
       return {
-        key,
+        podName,
         dialect,
+        key,
       };
     },
     // Increase timeout for long-running database operations

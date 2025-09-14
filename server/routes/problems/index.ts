@@ -164,7 +164,8 @@ export const route = factory
     ),
     async (c) => {
       const { podName, sql, dialect } = c.req.valid("json");
-      const pool = getPool(podName);
+      const key = `${podName}-${dialect}`;
+      const pool = getPool(key);
 
       if (!pool || !dialect) {
         throw new HTTPException(404, {
@@ -195,7 +196,7 @@ export const route = factory
               message: `Unsupported dialect: ${dialect}`,
             });
         }
-        return c.json(result as Record<string, unknown>);
+        return c.json(result);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
         throw new HTTPException(400, {
