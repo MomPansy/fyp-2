@@ -1,5 +1,12 @@
 import { Panel } from "react-resizable-panels";
-import { Box, Text, Tooltip, ActionIcon } from "@mantine/core";
+import {
+  Box,
+  Text,
+  Tooltip,
+  ActionIcon,
+  Table,
+  ScrollArea,
+} from "@mantine/core";
 import { IconMaximize } from "@tabler/icons-react";
 import { useMutationState } from "@tanstack/react-query";
 
@@ -19,7 +26,6 @@ export function Terminal() {
   });
 
   const renderTerminalOutput = () => {
-    // Get the latest result from the array - result array could be empty
     if (result.length === 0) {
       return (
         <Text c="dimmed" p="md">
@@ -39,50 +45,105 @@ export function Terminal() {
       );
     }
 
+    const columns = Array.from(new Set(t.rows.flatMap((r) => Object.keys(r))));
+
+    const formatValue = (v: unknown): string => {
+      if (v === null || v === undefined) {
+        return "NULL";
+      }
+      if (typeof v === "object") {
+        return JSON.stringify(v);
+      }
+      // eslint-disable-next-line @typescript-eslint/no-base-to-string
+      return String(v);
+    };
+
+    const renderCell = (v: unknown) => {
+      if (v === null || v === undefined) {
+        return <span className="text-gray-400 italic">NULL</span>;
+      }
+      return formatValue(v);
+    };
+
     return (
       <div className="p-4">
         <Text c="green" fw={600} mb="md">
-          Query executed successfully - {t.rowCount} rows returned
+          Query executed successfully — {t.rowCount} rows returned
         </Text>
 
         {t.rows.length > 0 ? (
-          <Box className="overflow-auto max-h-64">
-            <table className="min-w-full border-collapse">
-              <thead>
-                <tr className="bg-gray-100">
-                  {Object.keys(t.rows[0]).map((key: string) => (
-                    <th
-                      key={key}
-                      className="border border-gray-300 px-4 py-2 text-left"
-                    >
-                      {key}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {t.rows.map(
-                  (row: Record<string, unknown>, rowIndex: number) => (
-                    <tr
-                      key={rowIndex}
-                      className={rowIndex % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                    >
-                      {Object.values(row).map(
-                        (value: unknown, valueIndex: number) => (
-                          <td
-                            key={valueIndex}
-                            className="border border-gray-300 px-4 py-2"
+          <Table
+            highlightOnHover
+            withTableBorder
+            withColumnBorders
+            stickyHeader
+            style={{
+              fontSize: "13px",
+              fontFamily: "monospace",
+            }}
+          >
+            <Table.Thead>
+              <Table.Tr>
+                {columns.map((key) => (
+                  <Table.Th
+                    key={key}
+                    style={{
+                      color: "#9CA3AF",
+                      fontWeight: 500,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      fontSize: "11px",
+                      padding: "8px 12px",
+                      borderBottom: "1px solid #374151",
+                      backgroundColor: "#111827",
+                    }}
+                  >
+                    {key}
+                  </Table.Th>
+                ))}
+              </Table.Tr>
+            </Table.Thead>
+
+            <Table.Tbody>
+              {t.rows.map((row, i) => (
+                <Table.Tr key={i}>
+                  {columns.map((key, j) => {
+                    const val = row[key];
+                    const full = formatValue(val);
+                    return (
+                      <Table.Td
+                        key={j}
+                        style={{
+                          color: "#E5E7EB",
+                          padding: "8px 12px",
+                          borderBottom: "1px solid #374151",
+                          verticalAlign: "top",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Tooltip
+                          label={full}
+                          openDelay={300}
+                          withArrow
+                          position="bottom-start"
+                        >
+                          <div
+                            style={{
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              maxWidth: "28rem",
+                            }}
                           >
-                            {String(value)}
-                          </td>
-                        ),
-                      )}
-                    </tr>
-                  ),
-                )}
-              </tbody>
-            </table>
-          </Box>
+                            {renderCell(val)}
+                          </div>
+                        </Tooltip>
+                      </Table.Td>
+                    );
+                  })}
+                </Table.Tr>
+              ))}
+            </Table.Tbody>
+          </Table>
         ) : (
           <Text c="dimmed" p="md">
             No data returned from query
@@ -100,7 +161,6 @@ export function Terminal() {
           color: "white",
           display: "flex",
           flexDirection: "column",
-          overflow: "auto",
           height: "100%",
         }}
       >
@@ -112,9 +172,9 @@ export function Terminal() {
             </ActionIcon>
           </Tooltip>
         </Box>
-        <Box style={{ flexGrow: 1, overflow: "auto" }}>
+        <ScrollArea style={{ flex: 1 }} type="auto">
           {renderTerminalOutput()}
-        </Box>
+        </ScrollArea>
       </Box>
     </Panel>
   );
