@@ -12,7 +12,13 @@ import {
 } from "@mantine/core";
 import { useState } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { IconCheck, IconEdit, IconTrash, IconX } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconCheck,
+  IconEdit,
+  IconTrash,
+  IconX,
+} from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { TableManager } from "./table-manager/table-manager.tsx";
 import { useCsvImportStore } from "./table-manager/csv-import.store.ts";
@@ -23,7 +29,7 @@ import {
   useFetchProblemTablesColumnTypes,
   useFetchTableDataMutation,
 } from "@/hooks/use-problem.ts";
-import { ColumnType } from "server/drizzle/_custom.ts";
+import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
 export function ProblemDatabase() {
@@ -78,19 +84,29 @@ function DatabaseTable({ tableMetadata }: DatabaseTableProps) {
     { open: openColumnsDrawer, close: closeColumnsDrawer },
   ] = useDisclosure();
 
-  const [columnsDrawerTable, setColumnsDrawerTable] = useState<ColumnType[]>(
-    [],
-  );
+  const [columnsDrawerTable, setColumnsDrawerTable] = useState<{
+    tableName: string;
+    columnTypes: ColumnType[];
+    relations: ForeignKeyMapping[];
+  }>({
+    tableName: "",
+    columnTypes: [],
+    relations: [],
+  });
 
-  const handleViewColumns = (columnTypes: ColumnType[] | undefined) => {
+  const handleViewColumns = (
+    tableName: string,
+    columnTypes: ColumnType[] | undefined,
+    relations: ForeignKeyMapping[],
+  ) => {
     if (!columnTypes) return;
-    setColumnsDrawerTable(columnTypes);
+    setColumnsDrawerTable({ tableName, columnTypes, relations });
     openColumnsDrawer();
   };
 
   const handleCloseColumnsDrawer = () => {
     closeColumnsDrawer();
-    setColumnsDrawerTable([]);
+    setColumnsDrawerTable({ tableName: "", columnTypes: [], relations: [] });
   };
 
   const { mutate } = useFetchTableDataMutation();
@@ -167,7 +183,13 @@ function DatabaseTable({ tableMetadata }: DatabaseTableProps) {
               <Table.Td>
                 <Button
                   variant="gradient"
-                  onClick={() => handleViewColumns(table.columnTypes)}
+                  onClick={() =>
+                    handleViewColumns(
+                      table.tableName,
+                      table.columnTypes,
+                      table.relations,
+                    )
+                  }
                   disabled={!table.columnTypes}
                 >
                   {table.columnTypes.length > 0 ? table.columnTypes.length : 0}
@@ -201,7 +223,9 @@ function DatabaseTable({ tableMetadata }: DatabaseTableProps) {
         onConfirm={handleDeleteConfirm}
       />
       <ColumnMetadataDrawer
-        columnTypes={columnsDrawerTable}
+        tableName={columnsDrawerTable.tableName}
+        columnTypes={columnsDrawerTable.columnTypes}
+        relations={columnsDrawerTable.relations}
         opened={columnsDrawerOpened}
         onClose={handleCloseColumnsDrawer}
       />
@@ -246,19 +270,27 @@ function DeleteConfirmationModal({
 }
 
 interface ColumnMetadataDrawerProps {
+  tableName: string;
   columnTypes: ColumnType[];
+  relations: ForeignKeyMapping[];
   opened: boolean;
   onClose: () => void;
 }
 
 function ColumnMetadataDrawer({
+  tableName,
   columnTypes,
+  relations,
   opened,
   onClose,
 }: ColumnMetadataDrawerProps) {
   return (
     <Drawer
-      title="Column Metadata"
+      title={
+        <>
+          Column Metadata for <Code>{tableName}</Code>
+        </>
+      }
       opened={opened}
       onClose={onClose}
       position="right"
@@ -268,28 +300,45 @@ function ColumnMetadataDrawer({
         {columnTypes.length === 0 ? (
           <p>No columns to display.</p>
         ) : (
-          <Table withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Column Name</Table.Th>
-                <Table.Th>Data Type</Table.Th>
-                <Table.Th>Primary Key</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody bg="hf-grey">
-              {columnTypes.map((column) => (
-                <Table.Tr key={column.column}>
-                  <Table.Td>{column.column}</Table.Td>
-                  <Table.Td>
-                    <Code>{column.type}</Code>
-                  </Table.Td>
-                  <Table.Td>
-                    {column.isPrimaryKey ? <IconCheck /> : <IconX />}
-                  </Table.Td>
+          <Stack>
+            <Table withTableBorder>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Column Name</Table.Th>
+                  <Table.Th>Data Type</Table.Th>
+                  <Table.Th>Primary Key</Table.Th>
                 </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
+              </Table.Thead>
+              <Table.Tbody bg="hf-grey">
+                {columnTypes.map((column) => (
+                  <Table.Tr key={column.column}>
+                    <Table.Td>{column.column}</Table.Td>
+                    <Table.Td>
+                      <Code>{column.type}</Code>
+                    </Table.Td>
+                    <Table.Td>
+                      {column.isPrimaryKey ? <IconCheck /> : <IconX />}
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+            {relations.length > 0 && (
+              <Paper>
+                {relations.map((relation, index) => (
+                  <Group key={index}>
+                    <Code>
+                      {relation.baseTableName}.{relation.baseColumnName}
+                    </Code>
+                    <IconArrowRight />
+                    <Code>
+                      {relation.foreignTableName}.{relation.foreignTableColumn}
+                    </Code>
+                  </Group>
+                ))}
+              </Paper>
+            )}
+          </Stack>
         )}
       </Drawer.Body>
     </Drawer>
