@@ -15,7 +15,7 @@ export const userProblemTables = pgTable(
   "user_problem_tables",
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
-    problemId: uuid("problem_id").notNull(),
+    userProblemId: uuid("user_problem_id").notNull(),
     tableName: text("table_name").notNull(),
     dataPath: text("data_path").notNull(),
     columnTypes: jsonb("column_types").$type<ColumnType[]>(),
@@ -26,7 +26,7 @@ export const userProblemTables = pgTable(
   },
   (table) => [
     foreignKey({
-      columns: [table.problemId],
+      columns: [table.userProblemId],
       foreignColumns: [userProblems.id],
       name: "problem_user_tables_user_problem_id_fk",
     }),
@@ -37,8 +37,8 @@ export const problemTablesRelations = relations(
   userProblemTables,
   ({ one }) => ({
     problem: one(userProblems, {
-      fields: [userProblemTables.problemId],
-      references: [userProblems.problem_id],
+      fields: [userProblemTables.userProblemId],
+      references: [userProblems.id],
     }),
   }),
 );

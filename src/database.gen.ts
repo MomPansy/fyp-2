@@ -137,9 +137,9 @@ export type Database = {
           description: string | null
           id: string
           number_of_rows: number | null
-          problem_id: string
           relations: Json | null
           table_name: string
+          user_problem_id: string
         }
         Insert: {
           column_types?: Json | null
@@ -148,9 +148,9 @@ export type Database = {
           description?: string | null
           id?: string
           number_of_rows?: number | null
-          problem_id: string
           relations?: Json | null
           table_name: string
+          user_problem_id: string
         }
         Update: {
           column_types?: Json | null
@@ -159,14 +159,14 @@ export type Database = {
           description?: string | null
           id?: string
           number_of_rows?: number | null
-          problem_id?: string
           relations?: Json | null
           table_name?: string
+          user_problem_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "problem_user_tables_user_problem_id_fk"
-            columns: ["problem_id"]
+            columns: ["user_problem_id"]
             isOneToOne: false
             referencedRelation: "user_problems"
             referencedColumns: ["id"]

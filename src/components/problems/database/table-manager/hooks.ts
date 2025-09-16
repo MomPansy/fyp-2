@@ -15,7 +15,7 @@ export const useFetchColumnConfig = (problemId: string, tableId: string) => {
       const { data, error } = await supabase
         .from("user_problem_tables")
         .select("column_types")
-        .eq("problem_id", problemId)
+        .eq("user_problem_id", problemId)
         .eq("id", tableId)
         .single();
 
@@ -34,7 +34,7 @@ export const useFetchUserProblemTables = (problemId: string) => {
       const { data, error } = await supabase
         .from("user_problem_tables")
         .select("tableId:id, tableName:table_name")
-        .eq("problem_id", problemId);
+        .eq("user_problem_id", problemId);
 
       if (error) {
         throw new Error(error.message);

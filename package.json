@@ -21,6 +21,7 @@
     "lint:fix": "eslint . --report-unused-disable-directives --max-warnings 0 --fix",
     "start": "pnpm envx:run:prod -- node dist/index.js",
     "db:typegen": "pnpm dotenvx run --env-file=.env.production -- pnpm supabase gen types typescript --project-id hmmpdcfxjqskkwmsoxzh -s public,storage > src/database.gen.ts",
+    "db:typegen-local": "pnpm supabase gen types typescript --local > src/database.gen.ts",
     "db:gen": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit generate --config=drizzle.config.ts",
     "db:mig": "pnpm dotenvx run --env-file=.env.production -- pnpm drizzle-kit migrate --config=drizzle.config.ts",
     "db:gen-local": "pnpm dotenvx run --env-file=.env.local -- pnpm drizzle-kit generate --config=drizzle.config.ts",

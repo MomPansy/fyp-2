@@ -9,6 +9,9 @@ import { api } from "@/lib/api.ts";
 type Json =
   Database["public"]["Tables"]["problem_tables"]["Row"]["column_types"];
 
+type UserProblemTablesInsert =
+  Database["public"]["Tables"]["user_problem_tables"]["Insert"];
+
 export const useDataStorage = () => {
   const queryClient = useQueryClient();
 
@@ -86,9 +89,9 @@ export const useDataStorage = () => {
     }
 
     // save to db table
-    const upsertData = {
+    const upsertData: UserProblemTablesInsert = {
       ...(tableId && { id: tableId }),
-      problem_id: problemId,
+      user_problem_id: problemId,
       data_path: path,
       table_name: tableName,
       column_types: columnTypes as Json,

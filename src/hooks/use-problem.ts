@@ -215,7 +215,7 @@ export const userProblemTablesColumnTypesQueryOptions = (id: string) => {
         .select(
           "id, table_name, column_types, number_of_rows, description, relations, data_path",
         )
-        .eq("problem_id", id);
+        .eq("user_problem_id", id);
 
       if (error) {
         showErrorNotification({
@@ -263,7 +263,7 @@ export const userProblemTablesQueryOptions = <
       const { data, error } = await supabase
         .from("user_problem_tables")
         .select(selectArgs)
-        .eq("problem_id", problemId);
+        .eq("user_problem_id", problemId);
 
       if (error) {
         throw new Error(error.message);
@@ -398,7 +398,7 @@ export function useDeleteUserProblemTableMutation() {
         .from("user_problem_tables")
         .delete()
         .eq("id", tableId)
-        .eq("problem_id", problemId)
+        .eq("user_problem_id", problemId)
         .select()
         .single();
 
@@ -421,7 +421,9 @@ export function useDeleteUserProblemTableMutation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: userProblemTableKeys.metadataByProblemId(data.problem_id),
+        queryKey: userProblemTableKeys.metadataByProblemId(
+          data.user_problem_id,
+        ),
       });
     },
   });
@@ -435,7 +437,7 @@ export function useDeleteUserProblemMutation() {
       const { data: tables, error: tablesError } = await supabase
         .from("user_problem_tables")
         .select("id, data_path")
-        .eq("problem_id", problemId);
+        .eq("user_problem_id", problemId);
 
       if (tablesError) {
         throw new Error(
