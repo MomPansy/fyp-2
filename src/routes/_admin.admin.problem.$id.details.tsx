@@ -1,16 +1,21 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ProblemDescription } from "components/problems/details/problem-description.tsx";
 import {
-  problemDetailQueryOptions,
-  createNewProblem,
+  userProblemDetailQueryOptions,
+  createNewUserProblem,
 } from "@/hooks/use-problem.ts";
+import { accessTokenQueryOptions } from "@/hooks/auth.ts";
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
   loader: async ({ context: { queryClient }, params }) => {
     try {
+      const { payload: jwtPayload } = await queryClient.ensureQueryData(
+        accessTokenQueryOptions,
+      );
+      const userId = jwtPayload.user_metadata.user_id;
       // Try to fetch existing problem
       const existingProblem = await queryClient.ensureQueryData(
-        problemDetailQueryOptions(params.id),
+        userProblemDetailQueryOptions(params.id, userId),
       );
 
       // If problem exists, return it
@@ -19,11 +24,11 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/details")({
       }
 
       // If problem doesn't exist (null), create a new one
-      const newProblem = await createNewProblem(params.id);
+      const newProblem = await createNewUserProblem(params.id, userId);
 
       // Update the cache with the new problem and return it
       queryClient.setQueryData(
-        problemDetailQueryOptions(params.id).queryKey,
+        userProblemDetailQueryOptions(params.id, userId).queryKey,
         newProblem,
       );
 

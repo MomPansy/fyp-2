@@ -8,8 +8,8 @@ import { QueryResult } from "server/problem-database/db-seed/types.ts";
 import { Dialect } from "server/problem-database/mappings.ts";
 import { showErrorNotification } from "components/notifications.ts";
 import {
-  problemKeys,
-  problemTableKeys,
+  userProblemKeys,
+  userProblemTableKeys,
 } from "components/problems/querykeys.ts";
 import { supabase } from "lib/supabase.ts";
 import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html.ts";
@@ -35,24 +35,26 @@ export interface TableMetadata {
 }
 
 // Query options for use in loaders (router-safe)
-export const problemDetailQueryOptions = <
+export const userProblemDetailQueryOptions = <
   K extends keyof ProblemRow = keyof ProblemRow,
 >(
   id: string,
+  userId: string,
   opts?: { columns?: readonly K[] },
 ) =>
   queryOptions<Pick<ProblemRow, K> | null>({
     queryKey: opts?.columns
-      ? [...problemKeys.detail(id), { select: opts.columns }]
-      : problemKeys.detail(id),
+      ? [...userProblemKeys.detail(id), { select: opts.columns }]
+      : userProblemKeys.detail(id),
     queryFn: async () => {
       const selectArg =
         opts?.columns && opts.columns.length > 0 ? opts.columns.join(",") : "*";
 
       const { data, error } = await supabase
-        .from("problems")
+        .from("user_problems")
         .select(selectArg)
         .eq("id", id)
+        .eq("user_id", userId)
         .single();
 
       if (error) {
@@ -75,13 +77,14 @@ export const problemDetailQueryOptions = <
   });
 
 // Separate function for creating new problems (router-safe)
-export const createNewProblem = async (id: string) => {
+export const createNewUserProblem = async (id: string, userId: string) => {
   const { data, error } = await supabase
-    .from("problems")
+    .from("user_problems")
     .upsert({
       id: id,
       name: "Untitled",
       description: DEFAULT_PROBLEM_TEMPLATE,
+      user_id: userId,
     })
     .select()
     .single();
@@ -92,12 +95,12 @@ export const createNewProblem = async (id: string) => {
   return data;
 };
 
-export const useAutoSaveProblemName = () => {
+export const useAutoSaveUserProblemName = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
       const { data, error } = await supabase
-        .from("problems")
+        .from("user_problems")
         .update({ name })
         .eq("id", id)
         .select("*")
@@ -111,15 +114,15 @@ export const useAutoSaveProblemName = () => {
     onMutate: async ({ id, name }) => {
       // Optimistically update the cache
       await queryClient.cancelQueries({
-        queryKey: problemKeys.detail(id),
+        queryKey: userProblemKeys.detail(id),
       });
       const previousData = queryClient.getQueryData<
         Database["public"]["Tables"]["problems"]["Row"]
-      >(problemKeys.detail(id));
+      >(userProblemKeys.detail(id));
 
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(problemKeys.detail(id), (oldData) =>
+      >(userProblemKeys.detail(id), (oldData) =>
         oldData
           ? {
               ...oldData,
@@ -132,14 +135,14 @@ export const useAutoSaveProblemName = () => {
     },
     onError: (_error, variables, context) => {
       queryClient.setQueryData(
-        problemKeys.detail(variables.id),
+        userProblemKeys.detail(variables.id),
         context?.previousData,
       );
     },
     onSuccess: (data, variables) => {
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(problemKeys.detail(variables.id), data);
+      >(userProblemKeys.detail(variables.id), data);
 
       queryClient.invalidateQueries({
         queryKey: problemLibraryKeys.all,
@@ -148,12 +151,12 @@ export const useAutoSaveProblemName = () => {
   });
 };
 
-export const useAutoSaveProblemContent = () => {
+export const useAutoSaveUserProblemContent = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, content }: { id: string; content: string }) => {
       const { data, error } = await supabase
-        .from("problems")
+        .from("user_problems")
         .update({ description: content })
         .eq("id", id)
         .select("*")
@@ -167,15 +170,15 @@ export const useAutoSaveProblemContent = () => {
     onMutate: async ({ id, content }) => {
       // Optimistically update the cache
       await queryClient.cancelQueries({
-        queryKey: problemKeys.detail(id),
+        queryKey: userProblemKeys.detail(id),
       });
       const previousData = queryClient.getQueryData<
         Database["public"]["Tables"]["problems"]["Row"]
-      >(problemKeys.detail(id));
+      >(userProblemKeys.detail(id));
 
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(problemKeys.detail(id), (oldData) =>
+      >(userProblemKeys.detail(id), (oldData) =>
         oldData
           ? {
               ...oldData,
@@ -188,14 +191,14 @@ export const useAutoSaveProblemContent = () => {
     },
     onError: (_error, variables, context) => {
       queryClient.setQueryData(
-        problemKeys.detail(variables.id),
+        userProblemKeys.detail(variables.id),
         context?.previousData,
       );
     },
     onSuccess: (data, variables) => {
       queryClient.setQueryData<
         Database["public"]["Tables"]["problems"]["Insert"]
-      >(problemKeys.detail(variables.id), data);
+      >(userProblemKeys.detail(variables.id), data);
       queryClient.invalidateQueries({
         queryKey: problemLibraryKeys.all,
       });
@@ -203,12 +206,12 @@ export const useAutoSaveProblemContent = () => {
   });
 };
 
-export const problemTablesColumnTypesQueryOptions = (id: string) => {
+export const userProblemTablesColumnTypesQueryOptions = (id: string) => {
   return queryOptions<TableMetadata[]>({
-    queryKey: problemTableKeys.metadataByProblemId(id),
+    queryKey: userProblemTableKeys.metadataByProblemId(id),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select(
           "id, table_name, column_types, number_of_rows, description, relations, data_path",
         )
@@ -242,7 +245,7 @@ export const problemTablesColumnTypesQueryOptions = (id: string) => {
   });
 };
 
-export const problemTablesQueryOptions = <
+export const userProblemTablesQueryOptions = <
   K extends keyof ProblemTableRow = keyof ProblemTableRow,
 >(
   problemId: string,
@@ -252,13 +255,13 @@ export const problemTablesQueryOptions = <
 ) => {
   return queryOptions<Pick<ProblemTableRow, K> | null>({
     queryKey: opts?.columns
-      ? [...problemTableKeys.detail(problemId), { select: opts.columns }]
-      : problemTableKeys.detail(problemId),
+      ? [...userProblemTableKeys.detail(problemId), { select: opts.columns }]
+      : userProblemTableKeys.detail(problemId),
     queryFn: async () => {
       const selectArgs =
         opts?.columns && opts.columns.length > 0 ? opts.columns.join(",") : "*";
       const { data, error } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select(selectArgs)
         .eq("problem_id", problemId);
 
@@ -340,11 +343,11 @@ export const databaseConnectionQueryOptions = (
   });
 };
 
-export function useFetchTableDataMutation() {
+export function useFetchUserProblemTableDataMutation() {
   return useMutation({
     mutationFn: async (tableId: string) => {
       const { data, error } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select("*")
         .eq("id", tableId)
         .single();
@@ -380,7 +383,7 @@ export function useFetchTableDataMutation() {
   });
 }
 
-export function useDeleteProblemTableMutation() {
+export function useDeleteUserProblemTableMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -392,7 +395,7 @@ export function useDeleteProblemTableMutation() {
     }) => {
       // eslint-disable-next-line drizzle/enforce-delete-with-where
       const { data, error: dbError } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .delete()
         .eq("id", tableId)
         .eq("problem_id", problemId)
@@ -418,19 +421,19 @@ export function useDeleteProblemTableMutation() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.metadataByProblemId(data.problem_id),
+        queryKey: userProblemTableKeys.metadataByProblemId(data.problem_id),
       });
     },
   });
 }
 
-export function useDeleteProblemMutation() {
+export function useDeleteUserProblemMutation() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, { problemId: string }>({
     mutationFn: async ({ problemId }: { problemId: string }) => {
       // get all tables for the problem
       const { data: tables, error: tablesError } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select("id, data_path")
         .eq("problem_id", problemId);
 
@@ -457,7 +460,7 @@ export function useDeleteProblemMutation() {
       // delete all tables
       // eslint-disable-next-line drizzle/enforce-delete-with-where
       const { error: tableDeleteError } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .delete()
         .in("id", tableIds);
 
@@ -469,7 +472,7 @@ export function useDeleteProblemMutation() {
       // delete the problem itself
       // eslint-disable-next-line drizzle/enforce-delete-with-where
       const { error: problemDeleteError } = await supabase
-        .from("problems")
+        .from("user_problems")
         .delete()
         .eq("id", problemId);
 
@@ -479,15 +482,15 @@ export function useDeleteProblemMutation() {
     },
     onSettled: (_data, _error, variables) => {
       queryClient.invalidateQueries({
-        queryKey: problemKeys.detail(variables.problemId),
+        queryKey: userProblemKeys.detail(variables.problemId),
       });
 
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.metadataByProblemId(variables.problemId),
+        queryKey: userProblemTableKeys.metadataByProblemId(variables.problemId),
       });
 
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.byProblemId(variables.problemId),
+        queryKey: userProblemTableKeys.byProblemId(variables.problemId),
       });
 
       queryClient.invalidateQueries({
@@ -497,18 +500,18 @@ export function useDeleteProblemMutation() {
   });
 }
 
-export const usePrefetchProblemTablesColumnTypes = (id: string) => {
+export const usePrefetchUserProblemTablesColumnTypes = (id: string) => {
   const queryClient = useQueryClient();
 
   return () => {
     queryClient.prefetchQuery({
-      ...problemTablesColumnTypesQueryOptions(id),
+      ...userProblemTablesColumnTypesQueryOptions(id),
     });
   };
 };
 
-export const useFetchProblemTablesColumnTypes = (id: string) => {
+export const useFetchUserProblemTablesColumnTypes = (id: string) => {
   return useSuspenseQuery({
-    ...problemTablesColumnTypesQueryOptions(id),
+    ...userProblemTablesColumnTypesQueryOptions(id),
   });
 };

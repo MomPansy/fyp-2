@@ -279,7 +279,7 @@ async function ensureForeignTableExists(
 
   // Table doesn't exist, try to create it from Supabase metadata
   const { data: foreignTable, error } = await supabase
-    .from("problem_tables")
+    .from("user_problem_tables")
     .select("table_name, column_types")
     .eq("table_name", foreignTableName)
     .single();

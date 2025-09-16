@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import {
   databaseConnectionQueryOptions,
-  problemDetailQueryOptions,
+  userProblemDetailQueryOptions,
 } from "@/hooks/use-problem.ts";
 import { PendingComponent } from "@/components/problems/create/route-skeleton.tsx";
 import {
@@ -10,12 +10,17 @@ import {
   SqlEditor,
   Terminal,
 } from "@/components/problems/create/index.ts";
+import { accessTokenQueryOptions } from "@/hooks/auth.ts";
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
   loader: async ({ context: { queryClient }, params }) => {
     try {
+      const { payload: jwtPayload } = await queryClient.ensureQueryData(
+        accessTokenQueryOptions,
+      );
+      const userId = jwtPayload.user_metadata.user_id;
       const problemDetails = await queryClient.ensureQueryData(
-        problemDetailQueryOptions(params.id, {
+        userProblemDetailQueryOptions(params.id, userId, {
           columns: ["description"],
         }),
       );
@@ -61,22 +66,34 @@ function RouteComponent() {
         <ProblemDescription description={problemDetails.description} />
       </Panel>
       {/* Vertical Resize Handle between Left and Right */}
-      <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-gray-400 transition-colors">
-        <div className="h-full flex items-center justify-center">
-          <div className="w-1 h-8 bg-gray-500 rounded"></div>
-        </div>
-      </PanelResizeHandle>
+      <VerticalResizeHandle />
       <Panel defaultSize={60} minSize={40}>
         <PanelGroup direction="vertical" className="h-full">
           <SqlEditor podName={databaseConnectionKey?.podName} />
-          <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
-            <div className="w-full flex items-center justify-center">
-              <div className="h-1 w-8 bg-gray-500 rounded"></div>
-            </div>
-          </PanelResizeHandle>
+          <HorizontalResizeHandle />
           <Terminal />
         </PanelGroup>
       </Panel>
     </PanelGroup>
+  );
+}
+
+function VerticalResizeHandle() {
+  return (
+    <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-gray-400 transition-colors">
+      <div className="h-full flex items-center justify-center">
+        <div className="w-1 h-8 bg-gray-500 rounded"></div>
+      </div>
+    </PanelResizeHandle>
+  );
+}
+
+function HorizontalResizeHandle() {
+  return (
+    <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
+      <div className="w-full flex items-center justify-center">
+        <div className="h-1 w-8 bg-gray-500 rounded"></div>
+      </div>
+    </PanelResizeHandle>
   );
 }

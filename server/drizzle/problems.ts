@@ -1,10 +1,10 @@
-import { jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 export const problems = pgTable("problems", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   description: text("description").notNull(),
-  answer: jsonb("answer"),
+  answer: text("answer"),
   created_at: timestamp("created_at", {
     precision: 3,
     withTimezone: true,

@@ -2,7 +2,8 @@ import { Panel } from "react-resizable-panels";
 import MonacoEditorReact from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { useRef, useState } from "react";
-import { Button, Select, Group } from "@mantine/core";
+import { Button, Select, Group, Modal, Text, Checkbox } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlay, IconCheck } from "@tabler/icons-react";
 import {
   SUPPORTED_DIALECTS,
@@ -39,6 +40,7 @@ export function SqlEditor({ podName }: SqlEditorProps) {
   );
 
   const [sqlDialect, setSqlDialect] = useState<Dialect>("postgres");
+  const [opened, { open, close }] = useDisclosure(false);
 
   const handleDialectChange = (value: string | null) => {
     if (value && SUPPORTED_DIALECTS.includes(value as Dialect)) {
@@ -63,10 +65,21 @@ export function SqlEditor({ podName }: SqlEditorProps) {
     });
   };
 
-  // TODO: implement
-  // const onDialectChange = () => {
-  //   // pass
-  // }
+  const handleSaveAnswer = () => {
+    open();
+  };
+
+  const handleConfirmSave = (saveAsTemplate: boolean) => {
+    // TODO: Implement database operation here
+    // This would typically involve saving the SQL answer and optionally as a template
+    console.info("Saving answer...", {
+      sqlCode,
+      sqlDialect,
+      saveAsTemplate,
+    });
+
+    close();
+  };
 
   return (
     <Panel defaultSize={60} minSize={20}>
@@ -92,7 +105,7 @@ export function SqlEditor({ podName }: SqlEditorProps) {
             <Button
               color="green"
               leftSection={<IconCheck size={16} />}
-              onClick={handleTest}
+              onClick={handleSaveAnswer}
               loading={isPending}
             >
               Save Answer
@@ -120,7 +133,68 @@ export function SqlEditor({ podName }: SqlEditorProps) {
             }}
           />
         </div>
+
+        <ConfirmationModal
+          isOpen={opened}
+          onClose={close}
+          onConfirm={handleConfirmSave}
+        />
       </div>
     </Panel>
+  );
+}
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (saveAsTemplate: boolean) => void;
+}
+
+function ConfirmationModal({
+  isOpen,
+  onClose,
+  onConfirm,
+}: ConfirmationModalProps) {
+  const [saveAsTemplate, setSaveAsTemplate] = useState(false);
+
+  const handleConfirm = () => {
+    onConfirm(saveAsTemplate);
+    // Reset checkbox for next time
+    setSaveAsTemplate(false);
+  };
+
+  const handleClose = () => {
+    // Reset checkbox when modal is closed
+    setSaveAsTemplate(false);
+    onClose();
+  };
+
+  return (
+    <Modal
+      opened={isOpen}
+      onClose={handleClose}
+      title="Save Problem"
+      withCloseButton={false}
+    >
+      <Text size="sm">
+        You can optionally save your problem as a template for other users to
+        reference.
+      </Text>
+
+      <Group justify="space-between" mt="md">
+        <Checkbox
+          checked={saveAsTemplate}
+          onChange={(event) => setSaveAsTemplate(event.currentTarget.checked)}
+          label="Save as template"
+        />
+        <Group>
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button color="green" onClick={handleConfirm}>
+            Save Answer
+          </Button>
+        </Group>
+      </Group>
+    </Modal>
   );
 }

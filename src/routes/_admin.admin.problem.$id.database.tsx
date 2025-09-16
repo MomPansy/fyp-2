@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { live } from "@electric-sql/pglite/live";
 import { PGliteProvider } from "@electric-sql/pglite-react";
 import { Suspense } from "react";
-import { problemTablesColumnTypesQueryOptions } from "@/hooks/use-problem.ts";
+import { userProblemTablesColumnTypesQueryOptions } from "@/hooks/use-problem.ts";
 import { ProblemDatabase } from "@/components/problems/database/problem-database.tsx";
 import { ProblemDatabasePending } from "@/components/problems/database/problem-database-pending.tsx";
 import { ProblemDatabaseError } from "@/components/problems/database/problem-database-error.tsx";
@@ -15,7 +15,7 @@ const db = await PGlite.create({
 export const Route = createFileRoute("/_admin/admin/problem/$id/database")({
   loader: async ({ context: { queryClient }, params }) => {
     await queryClient.ensureQueryData(
-      problemTablesColumnTypesQueryOptions(params.id),
+      userProblemTablesColumnTypesQueryOptions(params.id),
     );
   },
   pendingComponent: ProblemDatabasePending,

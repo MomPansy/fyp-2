@@ -1,6 +1,5 @@
 import {
   foreignKey,
-  jsonb,
   pgTable,
   text,
   timestamp,
@@ -15,10 +14,10 @@ export const userProblems = pgTable(
   {
     id: uuid("id").primaryKey().notNull().defaultRandom(),
     user_id: uuid("user_id").notNull(),
-    problem_id: uuid("problem_id").notNull(),
+    problem_id: uuid("problem_id"),
     name: text("name").notNull(),
     description: text("description").notNull(),
-    answer: jsonb("answer"),
+    answer: text("answer"),
     created_at: timestamp("created_at", {
       precision: 3,
       withTimezone: true,

@@ -7,9 +7,9 @@ import { UseEditorOptions } from "@tiptap/react";
 import { useParams } from "@tanstack/react-router";
 import { CustomAnchor } from "../../buttons/link-button.tsx";
 import {
-  useAutoSaveProblemContent,
-  useAutoSaveProblemName,
-  usePrefetchProblemTablesColumnTypes,
+  useAutoSaveUserProblemContent,
+  useAutoSaveUserProblemName,
+  usePrefetchUserProblemTablesColumnTypes,
 } from "@/hooks/use-problem.ts";
 import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 interface ProblemDescriptionProps {
@@ -77,12 +77,12 @@ export function ProblemDescription({
     mutate: saveContentMutate,
     isPending: saveContentPending,
     isSuccess: saveContentSuccess,
-  } = useAutoSaveProblemContent();
+  } = useAutoSaveUserProblemContent();
   const {
     mutate: saveNameMutate,
     isPending: saveNamePending,
     isSuccess: saveNameSuccess,
-  } = useAutoSaveProblemName();
+  } = useAutoSaveUserProblemName();
 
   const form = useForm({
     initialValues: {
@@ -130,7 +130,8 @@ export function ProblemDescription({
     saveContentPending,
   );
 
-  const prefetchColumnTypes = usePrefetchProblemTablesColumnTypes(problemId);
+  const prefetchColumnTypes =
+    usePrefetchUserProblemTablesColumnTypes(problemId);
 
   return (
     <Stack>

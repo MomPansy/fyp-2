@@ -27,15 +27,16 @@ import {
   problemLibraryKeys,
 } from "@/components/problems-library/query-keys.ts";
 import {
-  useProblemsQuery,
-  fetchProblemsPage,
+  useUserProblemsQuery,
+  fetchUserProblemsPage,
 } from "@/components/problems-library/hooks.ts";
 import {
-  problemDetailQueryOptions,
-  useDeleteProblemMutation,
+  userProblemDetailQueryOptions,
+  useDeleteUserProblemMutation,
 } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
+import { useUser } from "@/hooks/auth.ts";
 
 export const Route = createFileRoute("/_admin/admin/problemslibrary")({
   component: RouteComponent,
@@ -131,7 +132,8 @@ function List({ filters, sorting }: ListProps) {
 }
 
 function ListContent({ filters, sorting }: ListProps) {
-  const { mutate } = useDeleteProblemMutation();
+  const { user_id: userId } = useUser();
+  const { mutate } = useDeleteUserProblemMutation();
   const pageSize = 20; //can be adjusted
   const [debouncedSearch] = useDebouncedValue(filters.search, 300);
   const debouncedFilters =
@@ -139,7 +141,8 @@ function ListContent({ filters, sorting }: ListProps) {
       ? filters
       : { ...filters, search: debouncedSearch };
   const [currentPage, setCurrentPage] = useState(1);
-  const { data } = useProblemsQuery(
+  const { data } = useUserProblemsQuery(
+    userId,
     debouncedFilters,
     sorting,
     pageSize,
@@ -171,7 +174,8 @@ function ListContent({ filters, sorting }: ListProps) {
           pageIndex,
         ),
         queryFn: () =>
-          fetchProblemsPage({
+          fetchUserProblemsPage({
+            userId,
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -203,7 +207,8 @@ function ListContent({ filters, sorting }: ListProps) {
           pageIndex,
         ),
         queryFn: () =>
-          fetchProblemsPage({
+          fetchUserProblemsPage({
+            userId,
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -399,8 +404,11 @@ interface ProblemPreviewModalProps {
 }
 
 function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
+  const { user_id: userId } = useUser();
   const { data: problem } = useSuspenseQuery(
-    problemDetailQueryOptions(problemId, { columns: ["name", "description"] }),
+    userProblemDetailQueryOptions(problemId, userId, {
+      columns: ["name", "description"],
+    }),
   );
 
   if (!problem) {

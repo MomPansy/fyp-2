@@ -65,7 +65,7 @@ export async function fetchProblemTables(
 ): Promise<ProblemTable[]> {
   try {
     const { data, error } = await supabase
-      .from("problem_tables")
+      .from("user_problem_tables")
       .select("table_name, column_types, relations, data_path")
       .eq("problem_id", problemId);
 

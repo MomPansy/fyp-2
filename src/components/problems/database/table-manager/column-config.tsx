@@ -37,7 +37,7 @@ import { unparse } from "papaparse";
 import { usePGlite } from "@electric-sql/pglite-react";
 import { useParams } from "@tanstack/react-router";
 import { useCsvImportStore } from "./csv-import.store.ts";
-import { useFetchColumnConfig, useFetchProblemTables } from "./hooks.ts";
+import { useFetchColumnConfig, useFetchUserProblemTables } from "./hooks.ts";
 import { useDataStorage } from "@/hooks/use-storage.ts";
 import {
   showErrorNotification,
@@ -171,7 +171,7 @@ interface ForeignTableSelectorProps {
 const ForeignTableSelector = ({ problemId }: ForeignTableSelectorProps) => {
   const [selectedTableId, setSelectedTableId] = useState<string | undefined>();
   const tableName = useCsvImportStore((s) => s.fileName);
-  const { data } = useFetchProblemTables(problemId);
+  const { data } = useFetchUserProblemTables(problemId);
   const tableOptions = data
     .map((t) => ({ value: t.tableId, label: t.tableName }))
     .filter((t) => t.label !== tableName); // exclude self

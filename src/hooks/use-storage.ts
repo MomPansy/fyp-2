@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Database } from "../database.gen.ts";
 import { supabase } from "../lib/supabase.ts";
 import { showErrorNotification } from "components/notifications.ts";
-import { problemTableKeys } from "components/problems/querykeys.ts";
+import { userProblemTableKeys } from "components/problems/querykeys.ts";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
 
@@ -98,7 +98,7 @@ export const useDataStorage = () => {
     };
 
     const { error: dbError, data: upserted } = await supabase
-      .from("problem_tables")
+      .from("user_problem_tables")
       .upsert(upsertData, {
         onConflict: "id",
         ignoreDuplicates: false,
@@ -118,17 +118,19 @@ export const useDataStorage = () => {
     onSettled: (_data, _error, variables) => {
       // Always refetch after error or success to ensure we have the latest data
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.basicByProblemId(variables.problemId),
+        queryKey: userProblemTableKeys.basicByProblemId(variables.problemId),
       });
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.metadataByProblemId(variables.problemId),
+        queryKey: userProblemTableKeys.metadataByProblemId(variables.problemId),
       });
       // Also ensure column types and relations are refetched
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.columnTypes(variables.problemId),
+        queryKey: userProblemTableKeys.columnTypes(variables.problemId),
       });
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.relationsByProblemId(variables.problemId),
+        queryKey: userProblemTableKeys.relationsByProblemId(
+          variables.problemId,
+        ),
       });
     },
   });
@@ -156,7 +158,7 @@ export const useDataStorage = () => {
     onSuccess: (_data, variables) => {
       // Optionally, you can handle any success logic here
       queryClient.invalidateQueries({
-        queryKey: problemTableKeys.columnTypes(variables.problemId),
+        queryKey: userProblemTableKeys.columnTypes(variables.problemId),
       });
     },
   });

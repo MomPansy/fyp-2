@@ -25,9 +25,9 @@ import { useCsvImportStore } from "./table-manager/csv-import.store.ts";
 import { CSVModal } from "./table-manager/csv-modal.tsx";
 import {
   TableMetadata,
-  useDeleteProblemTableMutation,
-  useFetchProblemTablesColumnTypes,
-  useFetchTableDataMutation,
+  useDeleteUserProblemTableMutation,
+  useFetchUserProblemTablesColumnTypes,
+  useFetchUserProblemTableDataMutation,
 } from "@/hooks/use-problem.ts";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
@@ -36,7 +36,8 @@ export function ProblemDatabase() {
   const { id: problemId } = useParams({
     from: "/_admin/admin/problem/$id/database",
   });
-  const { data: tableMetadata } = useFetchProblemTablesColumnTypes(problemId);
+  const { data: tableMetadata } =
+    useFetchUserProblemTablesColumnTypes(problemId);
   const navigate = useNavigate();
 
   const nextStep = () => {
@@ -109,8 +110,8 @@ function DatabaseTable({ tableMetadata }: DatabaseTableProps) {
     setColumnsDrawerTable({ tableName: "", columnTypes: [], relations: [] });
   };
 
-  const { mutate } = useFetchTableDataMutation();
-  const { mutate: deleteTable } = useDeleteProblemTableMutation();
+  const { mutate } = useFetchUserProblemTableDataMutation();
+  const { mutate: deleteTable } = useDeleteUserProblemTableMutation();
 
   const handleEdit = (table: TableMetadata) => {
     const tableId = table.tableId;

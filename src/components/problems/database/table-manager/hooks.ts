@@ -1,5 +1,5 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { problemTableKeys } from "../../querykeys.ts";
+import { userProblemTableKeys } from "../../querykeys.ts";
 import { supabase } from "@/lib/supabase.ts";
 import { ColumnType } from "server/drizzle/_custom.ts";
 
@@ -13,7 +13,7 @@ export const useFetchColumnConfig = (problemId: string, tableId: string) => {
     queryKey: ["columnConfig", problemId, tableId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select("column_types")
         .eq("problem_id", problemId)
         .eq("id", tableId)
@@ -27,12 +27,12 @@ export const useFetchColumnConfig = (problemId: string, tableId: string) => {
   });
 };
 
-export const useFetchProblemTables = (problemId: string) => {
+export const useFetchUserProblemTables = (problemId: string) => {
   return useSuspenseQuery({
-    queryKey: problemTableKeys.basicByProblemId(problemId),
+    queryKey: userProblemTableKeys.basicByProblemId(problemId),
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("problem_tables")
+        .from("user_problem_tables")
         .select("tableId:id, tableName:table_name")
         .eq("problem_id", problemId);
 

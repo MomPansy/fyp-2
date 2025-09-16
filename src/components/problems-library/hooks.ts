@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase.ts";
 export type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 
 export interface FetchProblemsArgs {
+  userId: string;
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
   pageIndex?: number;
@@ -25,7 +26,8 @@ export interface ProblemsPage {
   totalPages: number; // total pages based on pageSize
 }
 
-export const fetchProblemsPage = async ({
+export const fetchUserProblemsPage = async ({
+  userId,
   filters,
   sorting,
   pageIndex,
@@ -34,11 +36,18 @@ export const fetchProblemsPage = async ({
   const start = pageIndex ? pageIndex * pageSize : 0;
   const end = start + pageSize - 1;
 
-  let countQuery = supabase.from("problems").select("id", {
-    count: "exact",
-    head: true,
-  });
-  let dataQuery = supabase.from("problems").select("*");
+  let countQuery = supabase
+    .from("user_problems")
+    .select("id", {
+      count: "exact",
+      head: true,
+    })
+    .eq("user_id", userId);
+
+  let dataQuery = supabase
+    .from("user_problems")
+    .select("*")
+    .eq("user_id", userId);
 
   // apply search filter
   if (filters.search) {
@@ -78,7 +87,8 @@ export const fetchProblemsPage = async ({
   };
 };
 
-const problemsQueryOptions = ({
+const userProblemsQueryOptions = ({
+  userId,
   filters,
   sorting,
   pageSize = 20,
@@ -87,7 +97,8 @@ const problemsQueryOptions = ({
   return {
     queryKey: problemLibraryKeys.listParams(filters, sorting, pageIndex),
     queryFn: () =>
-      fetchProblemsPage({
+      fetchUserProblemsPage({
+        userId,
         filters,
         sorting,
         pageIndex,
@@ -96,7 +107,8 @@ const problemsQueryOptions = ({
   };
 };
 
-export const useProblemsQuery = (
+export const useUserProblemsQuery = (
+  userId: string,
   filters: ProblemListFilters,
   sorting: ProblemListSorting,
   pageSize = 20,
@@ -110,7 +122,8 @@ export const useProblemsQuery = (
   };
 
   return useSuspenseQuery(
-    problemsQueryOptions({
+    userProblemsQueryOptions({
+      userId,
       filters: normalizedFilters,
       sorting,
       pageSize,
