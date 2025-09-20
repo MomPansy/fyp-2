@@ -1,42 +1,30 @@
-import { Burger, Drawer, Paper } from "@mantine/core";
-import { useDisclosure } from "@mantine/hooks";
+import { AppShell, Paper } from "@mantine/core";
 import { Outlet } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { Navbar } from "./navbar.tsx";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "./resizable.tsx";
 
 export function Sidebar() {
-  const [opened, { close, toggle }] = useDisclosure(false);
   return (
-    <ResizablePanelGroup direction="horizontal">
-      <ResizablePanel
-        defaultSize={15}
-        minSize={10}
-        maxSize={50}
-        className="hidden bg-gray-100 dark:bg-dark-7 md:block"
-      >
+    <AppShell
+      padding="md"
+      navbar={{
+        width: 100,
+        breakpoint: "sm",
+      }}
+    >
+      <AppShell.Navbar>
         <Suspense>
           <Navbar />
         </Suspense>
-      </ResizablePanel>
-      <ResizableHandle className="hidden bg-gray-4 dark:bg-dark-9 md:block" />
-      <ResizablePanel defaultSize={85} className="flex flex-col">
-        <div className="block px-4 pt-4 md:hidden">
-          <Burger opened={opened} onClick={toggle} />
-          <Drawer opened={opened} onClose={close}>
-            <Navbar close={close} />
-          </Drawer>
-        </div>
+      </AppShell.Navbar>
+
+      <AppShell.Main>
         <Paper h="100vh" style={{ overflow: "auto" }}>
           <Suspense>
             <Outlet />
           </Suspense>
         </Paper>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+      </AppShell.Main>
+    </AppShell>
   );
 }
