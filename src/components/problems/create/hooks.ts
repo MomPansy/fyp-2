@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase.ts";
+import { api } from "@/lib/api.ts";
 
 interface SaveProblemMutationProps {
   problemId: string;
@@ -7,7 +7,7 @@ interface SaveProblemMutationProps {
   saveAsTemplate: boolean;
 }
 
-export const useSaveProblemMutation = () => {
+export const useSaveUserProblemMutation = () => {
   return useMutation({
     mutationFn: async ({
       problemId,
@@ -16,54 +16,18 @@ export const useSaveProblemMutation = () => {
     }: SaveProblemMutationProps) => {
       // if saveAsTemplate is true, save to both problem and template tables
       // save to user problem table first
-      const { data, error: userProblemsError } = await supabase
-        .from("user_problems")
-        .update({
-          answer: answer,
-        })
-        .eq("id", problemId)
-        .select("*, user_problem_tables(*)")
-        .single();
+      const response = await api.problems["save-user-problem"].$post({
+        json: {
+          problemId,
+          answer,
+          saveAsTemplate,
+        },
+      });
 
-      if (userProblemsError) {
-        throw new Error(userProblemsError.message);
+      if (!response.ok) {
+        const errorMsg = await response.text();
+        throw new Error(`Failed to save user problem: ${errorMsg}`);
       }
-
-      // Destructure the data to separate userProblem and userProblemTables
-      const { user_problem_tables, ...userProblem } = data;
-      const userProblemTables = user_problem_tables;
-
-      if (saveAsTemplate) {
-        // Upsert into user_problems (templates table)
-        const { error: templateProblemError } = await supabase
-          .from("user_problems")
-          .upsert(userProblem, {
-            onConflict: "id",
-          });
-
-        if (templateProblemError) {
-          throw new Error(templateProblemError.message);
-        }
-
-        // Upsert into user_problem_tables
-        // need to also save csv data
-        if (userProblemTables.length > 0) {
-          const { error: templateProblemTableError } = await supabase
-            .from("user_problem_tables")
-            .upsert(userProblemTables, {
-              onConflict: "id",
-            });
-
-          if (templateProblemTableError) {
-            throw new Error(templateProblemTableError.message);
-          }
-        }
-      }
-
-      return {
-        userProblem,
-        userProblemTables,
-      };
     },
   });
 };

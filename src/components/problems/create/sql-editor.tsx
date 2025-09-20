@@ -2,9 +2,20 @@ import { Panel } from "react-resizable-panels";
 import MonacoEditorReact from "@monaco-editor/react";
 import { editor } from "monaco-editor";
 import { useRef, useState } from "react";
-import { Button, Select, Group, Modal, Text, Checkbox } from "@mantine/core";
+import {
+  Button,
+  Select,
+  Group,
+  Modal,
+  Text,
+  Checkbox,
+  Alert,
+  Stack,
+} from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlayerPlay, IconCheck } from "@tabler/icons-react";
+import { IconPlayerPlay, IconCheck, IconInfoCircle } from "@tabler/icons-react";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import { useSaveUserProblemMutation } from "./hooks.ts";
 import {
   SUPPORTED_DIALECTS,
   type Dialect,
@@ -31,9 +42,15 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
 }));
 
 export function SqlEditor({ podName }: SqlEditorProps) {
+  const { id: problemId } = useParams({
+    from: "/_admin/admin/problem/$id/create",
+  });
+
+  const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const { mutate, isPending } = useExecuteSQLMutation();
+  const { mutate: saveAnswer } = useSaveUserProblemMutation();
 
   const [sqlCode, setSqlCode] = useState<string | undefined>(
     `SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`,
@@ -70,15 +87,33 @@ export function SqlEditor({ podName }: SqlEditorProps) {
   };
 
   const handleConfirmSave = (saveAsTemplate: boolean) => {
-    // TODO: Implement database operation here
-    // This would typically involve saving the SQL answer and optionally as a template
-    console.info("Saving answer...", {
-      sqlCode,
-      sqlDialect,
-      saveAsTemplate,
-    });
+    if (!sqlCode) {
+      showErrorNotification({
+        message: "SQL code cannot be empty.",
+      });
+      return;
+    }
 
-    close();
+    saveAnswer(
+      {
+        problemId,
+        answer: sqlCode,
+        saveAsTemplate,
+      },
+      {
+        onSuccess: () => {
+          navigate({ to: "/admin/dashboard" });
+        },
+        onError: (error) => {
+          showErrorNotification({
+            message: error.message,
+          });
+        },
+        onSettled: () => {
+          close();
+        },
+      },
+    );
   };
 
   return (
@@ -174,11 +209,23 @@ function ConfirmationModal({
       onClose={handleClose}
       title="Save Problem"
       withCloseButton={false}
+      size="lg"
     >
-      <Text size="sm">
-        You can optionally save your problem as a template for other users to
-        reference.
-      </Text>
+      <Stack>
+        {saveAsTemplate && (
+          <Alert color="yellow" title="Warning" icon={<IconInfoCircle />}>
+            <Text size="sm">
+              Saving as template will not override your existing template. If
+              you want to edit your template problem, do it from the template
+              management page.
+            </Text>
+          </Alert>
+        )}
+        <Text size="sm">
+          You can optionally save your problem as a template for other users to
+          reference.
+        </Text>
+      </Stack>
 
       <Group justify="space-between" mt="md">
         <Checkbox

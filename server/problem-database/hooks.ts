@@ -67,7 +67,7 @@ export async function fetchProblemTables(
     const { data, error } = await supabase
       .from("user_problem_tables")
       .select("table_name, column_types, relations, data_path")
-      .eq("problem_id", problemId);
+      .eq("user_problem_id", problemId);
 
     if (error) {
       console.error("❌ Supabase query error:", {

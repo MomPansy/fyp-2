@@ -6,14 +6,16 @@ export const userProblemKeys = {
   detail: (id: string) => ["user_problems", id] as const,
 };
 
-type ProblemTableColumns =
+type UserProblemTableColumns =
   Database["public"]["Tables"]["user_problem_tables"]["Row"];
 
 export const userProblemTableKeys = {
   all: ["user_problemTables"] as const,
   lists: () => [...userProblemTableKeys.all, "list"] as const,
   list: (
-    filters: Partial<Pick<ProblemTableColumns, "problem_id" | "table_name">>,
+    filters: Partial<
+      Pick<UserProblemTableColumns, "user_problem_id" | "table_name">
+    >,
   ) => [...userProblemTableKeys.lists(), filters] as const,
   details: () => [...userProblemTableKeys.all, "details"] as const,
   detail: (id: string) => [...userProblemTableKeys.details(), id] as const,

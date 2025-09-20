@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
+import { Database } from "../../../src/database.gen.ts";
 import { seedDatabase } from "server/problem-database/db-seed/index.ts";
 import { factory } from "server/factory.ts";
 import { auth } from "server/middlewares/auth.ts";
@@ -223,6 +224,118 @@ export const route = factory
       return c.json({
         status: "released",
         key,
+      });
+    },
+  )
+  .post(
+    "/save-user-problem",
+    auth(),
+    zValidator(
+      "json",
+      z.object({
+        problemId: z.string(),
+        answer: z.string(),
+        saveAsTemplate: z.boolean(),
+      }),
+    ),
+    async (c) => {
+      const { problemId, answer, saveAsTemplate } = c.req.valid("json");
+
+      const { data, error: userProblemsError } = await supabase
+        .from("user_problems")
+        .update({
+          answer: answer,
+        })
+        .eq("id", problemId)
+        .select("*, user_problem_tables(*)")
+        .single();
+
+      if (userProblemsError) {
+        throw new HTTPException(500, {
+          message: userProblemsError.message,
+        });
+      }
+
+      // Destructure the data to separate userProblem and userProblemTables
+      const { user_problem_tables, ...userProblem } = data;
+      // for userProblem we need to drop the problemId column
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { problem_id, user_id, id, ...templatePayload } = userProblem;
+      const userProblemTables = user_problem_tables;
+      if (saveAsTemplate) {
+        // Upsert into problems (templates table)
+        const { data: savedTemplate, error: savedTemplateError } =
+          await supabase
+            .from("problems")
+            // insert a new problem row from the user's problem payload
+            // use upsert on the "id" column if you want to overwrite an existing template
+            .upsert(templatePayload, {
+              onConflict: "id",
+            })
+            .select("id")
+            .single();
+
+        if (savedTemplateError) {
+          throw new HTTPException(500, {
+            message: savedTemplateError.message,
+          });
+        }
+
+        // Upsert into user_problem_tables
+        if (userProblemTables.length > 0) {
+          // Build templateTables while copying files to avoid a second pass
+          const templateTables: Database["public"]["Tables"]["problem_tables"]["Insert"][] =
+            [];
+
+          for (const table of userProblemTables) {
+            const path = table.data_path;
+            // expect path to be like "<bucket>/<objectPath>" (e.g. "userId/tableName/file.csv")
+            const parts = path.split("/");
+            const fileName = parts[parts.length - 1];
+
+            const templateTableDataPath = `${savedTemplate.id}/${fileName}`;
+
+            // Copy from source bucket/object to templates bucket under template id
+            // TODO: issue with destination path getting 404 not found
+            const { error: copyError } = await supabase.storage
+              .from("tables")
+              .copy(path, templateTableDataPath, {
+                destinationBucket: "templates",
+              });
+
+            if (copyError) {
+              throw new HTTPException(500, {
+                message: copyError.message,
+              });
+            }
+
+            // push directly into templateTables using the new path
+            templateTables.push({
+              table_name: table.table_name,
+              data_path: templateTableDataPath,
+              column_types: table.column_types,
+              number_of_rows: table.number_of_rows,
+              description: table.description,
+              relations: table.relations,
+              problem_id: savedTemplate.id,
+            });
+          }
+
+          const { error: templateProblemTableError } = await supabase
+            .from("problem_tables")
+            .upsert(templateTables, { onConflict: "id" });
+
+          if (templateProblemTableError) {
+            throw new HTTPException(500, {
+              message: templateProblemTableError.message,
+            });
+          }
+        }
+      }
+
+      return c.json({
+        userProblem,
+        userProblemTables,
       });
     },
   );

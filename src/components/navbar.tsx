@@ -99,14 +99,8 @@ export function Navbar({ close }: { close?: () => void }) {
               </Accordion.Control>
               <Accordion.Panel>
                 <CustomLink
-                  to="/admin/problemslibrary"
+                  to="/admin/problems"
                   leftSection={<IconBook className="size-5" />}
-                  label="Problems Library"
-                  onClick={close}
-                />
-                <CustomLink
-                  to="/admin/myproblems"
-                  leftSection={<IconFilePencil className="size-5" />}
                   label="My Problems"
                   onClick={close}
                 />

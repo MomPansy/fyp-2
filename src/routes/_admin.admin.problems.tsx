@@ -25,11 +25,11 @@ import {
   ProblemListFilters,
   ProblemListSorting,
   problemLibraryKeys,
-} from "@/components/problems-library/query-keys.ts";
+} from "@/components/my-problems/query-keys.ts";
 import {
   useUserProblemsQuery,
   fetchUserProblemsPage,
-} from "@/components/problems-library/hooks.ts";
+} from "@/components/my-problems/hooks.ts";
 import {
   userProblemDetailQueryOptions,
   useDeleteUserProblemMutation,
@@ -38,7 +38,7 @@ import { showErrorNotification } from "@/components/notifications.ts";
 import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 import { useUser } from "@/hooks/auth.ts";
 
-export const Route = createFileRoute("/_admin/admin/problemslibrary")({
+export const Route = createFileRoute("/_admin/admin/problems")({
   component: RouteComponent,
 });
 
