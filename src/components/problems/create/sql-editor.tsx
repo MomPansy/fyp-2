@@ -215,9 +215,8 @@ function ConfirmationModal({
         {saveAsTemplate && (
           <Alert color="yellow" title="Warning" icon={<IconInfoCircle />}>
             <Text size="sm">
-              Saving as template will not override your existing template. If
-              you want to edit your template problem, do it from the template
-              management page.
+              You cannot edit the problem template after publishing. Make sure
+              your design is final.
             </Text>
           </Alert>
         )}
@@ -231,7 +230,7 @@ function ConfirmationModal({
         <Checkbox
           checked={saveAsTemplate}
           onChange={(event) => setSaveAsTemplate(event.currentTarget.checked)}
-          label="Save as template"
+          label="Publish as template"
         />
         <Group>
           <Button variant="outline" onClick={handleClose}>

@@ -1,25 +1,22 @@
 import {
+  useMutation,
+  useQueryClient,
   useSuspenseQuery,
   UseSuspenseQueryOptions,
 } from "@tanstack/react-query";
+import { myProblemKeys } from "../my-problems/query-keys.ts";
 import {
-  myProblemKeys,
+  templateProblemKeys,
   ProblemListFilters,
   ProblemListSorting,
 } from "./query-keys.ts";
 import { Database } from "@/database.gen.ts";
 import { supabase } from "@/lib/supabase.ts";
+import { api } from "@/lib/api.ts";
 
-export type UserProblemRow =
-  Database["public"]["Tables"]["user_problems"]["Row"] & {
-    problems?: {
-      id: string;
-      name: string;
-    };
-  };
+export type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 
 export interface FetchProblemsArgs {
-  userId: string;
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
   pageIndex?: number;
@@ -27,13 +24,12 @@ export interface FetchProblemsArgs {
 }
 
 export interface ProblemsPage {
-  items: UserProblemRow[];
+  items: ProblemRow[];
   totalCount: number; // raw total rows matching filters
   totalPages: number; // total pages based on pageSize
 }
 
 export const fetchUserProblemsPage = async ({
-  userId,
   filters,
   sorting,
   pageIndex,
@@ -42,24 +38,23 @@ export const fetchUserProblemsPage = async ({
   const start = pageIndex ? pageIndex * pageSize : 0;
   const end = start + pageSize - 1;
 
-  let countQuery = supabase
-    .from("user_problems")
-    .select("id", {
-      count: "exact",
-      head: true,
-    })
-    .eq("user_id", userId);
+  let countQuery = supabase.from("problems").select("id", {
+    count: "exact",
+    head: true,
+  });
 
-  let dataQuery = supabase
-    .from("user_problems")
-    .select("*, problems(id,name)")
-    .eq("user_id", userId);
+  let dataQuery = supabase.from("problems").select("*");
 
   // apply search filter
   if (filters.search) {
     const term = `%${filters.search}%`;
     dataQuery = dataQuery.or(`name.ilike.${term},description.ilike.${term}`);
     countQuery = countQuery.or(`name.ilike.${term},description.ilike.${term}`);
+  }
+  if (filters.id) {
+    const term = filters.id;
+    dataQuery = dataQuery.or(`id.eq.${term}`);
+    countQuery = countQuery.or(`id.eq.${term}`);
   }
 
   // sort
@@ -87,24 +82,22 @@ export const fetchUserProblemsPage = async ({
   const totalPages = totalCount ? Math.ceil(totalCount / pageSize) : 0;
 
   return {
-    items: items as UserProblemRow[],
+    items: items as ProblemRow[],
     totalCount,
     totalPages,
   };
 };
 
 const userProblemsQueryOptions = ({
-  userId,
   filters,
   sorting,
   pageSize = 20,
   pageIndex = 0,
 }: FetchProblemsArgs): UseSuspenseQueryOptions<ProblemsPage> => {
   return {
-    queryKey: myProblemKeys.listParams(filters, sorting, pageIndex),
+    queryKey: templateProblemKeys.listParams(filters, sorting, pageIndex),
     queryFn: () =>
       fetchUserProblemsPage({
-        userId,
         filters,
         sorting,
         pageIndex,
@@ -114,7 +107,6 @@ const userProblemsQueryOptions = ({
 };
 
 export const useUserProblemsQuery = (
-  userId: string,
   filters: ProblemListFilters,
   sorting: ProblemListSorting,
   pageSize = 20,
@@ -129,11 +121,52 @@ export const useUserProblemsQuery = (
 
   return useSuspenseQuery(
     userProblemsQueryOptions({
-      userId,
       filters: normalizedFilters,
       sorting,
       pageSize,
       pageIndex,
     }),
   );
+};
+
+export const useFetchProblemDetails = (problemId: string) => {
+  return useSuspenseQuery({
+    queryKey: [templateProblemKeys.detail(problemId)],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("problems")
+        .select("name, description")
+        .eq("id", problemId)
+        .single();
+      return data;
+    },
+  });
+};
+
+export const useApplyTemplateMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      templateProblemId,
+    }: {
+      templateProblemId: string;
+    }) => {
+      const response = await api.problems["use-template"].$post({
+        json: {
+          templateProblemId,
+        },
+      });
+
+      if (!response.ok) {
+        const errorMessage = await response.text();
+        throw new Error(errorMessage || "Failed to apply template");
+      }
+
+      const data = await response.json();
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [myProblemKeys.all] });
+    },
+  });
 };

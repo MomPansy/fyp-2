@@ -338,4 +338,116 @@ export const route = factory
         userProblemTables,
       });
     },
+  )
+  .post(
+    "/use-template",
+    auth(),
+    zValidator(
+      "json",
+      z.object({
+        templateProblemId: z.string(),
+      }),
+    ),
+    async (c) => {
+      type UserProblemTableInsert =
+        Database["public"]["Tables"]["user_problem_tables"]["Insert"];
+
+      const { templateProblemId } = c.req.valid("json");
+      const jwt = c.get("jwtPayload");
+      const userId = jwt?.user_metadata.user_id;
+
+      if (!userId) {
+        throw new HTTPException(401, {
+          message: "Missing user context for using template",
+        });
+      }
+
+      // fetch problem details
+      const { data: templateProblemData, error: templateProblemError } =
+        await supabase
+          .from("problems")
+          .select("*, problem_tables(*)")
+          .eq("id", templateProblemId)
+          .single();
+
+      if (templateProblemError) {
+        throw new HTTPException(500, {
+          message: templateProblemError.message,
+        });
+      }
+
+      const { problem_tables: templateProblemTables, ...templateProblem } =
+        templateProblemData;
+
+      // insert into user_problems
+      const { data: userProblem, error: userProblemError } = await supabase
+        .from("user_problems")
+        .insert({
+          name: templateProblem.name,
+          problem_id: templateProblem.id,
+          description: templateProblem.description,
+          answer: templateProblem.answer,
+          user_id: userId,
+        })
+        .select("id")
+        .single();
+
+      if (userProblemError) {
+        throw new HTTPException(500, {
+          message: userProblemError.message,
+        });
+      }
+
+      const newDataPaths: string[] = [];
+
+      // copy storage data
+      for (const table of templateProblemTables) {
+        const path = table.data_path;
+        // expect path to be like "<bucket>/<objectPath>" (e.g. "userId/tableName/file.csv")
+        const parts = path.split("/");
+        const fileName = parts[parts.length - 1];
+        const userTableDataPath = `${userId}/${userProblem.id}/${fileName}`;
+        newDataPaths.push(userTableDataPath);
+        // Copy from source bucket/object to user bucket under user id and problem id
+        const { error: copyError } = await supabase.storage
+          .from("templates")
+          .copy(path, userTableDataPath, {
+            destinationBucket: "tables",
+          });
+
+        if (copyError) {
+          throw new HTTPException(500, {
+            message: copyError.message,
+          });
+        }
+      }
+
+      // insert into user_problem_tables
+      if (templateProblemTables.length > 0) {
+        const userProblemTables: UserProblemTableInsert[] =
+          templateProblemTables.map((table, index) => ({
+            user_problem_id: userProblem.id,
+            table_name: table.table_name,
+            data_path: newDataPaths[index],
+            column_types: table.column_types,
+            number_of_rows: table.number_of_rows,
+            description: table.description,
+            relations: table.relations,
+          }));
+
+        const { error: userProblemTableError } = await supabase
+          .from("user_problem_tables")
+          .insert(userProblemTables);
+
+        if (userProblemTableError) {
+          throw new HTTPException(500, {
+            message: userProblemTableError.message,
+          });
+        }
+      }
+
+      return c.json({
+        userProblemId: userProblem.id,
+      });
+    },
   );

@@ -11,46 +11,42 @@ import {
   Table,
   TextInput,
 } from "@mantine/core";
-import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
-import {
-  IconArrowsUpDown,
-  IconEdit,
-  IconFilter,
-  IconTrash,
-} from "@tabler/icons-react";
+import { useDebouncedValue } from "@mantine/hooks";
+import { IconArrowsUpDown, IconFilter } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Suspense, useState, useEffect, useCallback } from "react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Suspense, useState, useEffect } from "react";
+import z from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import {
   ProblemListFilters,
   ProblemListSorting,
-  myProblemKeys,
-} from "@/components/my-problems/query-keys.ts";
+  templateProblemKeys,
+} from "@/components/template-problems/query-keys.ts";
 import {
   useUserProblemsQuery,
   fetchUserProblemsPage,
-} from "@/components/my-problems/hooks.ts";
-import {
-  userProblemDetailQueryOptions,
-  useDeleteUserProblemMutation,
-} from "@/hooks/use-problem.ts";
-import { showErrorNotification } from "@/components/notifications.ts";
-import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
-import { useUser } from "@/hooks/auth.ts";
+  useFetchProblemDetails,
+  useApplyTemplateMutation,
+} from "@/components/template-problems/hooks.ts";
 import { dayjs } from "@/lib/dayjs.ts";
-import { CustomAnchor } from "@/components/buttons/link-button.tsx";
-import { generateUUID } from "@/components/my-problems/helper.ts";
+import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
+import { showErrorNotification } from "@/components/notifications.ts";
 
-export const Route = createFileRoute("/_admin/admin/problems")({
+const templateProblemSearchSchema = z.object({
+  id: z.string().optional(),
+});
+
+export const Route = createFileRoute("/_admin/admin/template-problems")({
   component: RouteComponent,
+  validateSearch: zodValidator(templateProblemSearchSchema),
 });
 
 function RouteComponent() {
   const [filters, setFilters] = useState<ProblemListFilters>({
     search: undefined,
   });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [sorting, setSorting] = useState<ProblemListSorting>({
+  const [sorting] = useState<ProblemListSorting>({
     sortOptions: [{ sortBy: "created_at", order: "desc" }],
   });
 
@@ -99,33 +95,23 @@ interface HeaderProps {
 }
 
 function Header({ filters, setFilters }: HeaderProps) {
-  const createProblemId = useCallback(() => generateUUID(), []);
-
   return (
-    <Group justify="space-between">
-      <Group>
-        <TextInput
-          placeholder="Search problems..."
-          value={filters.search ?? ""}
-          onChange={(e) =>
-            setFilters({ ...filters, search: e.currentTarget.value })
-          }
-          size="sm"
-          maw="20rem"
-        />
-        <ActionIcon variant="subtle">
-          <IconArrowsUpDown />
-        </ActionIcon>
-        <ActionIcon variant="subtle">
-          <IconFilter />
-        </ActionIcon>
-      </Group>
-      <CustomAnchor
-        to="/admin/problem/$id/details"
-        params={{ id: createProblemId() }}
-      >
-        <Button>New Problem</Button>
-      </CustomAnchor>
+    <Group>
+      <TextInput
+        placeholder="Search problems..."
+        value={filters.search ?? ""}
+        onChange={(e) =>
+          setFilters({ ...filters, search: e.currentTarget.value })
+        }
+        size="sm"
+        maw="20rem"
+      />
+      <ActionIcon variant="subtle">
+        <IconArrowsUpDown />
+      </ActionIcon>
+      <ActionIcon variant="subtle">
+        <IconFilter />
+      </ActionIcon>
     </Group>
   );
 }
@@ -145,8 +131,8 @@ function List({ filters, sorting }: ListProps) {
 }
 
 function ListContent({ filters, sorting }: ListProps) {
-  const { user_id: userId } = useUser();
-  const { mutate } = useDeleteUserProblemMutation();
+  const { id } = Route.useSearch();
+  const { mutate, isPending } = useApplyTemplateMutation();
   const pageSize = 20; //can be adjusted
   const [debouncedSearch] = useDebouncedValue(filters.search, 300);
   const debouncedFilters =
@@ -155,7 +141,6 @@ function ListContent({ filters, sorting }: ListProps) {
       : { ...filters, search: debouncedSearch };
   const [currentPage, setCurrentPage] = useState(1);
   const { data } = useUserProblemsQuery(
-    userId,
     debouncedFilters,
     sorting,
     pageSize,
@@ -166,29 +151,18 @@ function ListContent({ filters, sorting }: ListProps) {
 
   const queryClient = useQueryClient();
 
-  const [
-    deleteConfirmationModalOpened,
-    { open: openConfirmationModal, close: closeConfirmationModal },
-  ] = useDisclosure();
-
-  const [problemToDelete, setProblemToDelete] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-
   const handlePageHover = (page: number) => {
     // Only prefetch if it's not the current page
     if (page !== currentPage) {
       const pageIndex = page - 1; // Convert to 0-based index
       queryClient.prefetchQuery({
-        queryKey: myProblemKeys.listParams(
+        queryKey: templateProblemKeys.listParams(
           debouncedFilters,
           sorting,
           pageIndex,
         ),
         queryFn: () =>
           fetchUserProblemsPage({
-            userId,
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -214,14 +188,13 @@ function ListContent({ filters, sorting }: ListProps) {
     if (targetPage && targetPage !== currentPage) {
       const pageIndex = targetPage - 1; // Convert to 0-based index
       queryClient.prefetchQuery({
-        queryKey: myProblemKeys.listParams(
+        queryKey: templateProblemKeys.listParams(
           debouncedFilters,
           sorting,
           pageIndex,
         ),
         queryFn: () =>
           fetchUserProblemsPage({
-            userId,
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -234,49 +207,49 @@ function ListContent({ filters, sorting }: ListProps) {
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
     null,
   );
-  const deselectProblem = () => setSelectedProblemId(null);
 
-  const reset = () => {
-    deselectProblem();
-  };
-
-  const handleDeleteClick = (problem: { id: string; name: string }) => {
-    setProblemToDelete(problem);
-    openConfirmationModal();
-  };
-
-  const handleDeleteConfirm = () => {
-    if (problemToDelete) {
-      mutate(
-        {
-          problemId: problemToDelete.id,
-        },
-        {
-          onError: (error) => {
-            showErrorNotification({
-              title: "Failed to delete problem",
-              message: error.message,
-            });
-          },
-          onSuccess: () => {
-            reset();
-            closeConfirmationModal();
-            setProblemToDelete(null);
-          },
-        },
-      );
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    closeConfirmationModal();
-    setProblemToDelete(null);
+  const deselectProblem = () => {
+    setSelectedProblemId(null);
+    // If the problem was opened via URL, clear the ID from the search params
+    navigate({
+      to: Route.to, // ✅ use the file route helper, not "/admin/..."
+      search: (prev) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...rest } = prev; // Remove the id key entirely
+        return rest;
+      },
+      replace: true,
+    });
   };
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedFilters.search]);
+
+  // Auto-open preview modal when ID is provided in search and data is fetched
+  useEffect(() => {
+    if (id && items.length > 0) {
+      const exists = items.some((p) => p.id === id);
+      if (exists && selectedProblemId !== id) setSelectedProblemId(id);
+    } else if (!id && selectedProblemId) {
+      setSelectedProblemId(null);
+    }
+  }, [id, items, selectedProblemId]);
+
+  const handleUseTemplate = (problemId: string) => {
+    mutate(
+      { templateProblemId: problemId },
+      {
+        onSuccess: (data) => {
+          navigate({
+            to: "/admin/problem/$id/details",
+            params: { id: data.userProblemId },
+          });
+        },
+      },
+    );
+  };
 
   return (
     <>
@@ -286,7 +259,6 @@ function ListContent({ filters, sorting }: ListProps) {
             <Table.Tr>
               <Table.Th>Problem Name</Table.Th>
               {/* <Table.Th>Summary</Table.Th> */}
-              <Table.Th>Template</Table.Th>
               <Table.Th>Created At</Table.Th>
               <Table.Th>Action</Table.Th>
             </Table.Tr>
@@ -304,49 +276,20 @@ function ListContent({ filters, sorting }: ListProps) {
                 }}
               >
                 <Table.Td>{problem.name}</Table.Td>
-                <Table.Td>
-                  {problem.problems ? (
-                    <CustomAnchor
-                      to="/admin/template-problems"
-                      search={{ id: problem.problems.id }}
-                      size="sm"
-                    >
-                      <Button variant="light">{problem.problems.name}</Button>
-                    </CustomAnchor>
-                  ) : (
-                    "-"
-                  )}
-                </Table.Td>
                 {/* <Table.Td>Summary</Table.Td> */}
                 <Table.Td>
                   {dayjs(problem.created_at).format("DD/MM/YYYY")}
                 </Table.Td>
                 <Table.Td>
                   <Button
-                    leftSection={<IconEdit />}
                     onClick={(e) => {
                       e.preventDefault();
-                      navigate({
-                        to: "/admin/problem/$id/details",
-                        params: { id: problem.id },
-                      });
-                    }}
-                    variant="light"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    leftSection={<IconTrash />}
-                    color="red"
-                    ml={10}
-                    variant="light"
-                    onClick={(e) => {
                       e.stopPropagation();
-                      e.preventDefault();
-                      handleDeleteClick({ id: problem.id, name: problem.name });
+                      handleUseTemplate(problem.id);
                     }}
+                    loading={isPending}
                   >
-                    Delete
+                    Use Template
                   </Button>
                 </Table.Td>
               </Table.Tr>
@@ -379,51 +322,7 @@ function ListContent({ filters, sorting }: ListProps) {
           />
         </Suspense>
       )}
-      <DeleteConfirmationModal
-        isOpened={deleteConfirmationModalOpened}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        problemName={problemToDelete?.name}
-      />
     </>
-  );
-}
-
-function DeleteConfirmationModal({
-  isOpened,
-  onClose,
-  onConfirm,
-  problemName,
-}: {
-  isOpened: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  problemName?: string;
-}) {
-  return (
-    <Modal
-      opened={isOpened}
-      onClose={onClose}
-      title="Confirm Deletion"
-      centered
-    >
-      <Modal.Body p="0">
-        <Stack>
-          <p>
-            Are you sure you want to delete the problem &nbsp;
-            <strong>"{problemName}"</strong>? This action cannot be undone.
-          </p>
-          <Group justify="flex-end">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={onConfirm}>
-              Delete
-            </Button>
-          </Group>
-        </Stack>
-      </Modal.Body>
-    </Modal>
   );
 }
 
@@ -433,14 +332,9 @@ interface ProblemPreviewModalProps {
 }
 
 function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
-  const { user_id: userId } = useUser();
-  const { data: problem } = useSuspenseQuery(
-    userProblemDetailQueryOptions(problemId, userId, {
-      columns: ["name", "description"],
-    }),
-  );
+  const { data: templateProblem } = useFetchProblemDetails(problemId);
 
-  if (!problem) {
+  if (!templateProblem) {
     showErrorNotification({
       title: "Problem Not Found",
       message: "The requested problem does not exist.",
@@ -450,10 +344,15 @@ function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
   }
 
   return (
-    <Modal opened={true} onClose={onClose} size="auto" title={problem.name}>
+    <Modal
+      opened={true}
+      onClose={onClose}
+      size="auto"
+      title={templateProblem.name}
+    >
       <Modal.Body>
         <SimpleEditor
-          initialContent={problem.description}
+          initialContent={templateProblem.description}
           readonly
           styles={{
             editor: { maxWidth: "1400px", padding: 0 },

@@ -12,10 +12,11 @@ import {
   IconFilePencil,
   IconHome,
   IconLogout,
+  IconTemplate,
 } from "@tabler/icons-react";
 import { useNavigate, LinkComponent, createLink } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { forwardRef, useCallback } from "react";
+import { forwardRef } from "react";
 import { ColorScheme } from "components/color-scheme.tsx";
 import {
   showErrorNotification,
@@ -24,18 +25,6 @@ import {
 import { supabase } from "lib/supabase.ts";
 import { useAccessToken } from "hooks/auth.ts";
 
-// Browser-compatible UUID generation
-const generateUUID = () => {
-  if (typeof crypto !== "undefined") {
-    return crypto.randomUUID();
-  }
-  // Fallback for environments without crypto.randomUUID
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
 type MantineNavLinkProps = Omit<NavLinkProps, "href">;
 
 const MantineLinkComponent = forwardRef<HTMLAnchorElement, MantineNavLinkProps>(
@@ -58,7 +47,6 @@ export function Navbar({ close }: { close?: () => void }) {
   const { data } = useAccessToken();
 
   // Memoize UUID generation to avoid creating new links on each render
-  const createProblemId = useCallback(() => generateUUID(), []);
 
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -99,16 +87,15 @@ export function Navbar({ close }: { close?: () => void }) {
               </Accordion.Control>
               <Accordion.Panel>
                 <CustomLink
-                  to="/admin/problems"
-                  leftSection={<IconBook className="size-5" />}
-                  label="My Problems"
+                  to="/admin/template-problems"
+                  leftSection={<IconTemplate className="size-5" />}
+                  label="Template Problems"
                   onClick={close}
                 />
                 <CustomLink
-                  to="/admin/problem/$id/details"
-                  params={{ id: createProblemId() }}
-                  leftSection={<IconFilePencil className="size-5" />}
-                  label="Create Problem"
+                  to="/admin/problems"
+                  leftSection={<IconBook className="size-5" />}
+                  label="My Problems"
                   onClick={close}
                 />
               </Accordion.Panel>

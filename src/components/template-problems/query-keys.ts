@@ -1,4 +1,4 @@
-import { Database } from "database.gen";
+import { Database } from "database.gen.ts";
 
 export type SortOptions = Pick<
   Database["public"]["Tables"]["problems"]["Row"],
@@ -21,6 +21,7 @@ export interface ProblemListSorting {
 
 export interface ProblemListFilters extends Record<string, unknown> {
   search?: string;
+  id?: string;
 }
 
 // function accepts an object {a: 1, b: undefined, c: "", d: null, e: [], f: [1]} and
@@ -43,10 +44,10 @@ const normalizeFilters = <T extends Record<string, unknown>>(
   ) as Partial<T>;
 };
 
-export const myProblemKeys = {
-  all: [{ scope: "myProblem" }] as const,
+export const templateProblemKeys = {
+  all: [{ scope: "template-problems" }] as const,
 
-  lists: () => [{ ...myProblemKeys.all[0], entity: "list" }] as const,
+  lists: () => [{ ...templateProblemKeys.all[0], entity: "list" }] as const,
 
   listParams: (
     filters: ProblemListFilters,
@@ -55,7 +56,7 @@ export const myProblemKeys = {
   ) =>
     [
       {
-        ...myProblemKeys.lists()[0],
+        ...templateProblemKeys.lists()[0],
         kind: "params",
         filters: normalizeFilters(filters),
         sorting: sorting.sortOptions,
@@ -66,7 +67,7 @@ export const myProblemKeys = {
   infinite: (filters: ProblemListFilters, sorting: ProblemListSorting) =>
     [
       {
-        ...myProblemKeys.lists()[0],
+        ...templateProblemKeys.lists()[0],
         kind: "infinite",
         filters: normalizeFilters(filters),
         sorting: sorting.sortOptions,
@@ -77,7 +78,7 @@ export const myProblemKeys = {
   totalPages: (filters: ProblemListFilters, pageSize: number) =>
     [
       {
-        ...myProblemKeys.lists()[0],
+        ...templateProblemKeys.lists()[0],
         kind: "total-pages",
         filters: normalizeFilters(filters),
         pageSize,
@@ -88,7 +89,7 @@ export const myProblemKeys = {
   totalCount: (filters: ProblemListFilters) =>
     [
       {
-        ...myProblemKeys.lists()[0],
+        ...templateProblemKeys.lists()[0],
         kind: "total-count",
         filters: normalizeFilters(filters),
       },
@@ -102,12 +103,12 @@ export const myProblemKeys = {
   ) =>
     [
       {
-        ...myProblemKeys.infinite(filters, sorting)[0],
+        ...templateProblemKeys.infinite(filters, sorting)[0],
         page: pageCursor ?? "first",
       },
     ] as const,
 
   // Detail item key
   detail: (id: string) =>
-    [{ ...myProblemKeys.all[0], entity: "detail", id }] as const,
+    [{ ...templateProblemKeys.all[0], entity: "detail", id }] as const,
 };

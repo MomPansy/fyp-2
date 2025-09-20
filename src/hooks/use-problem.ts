@@ -17,7 +17,7 @@ import { Database } from "database.gen";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
 import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
-import { problemLibraryKeys } from "@/components/my-problems/query-keys.ts";
+import { myProblemKeys } from "@/components/my-problems/query-keys.ts";
 import { PROBLEM_EXECUTE_SQL_MUTATION_KEY } from "@/components/problems/create/mutation-key.ts";
 
 // Narrow type for convenience
@@ -145,7 +145,7 @@ export const useAutoSaveUserProblemName = () => {
       >(userProblemKeys.detail(variables.id), data);
 
       queryClient.invalidateQueries({
-        queryKey: problemLibraryKeys.all,
+        queryKey: myProblemKeys.all,
       });
     },
   });
@@ -200,7 +200,7 @@ export const useAutoSaveUserProblemContent = () => {
         Database["public"]["Tables"]["problems"]["Insert"]
       >(userProblemKeys.detail(variables.id), data);
       queryClient.invalidateQueries({
-        queryKey: problemLibraryKeys.all,
+        queryKey: myProblemKeys.all,
       });
     },
   });
@@ -496,7 +496,7 @@ export function useDeleteUserProblemMutation() {
       });
 
       queryClient.invalidateQueries({
-        queryKey: problemLibraryKeys.all,
+        queryKey: myProblemKeys.all,
       });
     },
   });
