@@ -18,11 +18,10 @@ export const userProblems = pgTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     answer: text("answer"),
-    created_at: timestamp("created_at", {
-      precision: 3,
-      withTimezone: true,
-    }).defaultNow(),
-    updated_at: timestamp("updated_at", { precision: 3, withTimezone: true })
+    createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
       .defaultNow()
       .$onUpdate(() => new Date()),
     archived_at: timestamp("archived_at", { precision: 3, withTimezone: true }),

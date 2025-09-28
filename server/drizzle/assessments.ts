@@ -8,10 +8,11 @@ export const assessments = pgTable("assessments", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
     .defaultNow()
-    .notNull()
     .$onUpdate(() => new Date()),
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
   duration: numeric("duration").notNull(),

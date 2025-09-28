@@ -12,10 +12,11 @@ export const submissionDetails = pgTable("submission_details", {
   assignmentProblemId: uuid("assignment_problem_id")
     .notNull()
     .references(() => assessmentProblems.id, { onDelete: "cascade" }),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
     .defaultNow()
-    .notNull()
     .$onUpdate(() => new Date()),
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
   candidateAnswer: text("candidate_answer").notNull(),

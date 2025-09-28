@@ -5,10 +5,11 @@ import { userProblems } from "./user_problems.ts";
 
 export const assessmentProblems = pgTable("assessment_problems", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull(),
   updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
     .defaultNow()
-    .notNull()
     .$onUpdate(() => new Date()),
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
   assessment: uuid("assessment_id")

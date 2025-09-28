@@ -1,0 +1,14 @@
+ALTER TABLE "assessment_problems" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "assessments" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "problem_tables" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "problems" ALTER COLUMN "created_at" SET DEFAULT now();
+ALTER TABLE "problems" ALTER COLUMN "created_at" SET NOT NULL;
+ALTER TABLE "problems" ALTER COLUMN "updated_at" SET DEFAULT now();
+ALTER TABLE "problems" ALTER COLUMN "updated_at" SET NOT NULL;
+ALTER TABLE "submission_details" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "submissions" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "user_problem_tables" ALTER COLUMN "created_at" SET DATA TYPE timestamp (3) with time zone;
+ALTER TABLE "user_problems" ALTER COLUMN "created_at" SET NOT NULL;
+ALTER TABLE "user_problems" ALTER COLUMN "updated_at" SET NOT NULL;
+ALTER TABLE "problem_tables" ADD COLUMN "updated_at" timestamp (3) with time zone DEFAULT now() NOT NULL;
+ALTER TABLE "user_problem_tables" ADD COLUMN "updated_at" timestamp (3) with time zone DEFAULT now() NOT NULL;
