@@ -7,7 +7,12 @@ import {
   ActionIcon,
   Tooltip,
 } from "@mantine/core";
-import { IconBook, IconLogout, IconTemplate } from "@tabler/icons-react";
+import {
+  IconBook,
+  IconFilePencil,
+  IconLogout,
+  IconTemplate,
+} from "@tabler/icons-react";
 import { useNavigate, LinkComponent, createLink } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { forwardRef } from "react";
@@ -74,6 +79,13 @@ export function Navbar() {
             <Tooltip label="My Problems" position="right" withArrow>
               <ActionIcon variant="subtle" c="black" size="xl">
                 <IconBook size={32} />
+              </ActionIcon>
+            </Tooltip>
+          </CustomAnchor>
+          <CustomAnchor to="/admin/assessments">
+            <Tooltip label="Assessments" position="right" withArrow>
+              <ActionIcon variant="subtle" c="black" size="xl">
+                <IconFilePencil size={32} />
               </ActionIcon>
             </Tooltip>
           </CustomAnchor>

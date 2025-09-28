@@ -1,4 +1,5 @@
-import { Database } from "database.gen";
+import { Database } from "database.gen.ts";
+import { normalizeFilters } from "@/lib/query-utils.ts";
 
 export type SortOptions = Pick<
   Database["public"]["Tables"]["problems"]["Row"],
@@ -29,19 +30,6 @@ export interface ProblemListFilters extends Record<string, unknown> {
 // then turns array of key-value pairs back into an object
 // result is {a: 1, f: [1]}
 // since result is a subset of input, we can type it as Partial<T>
-
-const normalizeFilters = <T extends Record<string, unknown>>(
-  f: T,
-): Partial<T> => {
-  return Object.fromEntries(
-    Object.entries(f).filter(([, v]) => {
-      if (v === undefined || v === null) return false;
-      if (typeof v === "string" && v.trim() === "") return false;
-      if (Array.isArray(v) && v.length === 0) return false;
-      return true;
-    }),
-  ) as Partial<T>;
-};
 
 export const myProblemKeys = {
   all: [{ scope: "myProblem" }] as const,

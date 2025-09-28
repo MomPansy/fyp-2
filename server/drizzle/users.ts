@@ -13,7 +13,7 @@ export const users = pgTable(
       .notNull()
       .$onUpdate(() => new Date()),
     archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
-    email: text("email"),
+    email: text("email").notNull(),
   },
   (table) => [index("users_auth_user_id_idx").on(table.authUserId)],
 );

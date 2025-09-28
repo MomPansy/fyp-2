@@ -1,0 +1,37 @@
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
+import { submissions } from "./submissions.ts";
+import { assessmentProblems } from "./assessment_problems.ts";
+import { citext } from "./_custom.ts";
+
+export const submissionDetails = pgTable("submission_details", {
+  id: uuid("id").primaryKey().notNull().defaultRandom(),
+  submissionId: uuid("submission_id")
+    .notNull()
+    .references(() => submissions.id, { onDelete: "cascade" }),
+  assignmentProblemId: uuid("assignment_problem_id")
+    .notNull()
+    .references(() => assessmentProblems.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true })
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+  archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
+  candidateAnswer: text("candidate_answer").notNull(),
+  grade: citext("grade").notNull().default("failed"),
+});
+
+export const submissionDetailsRelations = relations(
+  submissionDetails,
+  ({ one }) => ({
+    submission: one(submissions, {
+      fields: [submissionDetails.submissionId],
+      references: [submissions.id],
+    }),
+    assessmentProblem: one(assessmentProblems, {
+      fields: [submissionDetails.assignmentProblemId],
+      references: [assessmentProblems.id],
+    }),
+  }),
+);

@@ -17,8 +17,8 @@ import { Route as IndexRouteImport } from './routes/index.tsx';
 import { Route as StudentStudentDashboardRouteImport } from './routes/_student.student.dashboard.tsx';
 import { Route as AdminAdminTemplateProblemsRouteImport } from './routes/_admin.admin.template-problems.tsx';
 import { Route as AdminAdminProblemsRouteImport } from './routes/_admin.admin.problems.tsx';
-import { Route as AdminAdminMyproblemsRouteImport } from './routes/_admin.admin.myproblems.tsx';
 import { Route as AdminAdminDashboardRouteImport } from './routes/_admin.admin.dashboard.tsx';
+import { Route as AdminAdminAssessmentsRouteImport } from './routes/_admin.admin.assessments.tsx';
 import { Route as AdminAdminProblemIdDetailsRouteImport } from './routes/_admin.admin.problem.$id.details.tsx';
 import { Route as AdminAdminProblemIdDatabaseRouteImport } from './routes/_admin.admin.problem.$id.database.tsx';
 import { Route as AdminAdminProblemIdCreateRouteImport } from './routes/_admin.admin.problem.$id.create.tsx';
@@ -62,14 +62,14 @@ const AdminAdminProblemsRoute = AdminAdminProblemsRouteImport.update({
   path: '/admin/problems',
   getParentRoute: () => AdminRoute,
 } as any);
-const AdminAdminMyproblemsRoute = AdminAdminMyproblemsRouteImport.update({
-  id: '/admin/myproblems',
-  path: '/admin/myproblems',
-  getParentRoute: () => AdminRoute,
-} as any);
 const AdminAdminDashboardRoute = AdminAdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
+  getParentRoute: () => AdminRoute,
+} as any);
+const AdminAdminAssessmentsRoute = AdminAdminAssessmentsRouteImport.update({
+  id: '/admin/assessments',
+  path: '/admin/assessments',
   getParentRoute: () => AdminRoute,
 } as any);
 const AdminAdminProblemIdDetailsRoute =
@@ -95,8 +95,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/admin/myproblems': typeof AdminAdminMyproblemsRoute;
   '/admin/problems': typeof AdminAdminProblemsRoute;
   '/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
@@ -108,8 +108,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/admin/myproblems': typeof AdminAdminMyproblemsRoute;
   '/admin/problems': typeof AdminAdminProblemsRoute;
   '/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
@@ -124,8 +124,8 @@ export interface FileRoutesById {
   '/_student': typeof StudentRouteWithChildren;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/_admin/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute;
-  '/_admin/admin/myproblems': typeof AdminAdminMyproblemsRoute;
   '/_admin/admin/problems': typeof AdminAdminProblemsRoute;
   '/_admin/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/_student/student/dashboard': typeof StudentStudentDashboardRoute;
@@ -139,8 +139,8 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/admin/assessments'
     | '/admin/dashboard'
-    | '/admin/myproblems'
     | '/admin/problems'
     | '/admin/template-problems'
     | '/student/dashboard'
@@ -152,8 +152,8 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/admin/assessments'
     | '/admin/dashboard'
-    | '/admin/myproblems'
     | '/admin/problems'
     | '/admin/template-problems'
     | '/student/dashboard'
@@ -167,8 +167,8 @@ export interface FileRouteTypes {
     | '/_student'
     | '/login'
     | '/register'
+    | '/_admin/admin/assessments'
     | '/_admin/admin/dashboard'
-    | '/_admin/admin/myproblems'
     | '/_admin/admin/problems'
     | '/_admin/admin/template-problems'
     | '/_student/student/dashboard'
@@ -243,18 +243,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminProblemsRouteImport;
       parentRoute: typeof AdminRoute;
     };
-    '/_admin/admin/myproblems': {
-      id: '/_admin/admin/myproblems';
-      path: '/admin/myproblems';
-      fullPath: '/admin/myproblems';
-      preLoaderRoute: typeof AdminAdminMyproblemsRouteImport;
-      parentRoute: typeof AdminRoute;
-    };
     '/_admin/admin/dashboard': {
       id: '/_admin/admin/dashboard';
       path: '/admin/dashboard';
       fullPath: '/admin/dashboard';
       preLoaderRoute: typeof AdminAdminDashboardRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
+    '/_admin/admin/assessments': {
+      id: '/_admin/admin/assessments';
+      path: '/admin/assessments';
+      fullPath: '/admin/assessments';
+      preLoaderRoute: typeof AdminAdminAssessmentsRouteImport;
       parentRoute: typeof AdminRoute;
     };
     '/_admin/admin/problem/$id/details': {
@@ -282,8 +282,8 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAdminAssessmentsRoute: typeof AdminAdminAssessmentsRoute;
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute;
-  AdminAdminMyproblemsRoute: typeof AdminAdminMyproblemsRoute;
   AdminAdminProblemsRoute: typeof AdminAdminProblemsRoute;
   AdminAdminTemplateProblemsRoute: typeof AdminAdminTemplateProblemsRoute;
   AdminAdminProblemIdCreateRoute: typeof AdminAdminProblemIdCreateRoute;
@@ -292,8 +292,8 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminAssessmentsRoute: AdminAdminAssessmentsRoute,
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
-  AdminAdminMyproblemsRoute: AdminAdminMyproblemsRoute,
   AdminAdminProblemsRoute: AdminAdminProblemsRoute,
   AdminAdminTemplateProblemsRoute: AdminAdminTemplateProblemsRoute,
   AdminAdminProblemIdCreateRoute: AdminAdminProblemIdCreateRoute,

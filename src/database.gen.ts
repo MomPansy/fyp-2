@@ -34,6 +34,86 @@ export type Database = {
   }
   public: {
     Tables: {
+      assessment_problems: {
+        Row: {
+          archived_at: string | null
+          assessment_id: string
+          created_at: string
+          id: string
+          problem_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          assessment_id: string
+          created_at?: string
+          id?: string
+          problem_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          problem_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_problems_assessment_id_assessments_id_fk"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assessment_problems_problem_id_user_problems_id_fk"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "user_problems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assessments: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          duration: number
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          duration: number
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          duration?: number
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessments_user_id_users_id_fk"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       problem_tables: {
         Row: {
           column_types: Json | null
@@ -128,6 +208,99 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      submission_details: {
+        Row: {
+          archived_at: string | null
+          assignment_problem_id: string
+          candidate_answer: string
+          created_at: string
+          grade: string
+          id: string
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          assignment_problem_id: string
+          candidate_answer: string
+          created_at?: string
+          grade?: string
+          id?: string
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          assignment_problem_id?: string
+          candidate_answer?: string
+          created_at?: string
+          grade?: string
+          id?: string
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_details_assignment_problem_id_assessment_problems_id"
+            columns: ["assignment_problem_id"]
+            isOneToOne: false
+            referencedRelation: "assessment_problems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submission_details_submission_id_submissions_id_fk"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          archived_at: string | null
+          assessment_id: string
+          created_at: string
+          id: string
+          score: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          assessment_id: string
+          created_at?: string
+          id?: string
+          score: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          score?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_assessment_id_assessments_id_fk"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_user_id_users_id_fk"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_problem_tables: {
         Row: {
@@ -288,7 +461,7 @@ export type Database = {
           archived_at: string | null
           auth_user_id: string
           created_at: string
-          email: string | null
+          email: string
           id: string
           updated_at: string
         }
@@ -296,7 +469,7 @@ export type Database = {
           archived_at?: string | null
           auth_user_id: string
           created_at?: string
-          email?: string | null
+          email: string
           id?: string
           updated_at?: string
         }
@@ -304,7 +477,7 @@ export type Database = {
           archived_at?: string | null
           auth_user_id?: string
           created_at?: string
-          email?: string | null
+          email?: string
           id?: string
           updated_at?: string
         }

@@ -39,7 +39,7 @@ import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 import { useUser } from "@/hooks/auth.ts";
 import { dayjs } from "@/lib/dayjs.ts";
 import { CustomAnchor } from "@/components/buttons/link-button.tsx";
-import { generateUUID } from "@/components/my-problems/helper.ts";
+import { generateUUID } from "@/lib/utils.ts";
 
 export const Route = createFileRoute("/_admin/admin/problems")({
   component: RouteComponent,
