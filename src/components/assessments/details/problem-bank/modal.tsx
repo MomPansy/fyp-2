@@ -8,7 +8,10 @@ import {
   ProblemListSorting,
 } from "@/components/my-problems/query-keys.ts";
 
-export function ProblemBankModal({ close }: ProblemBankModalProps) {
+export function ProblemBankModal({
+  close,
+  existingProblemIds,
+}: ProblemBankModalProps) {
   const [filters, setFilters] = useState<ProblemListFilters>({});
   const [sorting] = useState<ProblemListSorting>({
     sortOptions: [{ sortBy: "created_at", order: "desc" }],
@@ -16,7 +19,7 @@ export function ProblemBankModal({ close }: ProblemBankModalProps) {
 
   return (
     <Modal opened onClose={close} title="Add Problem" size="80%">
-      <Modal.Body h="70vh">
+      <Modal.Body h="70vh" p={0}>
         <Group w="full" h="100%" align="flex-start">
           <ProblemBankFilters
             filters={filters}
@@ -24,7 +27,12 @@ export function ProblemBankModal({ close }: ProblemBankModalProps) {
             w="20rem"
             h="100%"
           />
-          <ProblemBankList filters={filters} sorting={sorting} flex={1} />
+          <ProblemBankList
+            filters={filters}
+            sorting={sorting}
+            existingProblemIds={existingProblemIds}
+            flex={1}
+          />
         </Group>
       </Modal.Body>
     </Modal>

@@ -22,6 +22,7 @@ export interface ProblemListSorting {
 
 export interface ProblemListFilters extends Record<string, unknown> {
   search?: string;
+  id?: string;
 }
 
 // function accepts an object {a: 1, b: undefined, c: "", d: null, e: [], f: [1]} and

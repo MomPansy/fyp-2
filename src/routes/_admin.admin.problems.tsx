@@ -21,6 +21,8 @@ import {
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import z from "zod";
+import { zodValidator } from "@tanstack/zod-adapter";
 import {
   ProblemListFilters,
   ProblemListSorting,
@@ -41,13 +43,21 @@ import { dayjs } from "@/lib/dayjs.ts";
 import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { generateUUID } from "@/lib/utils.ts";
 
+const problemSearchSchema = z.object({
+  id: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_admin/admin/problems")({
   component: RouteComponent,
+  validateSearch: zodValidator(problemSearchSchema),
 });
 
 function RouteComponent() {
+  const { id } = Route.useSearch();
+
   const [filters, setFilters] = useState<ProblemListFilters>({
     search: undefined,
+    id: id,
   });
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sorting, setSorting] = useState<ProblemListSorting>({
@@ -161,8 +171,10 @@ function ListContent({ filters, sorting }: ListProps) {
     pageSize,
     currentPage - 1,
   );
+
   const { items, totalPages } = data;
   const navigate = useNavigate();
+  const { id } = Route.useSearch();
 
   const queryClient = useQueryClient();
 
@@ -234,7 +246,19 @@ function ListContent({ filters, sorting }: ListProps) {
   const [selectedProblemId, setSelectedProblemId] = useState<string | null>(
     null,
   );
-  const deselectProblem = () => setSelectedProblemId(null);
+
+  const deselectProblem = () => {
+    setSelectedProblemId(null);
+    navigate({
+      to: Route.to, // ✅ use the file route helper, not "/admin/..."
+      search: (prev) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...rest } = prev; // Remove the id key entirely
+        return rest;
+      },
+      replace: true,
+    });
+  };
 
   const reset = () => {
     deselectProblem();
@@ -371,14 +395,18 @@ function ListContent({ filters, sorting }: ListProps) {
           </Table.Caption>
         </Table>
       </Paper>
-      {selectedProblemId && (
-        <Suspense fallback={<LoadingOverlay />}>
-          <ProblemPreviewModal
-            onClose={deselectProblem}
-            problemId={selectedProblemId}
-          />
-        </Suspense>
-      )}
+      {(() => {
+        const problemId = selectedProblemId ?? id;
+        if (!problemId) return null;
+        return (
+          <Suspense fallback={<LoadingOverlay />}>
+            <ProblemPreviewModal
+              onClose={deselectProblem}
+              problemId={problemId}
+            />
+          </Suspense>
+        );
+      })()}
       <DeleteConfirmationModal
         isOpened={deleteConfirmationModalOpened}
         onClose={handleDeleteCancel}

@@ -12,12 +12,13 @@ import {
   Divider,
 } from "@mantine/core";
 import { useCallback, useState } from "react";
-import { useDebouncedValue, useFocusWithin } from "@mantine/hooks";
-import { IconFilter } from "@tabler/icons-react";
 import {
-  AssessmentFilterField,
-  AssessmentListFilters,
-} from "@/components/assessments/query-keys.ts";
+  useDebouncedValue,
+  useFocusWithin,
+  useDebouncedCallback,
+} from "@mantine/hooks";
+import { IconFilter } from "@tabler/icons-react";
+import { AssessmentListFilters } from "@/components/assessments/query-keys.ts";
 import { useFetchUsers } from "@/components/assessments/hooks.ts";
 
 interface FiltersProps extends PaperProps {
@@ -31,15 +32,20 @@ interface UserFilterProps {
 }
 
 export function Filters({ filters, setFilters, ...props }: FiltersProps) {
-  const handleFilterChange = useCallback(
-    (field: AssessmentFilterField, value: string) => {
-      setFilters({
-        ...filters,
-        [field]: value,
-      });
+  const [searchValue, setSearchValue] = useState<string | undefined>(undefined);
+
+  const debouncedSetFilters = useDebouncedCallback(
+    (value: string | undefined) => {
+      setFilters({ ...filters, name: value });
     },
-    [filters, setFilters],
+    200,
   );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.currentTarget.value;
+    setSearchValue(value);
+    debouncedSetFilters(value);
+  };
 
   return (
     <Paper withBorder p="md" h="100%" {...props}>
@@ -52,8 +58,8 @@ export function Filters({ filters, setFilters, ...props }: FiltersProps) {
         <TextInput
           label="Search assessment"
           placeholder="Search for an assessment"
-          value={filters.name ?? ""}
-          onChange={(e) => handleFilterChange("name", e.currentTarget.value)}
+          value={searchValue}
+          onChange={handleSearchChange}
         />
         <UserFilter filters={filters} setFilters={setFilters} />
       </Stack>

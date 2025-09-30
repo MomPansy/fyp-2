@@ -12,8 +12,9 @@ import {
   Paper,
   ScrollArea,
   Checkbox,
+  ActionIcon,
 } from "@mantine/core";
-import { IconClock } from "@tabler/icons-react";
+import { IconClock, IconEdit } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useCallback, useState } from "react";
 import { dayjs } from "@/lib/dayjs.ts";
@@ -144,6 +145,7 @@ function AssessmentPage() {
                     <Table.Th>Not Attempted</Table.Th>
                     <Table.Th>Completed</Table.Th>
                     <Table.Th>To Evaluate</Table.Th>
+                    <Table.Th>Action</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Caption>
@@ -185,7 +187,16 @@ function AssessmentPage() {
                               : undefined
                           }
                           style={{ cursor: "pointer" }}
-                          onClick={() => handleClick(assessment.id)}
+                          onClick={() => {
+                            // Toggle checkbox selection
+                            setSelectedRows((prevSelectedRows) =>
+                              prevSelectedRows.includes(assessment.id)
+                                ? prevSelectedRows.filter(
+                                  (id) => id !== assessment.id,
+                                )
+                                : [...prevSelectedRows, assessment.id],
+                            );
+                          }}
                         >
                           <Table.Td>
                             <Checkbox
@@ -200,6 +211,10 @@ function AssessmentPage() {
                                     ),
                                 )
                               }
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
                             />
                           </Table.Td>
                           <Table.Td style={{ minWidth: "400px" }}>
@@ -247,6 +262,19 @@ function AssessmentPage() {
                             <Text size="sm" c="dimmed">
                               TODO
                             </Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <ActionIcon
+                              variant="subtle"
+                              size="lg"
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleClick(assessment.id);
+                              }}
+                            >
+                              <IconEdit />
+                            </ActionIcon>
                           </Table.Td>
                         </Table.Tr>
                       ))

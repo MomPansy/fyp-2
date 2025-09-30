@@ -17,14 +17,16 @@ import { supabase } from "@/lib/supabase.ts";
 type Assessment = Database["public"]["Tables"]["assessments"]["Row"];
 type UserProblem = Database["public"]["Tables"]["user_problems"]["Row"];
 
+export interface AssessmentProblem {
+  user_problems: {
+    id: UserProblem["id"];
+    name: UserProblem["name"];
+    description: UserProblem["description"];
+  };
+}
+
 interface AssessmentPageItem extends Assessment {
-  assessment_problems: {
-    user_problems: {
-      id: UserProblem["id"];
-      name: UserProblem["name"];
-      description: UserProblem["description"];
-    };
-  }[];
+  assessment_problems: AssessmentProblem[];
 }
 
 export interface AssessmentPage {
@@ -199,4 +201,36 @@ export const fetchAssessmentQueryOptions = (id: string) => {
 
 export const useFetchAssessmentById = (id: string) => {
   return useSuspenseQuery(fetchAssessmentQueryOptions(id));
+};
+
+interface AddAssessmentProblemMutationProps {
+  assessment: string;
+  problems: string[];
+}
+
+export const useAddAssessmentProblemMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      assessment,
+      problems,
+    }: AddAssessmentProblemMutationProps) => {
+      const { data, error } = await supabase
+        .from("assessment_problems")
+        .upsert(
+          problems.map((problem) => ({
+            assessment_id: assessment,
+            problem_id: problem,
+          })),
+        )
+        .select("assessment_id");
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
 };

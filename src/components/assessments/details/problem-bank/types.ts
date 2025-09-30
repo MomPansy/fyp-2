@@ -7,6 +7,7 @@ import {
 export interface ProblemBankListProps extends PaperProps {
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
+  existingProblemIds?: string[];
 }
 
 export interface ProblemBankFiltersProps extends PaperProps {
@@ -16,4 +17,5 @@ export interface ProblemBankFiltersProps extends PaperProps {
 
 export interface ProblemBankModalProps {
   close: () => void;
+  existingProblemIds?: string[];
 }

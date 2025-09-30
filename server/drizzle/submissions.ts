@@ -1,13 +1,9 @@
 import { pgTable, timestamp, uuid, numeric } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { users } from "./users.ts";
-import { assessments } from "./assessments.ts";
+import { studentAssessments } from "./student_assessments.ts";
 
 export const submissions = pgTable("submissions", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -16,18 +12,14 @@ export const submissions = pgTable("submissions", {
     .$onUpdate(() => new Date()),
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
   score: numeric("score").notNull(),
-  assessment: uuid("assessment_id")
+  studentAssessment: uuid("student_assessment_id")
     .notNull()
-    .references(() => assessments.id, { onDelete: "cascade" }),
+    .references(() => studentAssessments.id, { onDelete: "cascade" }),
 });
 
 export const submissionsRelations = relations(submissions, ({ one }) => ({
-  user: one(users, {
-    fields: [submissions.userId],
-    references: [users.id],
-  }),
-  assessment: one(assessments, {
-    fields: [submissions.assessment],
-    references: [assessments.id],
+  studentAssessment: one(studentAssessments, {
+    fields: [submissions.studentAssessment],
+    references: [studentAssessments.id],
   }),
 }));

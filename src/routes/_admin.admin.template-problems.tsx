@@ -313,7 +313,7 @@ function ListContent({ filters, sorting }: ListProps) {
 
         return (
           <Suspense fallback={<LoadingOverlay />}>
-            <ProblemPreviewModal
+            <TemplateProblemPreviewModal
               onClose={deselectProblem}
               problemId={problemId}
             />
@@ -324,12 +324,15 @@ function ListContent({ filters, sorting }: ListProps) {
   );
 }
 
-interface ProblemPreviewModalProps {
+interface TemplateProblemPreviewModalProps {
   problemId: string;
   onClose: () => void;
 }
 
-function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
+function TemplateProblemPreviewModal({
+  onClose,
+  problemId,
+}: TemplateProblemPreviewModalProps) {
   const { data: templateProblem } = useFetchTemplateProblemDetails(problemId);
 
   if (!templateProblem) {
