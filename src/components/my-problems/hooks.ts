@@ -1,4 +1,5 @@
 import {
+  useInfiniteQuery,
   useSuspenseQuery,
   UseSuspenseQueryOptions,
 } from "@tanstack/react-query";
@@ -23,6 +24,13 @@ export interface FetchProblemsArgs {
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
   pageIndex?: number;
+  pageSize: number;
+}
+
+export interface FetchProblemsInfiniteArgs {
+  userId: string;
+  filters: ProblemListFilters;
+  sorting: ProblemListSorting;
   pageSize: number;
 }
 
@@ -136,4 +144,95 @@ export const useUserProblemsQuery = (
       pageIndex,
     }),
   );
+};
+
+export const useUserProblemsInfinite = ({
+  userId,
+  filters,
+  sorting,
+  pageSize,
+}: FetchProblemsInfiniteArgs) => {
+  // Normalize filters similar to the regular query
+  const normalizedFilters = {
+    ...filters,
+    search: filters.search?.trim() ? filters.search.trim() : undefined,
+  };
+
+  return useInfiniteQuery({
+    queryKey: myProblemKeys.infinite(normalizedFilters, sorting),
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
+      const pageIndex = pageParam;
+
+      // Build queries similar to fetchUserProblemsPage but extracted
+      let countQuery = supabase
+        .from("user_problems")
+        .select("id", {
+          count: "exact",
+          head: true,
+        })
+        .eq("user_id", userId);
+
+      let dataQuery = supabase
+        .from("user_problems")
+        .select("*, problems(id,name)")
+        .eq("user_id", userId);
+
+      // Apply search filter
+      if (normalizedFilters.search) {
+        const term = `%${normalizedFilters.search}%`;
+        dataQuery = dataQuery.or(
+          `name.ilike.${term},description.ilike.${term}`,
+        );
+        countQuery = countQuery.or(
+          `name.ilike.${term},description.ilike.${term}`,
+        );
+      }
+
+      // Apply sorting
+      if (sorting.sortOptions.length > 0) {
+        for (const sortOption of sorting.sortOptions) {
+          dataQuery = dataQuery.order(sortOption.sortBy, {
+            ascending: sortOption.order === "asc",
+          });
+        }
+      } else {
+        // fallback stable order to prevent paging drift
+        dataQuery = dataQuery
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false });
+      }
+
+      // range is 0-based and inclusive
+      const from = pageIndex * pageSize;
+      const to = from + pageSize - 1;
+
+      const pagedDataQuery = dataQuery.range(from, to);
+
+      // Only do the COUNT on the first page to avoid extra work
+      if (pageIndex === 0) {
+        const [{ count, error: countErr }, { data, error }] = await Promise.all(
+          [countQuery, pagedDataQuery],
+        );
+        if (countErr) throw new Error(countErr.message);
+        if (error) throw new Error(error.message);
+
+        const totalCount = count ?? 0;
+        const totalPages = Math.ceil(totalCount / pageSize);
+
+        return {
+          items: data as UserProblemRow[],
+          totalCount,
+          totalPages,
+        };
+      }
+
+      const { data, error } = await pagedDataQuery;
+      if (error) throw new Error(error.message);
+
+      return { items: data as UserProblemRow[] };
+    },
+    getNextPageParam: (lastPage, _allPages, lastPageParam) =>
+      lastPage.items.length < pageSize ? undefined : lastPageParam + 1,
+  });
 };

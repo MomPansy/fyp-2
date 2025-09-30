@@ -16,25 +16,25 @@ import { api } from "@/lib/api.ts";
 
 export type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
 
-export interface FetchProblemsArgs {
+export interface FetchTemplateProblemsArgs {
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
   pageIndex?: number;
   pageSize: number;
 }
 
-export interface ProblemsPage {
+export interface TemplateProblemsPage {
   items: ProblemRow[];
   totalCount: number; // raw total rows matching filters
   totalPages: number; // total pages based on pageSize
 }
 
-export const fetchUserProblemsPage = async ({
+export const fetchTemplateProblemsPage = async ({
   filters,
   sorting,
   pageIndex,
   pageSize,
-}: FetchProblemsArgs): Promise<ProblemsPage> => {
+}: FetchTemplateProblemsArgs): Promise<TemplateProblemsPage> => {
   const start = pageIndex ? pageIndex * pageSize : 0;
   const end = start + pageSize - 1;
 
@@ -88,16 +88,16 @@ export const fetchUserProblemsPage = async ({
   };
 };
 
-const userProblemsQueryOptions = ({
+const templateProblemsQueryOptions = ({
   filters,
   sorting,
   pageSize = 20,
   pageIndex = 0,
-}: FetchProblemsArgs): UseSuspenseQueryOptions<ProblemsPage> => {
+}: FetchTemplateProblemsArgs): UseSuspenseQueryOptions<TemplateProblemsPage> => {
   return {
     queryKey: templateProblemKeys.listParams(filters, sorting, pageIndex),
     queryFn: () =>
-      fetchUserProblemsPage({
+      fetchTemplateProblemsPage({
         filters,
         sorting,
         pageIndex,
@@ -106,7 +106,7 @@ const userProblemsQueryOptions = ({
   };
 };
 
-export const useUserProblemsQuery = (
+export const useTemplateProblemsQuery = (
   filters: ProblemListFilters,
   sorting: ProblemListSorting,
   pageSize = 20,
@@ -120,7 +120,7 @@ export const useUserProblemsQuery = (
   };
 
   return useSuspenseQuery(
-    userProblemsQueryOptions({
+    templateProblemsQueryOptions({
       filters: normalizedFilters,
       sorting,
       pageSize,
@@ -129,7 +129,7 @@ export const useUserProblemsQuery = (
   );
 };
 
-export const useFetchProblemDetails = (problemId: string) => {
+export const useFetchTemplateProblemDetails = (problemId: string) => {
   return useSuspenseQuery({
     queryKey: [templateProblemKeys.detail(problemId)],
     queryFn: async () => {

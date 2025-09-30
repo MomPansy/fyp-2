@@ -24,9 +24,9 @@ import {
   templateProblemKeys,
 } from "@/components/template-problems/query-keys.ts";
 import {
-  useUserProblemsQuery,
-  fetchUserProblemsPage,
-  useFetchProblemDetails,
+  useTemplateProblemsQuery,
+  fetchTemplateProblemsPage,
+  useFetchTemplateProblemDetails,
   useApplyTemplateMutation,
 } from "@/components/template-problems/hooks.ts";
 import { dayjs } from "@/lib/dayjs.ts";
@@ -43,9 +43,12 @@ export const Route = createFileRoute("/_admin/admin/template-problems")({
 });
 
 function RouteComponent() {
+  const { id } = Route.useSearch();
   const [filters, setFilters] = useState<ProblemListFilters>({
     search: undefined,
+    id: id,
   });
+
   const [sorting] = useState<ProblemListSorting>({
     sortOptions: [{ sortBy: "created_at", order: "desc" }],
   });
@@ -140,7 +143,7 @@ function ListContent({ filters, sorting }: ListProps) {
       ? filters
       : { ...filters, search: debouncedSearch };
   const [currentPage, setCurrentPage] = useState(1);
-  const { data } = useUserProblemsQuery(
+  const { data } = useTemplateProblemsQuery(
     debouncedFilters,
     sorting,
     pageSize,
@@ -162,7 +165,7 @@ function ListContent({ filters, sorting }: ListProps) {
           pageIndex,
         ),
         queryFn: () =>
-          fetchUserProblemsPage({
+          fetchTemplateProblemsPage({
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -194,7 +197,7 @@ function ListContent({ filters, sorting }: ListProps) {
           pageIndex,
         ),
         queryFn: () =>
-          fetchUserProblemsPage({
+          fetchTemplateProblemsPage({
             filters: debouncedFilters,
             sorting,
             pageIndex,
@@ -226,16 +229,6 @@ function ListContent({ filters, sorting }: ListProps) {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedFilters.search]);
-
-  // Auto-open preview modal when ID is provided in search and data is fetched
-  useEffect(() => {
-    if (id && items.length > 0) {
-      const exists = items.some((p) => p.id === id);
-      if (exists && selectedProblemId !== id) setSelectedProblemId(id);
-    } else if (!id && selectedProblemId) {
-      setSelectedProblemId(null);
-    }
-  }, [id, items, selectedProblemId]);
 
   const handleUseTemplate = (problemId: string) => {
     mutate(
@@ -314,14 +307,19 @@ function ListContent({ filters, sorting }: ListProps) {
           </Table.Caption>
         </Table>
       </Paper>
-      {selectedProblemId && (
-        <Suspense fallback={<LoadingOverlay />}>
-          <ProblemPreviewModal
-            onClose={deselectProblem}
-            problemId={selectedProblemId}
-          />
-        </Suspense>
-      )}
+      {(() => {
+        const problemId = selectedProblemId ?? id;
+        if (!problemId) return null;
+
+        return (
+          <Suspense fallback={<LoadingOverlay />}>
+            <ProblemPreviewModal
+              onClose={deselectProblem}
+              problemId={problemId}
+            />
+          </Suspense>
+        );
+      })()}
     </>
   );
 }
@@ -332,7 +330,7 @@ interface ProblemPreviewModalProps {
 }
 
 function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
-  const { data: templateProblem } = useFetchProblemDetails(problemId);
+  const { data: templateProblem } = useFetchTemplateProblemDetails(problemId);
 
   if (!templateProblem) {
     showErrorNotification({

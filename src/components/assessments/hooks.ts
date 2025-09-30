@@ -1,4 +1,11 @@
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  useSuspenseQuery,
+} from "@tanstack/react-query";
 import {
   AssessmentListFilters,
   AssessmentListSorting,
@@ -78,7 +85,7 @@ export const useFetchAssessmentsInfinite = ({
   pageSize,
 }: FetchAssessmentArgs) => {
   return useInfiniteQuery({
-    queryKey: [assessmentKeys.infinite(filters, sorting, pageSize)],
+    queryKey: assessmentKeys.infinite(filters, sorting, pageSize),
     initialPageParam: 0,
     queryFn: async ({ pageParam }: { pageParam: number }) => {
       const pageIndex = pageParam;
@@ -146,4 +153,50 @@ export const useFetchUsers = <TData = UserSelectData[]>(
     },
     select,
   });
+};
+
+export type CreateAssessmentMutationProps =
+  Database["public"]["Tables"]["assessments"]["Insert"];
+
+export const useCreateAssessmentMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (newAssessment: CreateAssessmentMutationProps) => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .insert(newAssessment)
+        .select("id")
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
+
+export const fetchAssessmentQueryOptions = (id: string) => {
+  return queryOptions({
+    queryKey: assessmentKeys.byAssesmentId(id),
+    queryFn: async (): Promise<AssessmentPageItem | null> => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .select("*, assessment_problems(user_problems(id, name, description))")
+        .eq("id", id)
+        .single();
+
+      // Handle PGRST116 error (no rows found) gracefully
+      if (error && error.code === "PGRST116") return null;
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+};
+
+export const useFetchAssessmentById = (id: string) => {
+  return useSuspenseQuery(fetchAssessmentQueryOptions(id));
 };

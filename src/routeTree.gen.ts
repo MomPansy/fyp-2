@@ -22,6 +22,7 @@ import { Route as AdminAdminAssessmentsRouteImport } from './routes/_admin.admin
 import { Route as AdminAdminProblemIdDetailsRouteImport } from './routes/_admin.admin.problem.$id.details.tsx';
 import { Route as AdminAdminProblemIdDatabaseRouteImport } from './routes/_admin.admin.problem.$id.database.tsx';
 import { Route as AdminAdminProblemIdCreateRouteImport } from './routes/_admin.admin.problem.$id.create.tsx';
+import { Route as AdminAdminAssessmentIdDetailsRouteImport } from './routes/_admin.admin.assessment.$id.details.tsx';
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -90,6 +91,12 @@ const AdminAdminProblemIdCreateRoute =
     path: '/admin/problem/$id/create',
     getParentRoute: () => AdminRoute,
   } as any);
+const AdminAdminAssessmentIdDetailsRoute =
+  AdminAdminAssessmentIdDetailsRouteImport.update({
+    id: '/admin/assessment/$id/details',
+    path: '/admin/assessment/$id/details',
+    getParentRoute: () => AdminRoute,
+  } as any);
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/admin/problems': typeof AdminAdminProblemsRoute;
   '/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/assessment/$id/details': typeof AdminAdminAssessmentIdDetailsRoute;
   '/admin/problem/$id/create': typeof AdminAdminProblemIdCreateRoute;
   '/admin/problem/$id/database': typeof AdminAdminProblemIdDatabaseRoute;
   '/admin/problem/$id/details': typeof AdminAdminProblemIdDetailsRoute;
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/admin/problems': typeof AdminAdminProblemsRoute;
   '/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/admin/assessment/$id/details': typeof AdminAdminAssessmentIdDetailsRoute;
   '/admin/problem/$id/create': typeof AdminAdminProblemIdCreateRoute;
   '/admin/problem/$id/database': typeof AdminAdminProblemIdDatabaseRoute;
   '/admin/problem/$id/details': typeof AdminAdminProblemIdDetailsRoute;
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_admin/admin/problems': typeof AdminAdminProblemsRoute;
   '/_admin/admin/template-problems': typeof AdminAdminTemplateProblemsRoute;
   '/_student/student/dashboard': typeof StudentStudentDashboardRoute;
+  '/_admin/admin/assessment/$id/details': typeof AdminAdminAssessmentIdDetailsRoute;
   '/_admin/admin/problem/$id/create': typeof AdminAdminProblemIdCreateRoute;
   '/_admin/admin/problem/$id/database': typeof AdminAdminProblemIdDatabaseRoute;
   '/_admin/admin/problem/$id/details': typeof AdminAdminProblemIdDetailsRoute;
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/admin/problems'
     | '/admin/template-problems'
     | '/student/dashboard'
+    | '/admin/assessment/$id/details'
     | '/admin/problem/$id/create'
     | '/admin/problem/$id/database'
     | '/admin/problem/$id/details';
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/admin/problems'
     | '/admin/template-problems'
     | '/student/dashboard'
+    | '/admin/assessment/$id/details'
     | '/admin/problem/$id/create'
     | '/admin/problem/$id/database'
     | '/admin/problem/$id/details';
@@ -172,6 +184,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/problems'
     | '/_admin/admin/template-problems'
     | '/_student/student/dashboard'
+    | '/_admin/admin/assessment/$id/details'
     | '/_admin/admin/problem/$id/create'
     | '/_admin/admin/problem/$id/database'
     | '/_admin/admin/problem/$id/details';
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminProblemIdCreateRouteImport;
       parentRoute: typeof AdminRoute;
     };
+    '/_admin/admin/assessment/$id/details': {
+      id: '/_admin/admin/assessment/$id/details';
+      path: '/admin/assessment/$id/details';
+      fullPath: '/admin/assessment/$id/details';
+      preLoaderRoute: typeof AdminAdminAssessmentIdDetailsRouteImport;
+      parentRoute: typeof AdminRoute;
+    };
   }
 }
 
@@ -286,6 +306,7 @@ interface AdminRouteChildren {
   AdminAdminDashboardRoute: typeof AdminAdminDashboardRoute;
   AdminAdminProblemsRoute: typeof AdminAdminProblemsRoute;
   AdminAdminTemplateProblemsRoute: typeof AdminAdminTemplateProblemsRoute;
+  AdminAdminAssessmentIdDetailsRoute: typeof AdminAdminAssessmentIdDetailsRoute;
   AdminAdminProblemIdCreateRoute: typeof AdminAdminProblemIdCreateRoute;
   AdminAdminProblemIdDatabaseRoute: typeof AdminAdminProblemIdDatabaseRoute;
   AdminAdminProblemIdDetailsRoute: typeof AdminAdminProblemIdDetailsRoute;
@@ -296,6 +317,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminDashboardRoute: AdminAdminDashboardRoute,
   AdminAdminProblemsRoute: AdminAdminProblemsRoute,
   AdminAdminTemplateProblemsRoute: AdminAdminTemplateProblemsRoute,
+  AdminAdminAssessmentIdDetailsRoute: AdminAdminAssessmentIdDetailsRoute,
   AdminAdminProblemIdCreateRoute: AdminAdminProblemIdCreateRoute,
   AdminAdminProblemIdDatabaseRoute: AdminAdminProblemIdDatabaseRoute,
   AdminAdminProblemIdDetailsRoute: AdminAdminProblemIdDetailsRoute,
