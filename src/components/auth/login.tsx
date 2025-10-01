@@ -5,12 +5,16 @@ import {
   TextInput,
   Title,
   Container,
+  PinInput,
+  Stack,
+  LoadingOverlay,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { z } from "zod";
 import { zodResolver } from "mantine-form-zod-resolver";
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import classes from "./login.module.css";
 import { supabase } from "lib/supabase.ts";
 import { showError } from "utils/notifications.tsx";
@@ -20,6 +24,7 @@ const redirectUrl = import.meta.env.DEV
   : (import.meta.env.VITE_APP_URL as string);
 
 export function Login() {
+  const navigate = useNavigate({ from: "/login" });
   const magicLinkForm = useForm({
     mode: "uncontrolled",
     initialValues: {
@@ -28,14 +33,19 @@ export function Login() {
     validate: zodResolver(z.object({ email: z.string().email() })),
   });
 
-  const magicLinkMutation = useMutation({
-    mutationKey: ["auth", "signin", "magic-link"],
+  const verifyOtpForm = useForm({
+    mode: "uncontrolled",
+    initialValues: {
+      token: "",
+    },
+    validate: zodResolver(z.object({ token: z.string().min(6).max(6) })),
+  });
+
+  const sendOtpMutation = useMutation({
+    mutationKey: ["auth", "signin", "otp"],
     mutationFn: async (values: typeof magicLinkForm.values) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         email: values.email,
-        options: {
-          emailRedirectTo: redirectUrl,
-        },
       });
       if (error) {
         throw error;
@@ -43,10 +53,9 @@ export function Login() {
       return data;
     },
     onSuccess: () => {
-      magicLinkForm.reset();
       notifications.show({
         title: "Check your email",
-        message: "We sent you a login link. Check your email inbox.",
+        message: "We sent you a one time OTP. Check your email inbox.",
         color: "green",
       });
     },
@@ -55,12 +64,37 @@ export function Login() {
     },
   });
 
-  const { isPending } = magicLinkMutation;
+  const verifyOtp = useMutation({
+    mutationKey: ["auth", "verify", "otp"],
+    mutationFn: async (values: typeof verifyOtpForm.values) => {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: magicLinkForm.values.email,
+        token: values.token,
+        type: "magiclink",
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+      if (error) {
+        throw error;
+      }
+      return data;
+    },
+    onSuccess: () => {
+      navigate({ to: "/" });
+    },
+    onError: (error) => {
+      showError(error.message);
+    },
+  });
+
+  const { isPending: otpPending } = sendOtpMutation;
+  const { isPending: verifyPending } = verifyOtp;
 
   return (
     <form
       onSubmit={magicLinkForm.onSubmit((values) => {
-        magicLinkMutation.mutate(values);
+        sendOtpMutation.mutate(values);
       })}
     >
       <Container size={500} my={40}>
@@ -73,10 +107,20 @@ export function Login() {
         </Text>
 
         <Paper withBorder shadow="sm" p={22} mt={20} radius="md">
-          {magicLinkMutation.isSuccess ? (
-            <Text ta="center" mb={20}>
-              Check your email for the magic link to log in.
-            </Text>
+          {sendOtpMutation.isSuccess ? (
+            <Stack align="center">
+              <Text>Enter the 6-digit code we sent to your email.</Text>
+              <PinInput
+                length={6}
+                onComplete={(value) => {
+                  verifyOtpForm.setFieldValue("token", value);
+                  verifyOtp.mutate({ token: value });
+                }}
+                type="number"
+                disabled={verifyPending}
+              />
+              {verifyPending && <LoadingOverlay />}
+            </Stack>
           ) : (
             <>
               <TextInput
@@ -91,8 +135,8 @@ export function Login() {
                 mt="xl"
                 radius="md"
                 type="submit"
-                loading={isPending}
-                disabled={isPending}
+                loading={otpPending}
+                disabled={otpPending}
               >
                 Sign in
               </Button>
