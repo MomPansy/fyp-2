@@ -46,6 +46,9 @@ export function Login() {
     mutationFn: async (values: typeof magicLinkForm.values) => {
       const { data, error } = await supabase.auth.signInWithOtp({
         email: values.email,
+        options: {
+          shouldCreateUser: true,
+        },
       });
       if (error) {
         throw error;
@@ -70,7 +73,7 @@ export function Login() {
       const { data, error } = await supabase.auth.verifyOtp({
         email: magicLinkForm.values.email,
         token: values.token,
-        type: "magiclink",
+        type: "email",
         options: {
           redirectTo: redirectUrl,
         },
