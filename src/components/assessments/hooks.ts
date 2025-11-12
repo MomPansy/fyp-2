@@ -13,6 +13,7 @@ import {
 } from "./query-keys.ts";
 import { Database } from "@/database.gen.ts";
 import { supabase } from "@/lib/supabase.ts";
+import { api } from "@/lib/api.ts";
 
 type Assessment = Database["public"]["Tables"]["assessments"]["Row"];
 type UserProblem = Database["public"]["Tables"]["user_problems"]["Row"];
@@ -230,6 +231,143 @@ export const useAddAssessmentProblemMutation = () => {
       return data;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
+
+export const useUpsertAssessmentCandidateMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (
+      candidates: {
+        assessment_id: string;
+        email: string;
+        matriculation_number: string;
+        full_name: string;
+      }[],
+    ) => {
+      if (candidates.length === 0) {
+        throw new Error("No candidates provided");
+      }
+
+      const assessmentId = candidates[0].assessment_id;
+
+      // Check if there are existing invitations before deleting
+      const { data: existingInvitations, error: checkError } = await supabase
+        .from("assessment_student_invitations")
+        .select("id")
+        .eq("assessment_id", assessmentId)
+        .limit(1);
+
+      if (checkError) throw new Error(checkError.message);
+
+      // Only delete if there are existing invitations
+      if (existingInvitations.length > 0) {
+        // eslint-disable-next-line drizzle/enforce-delete-with-where
+        const { error: deleteError } = await supabase
+          .from("assessment_student_invitations")
+          .delete()
+          .eq("assessment_id", assessmentId);
+
+        if (deleteError) throw new Error(deleteError.message);
+      }
+
+      const { error } = await supabase
+        .from("assessment_student_invitations")
+        .insert(candidates)
+        .select("assessment_id");
+
+      if (error) throw new Error(error.message);
+
+      // Return the assessment_id for cache invalidation
+      return { assessment_id: assessmentId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.candidatesByAssessmentId(data.assessment_id),
+      });
+    },
+  });
+};
+
+export const useFetchAssessmentCandidateInvitations = (assessmentId: string) =>
+  useSuspenseQuery({
+    queryKey: assessmentKeys.candidatesByAssessmentId(assessmentId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assessment_student_invitations")
+        .select("full_name, email, matriculation_number, active")
+        .eq("assessment_id", assessmentId);
+
+      if (error) throw new Error(error.message);
+      return data;
+    },
+  });
+
+export const useSendInvitationsMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (assessmentId: string) => {
+      // Send the request to the backend
+      const response = await api.invitations.send.$post({
+        json: {
+          assessmentId,
+        },
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message);
+      }
+
+      const result = await response.json();
+      return result;
+    },
+    onSuccess: (_data, assessmentId) => {
+      // Invalidate the candidates query to refetch with updated active status
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.candidatesByAssessmentId(assessmentId),
+      });
+    },
+  });
+};
+
+interface UpdateAssessmentSettingsProps {
+  id: string;
+  dateTimeScheduled: string | null;
+  duration: string;
+}
+
+export const useUpdateAssessmentSettingsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      dateTimeScheduled,
+      duration,
+    }: UpdateAssessmentSettingsProps) => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .update({
+          date_time_scheduled: dateTimeScheduled,
+          duration: Number(duration),
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific assessment query
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate all assessments list
       queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
     },
   });

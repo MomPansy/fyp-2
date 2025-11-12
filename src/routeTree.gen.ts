@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login.tsx';
 import { Route as StudentRouteImport } from './routes/_student.tsx';
 import { Route as AdminRouteImport } from './routes/_admin.tsx';
 import { Route as IndexRouteImport } from './routes/index.tsx';
+import { Route as InvitationTokenRouteImport } from './routes/invitation.$token.tsx';
 import { Route as StudentStudentDashboardRouteImport } from './routes/_student.student.dashboard.tsx';
 import { Route as AdminAdminTemplateProblemsRouteImport } from './routes/_admin.admin.template-problems.tsx';
 import { Route as AdminAdminProblemsRouteImport } from './routes/_admin.admin.problems.tsx';
@@ -45,6 +46,11 @@ const AdminRoute = AdminRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const InvitationTokenRoute = InvitationTokenRouteImport.update({
+  id: '/invitation/$token',
+  path: '/invitation/$token',
   getParentRoute: () => rootRouteImport,
 } as any);
 const StudentStudentDashboardRoute = StudentStudentDashboardRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/invitation/$token': typeof InvitationTokenRoute;
   '/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/admin/problems': typeof AdminAdminProblemsRoute;
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/invitation/$token': typeof InvitationTokenRoute;
   '/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/admin/problems': typeof AdminAdminProblemsRoute;
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/_student': typeof StudentRouteWithChildren;
   '/login': typeof LoginRoute;
   '/register': typeof RegisterRoute;
+  '/invitation/$token': typeof InvitationTokenRoute;
   '/_admin/admin/assessments': typeof AdminAdminAssessmentsRoute;
   '/_admin/admin/dashboard': typeof AdminAdminDashboardRoute;
   '/_admin/admin/problems': typeof AdminAdminProblemsRoute;
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/invitation/$token'
     | '/admin/assessments'
     | '/admin/dashboard'
     | '/admin/problems'
@@ -163,6 +173,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/register'
+    | '/invitation/$token'
     | '/admin/assessments'
     | '/admin/dashboard'
     | '/admin/problems'
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/_student'
     | '/login'
     | '/register'
+    | '/invitation/$token'
     | '/_admin/admin/assessments'
     | '/_admin/admin/dashboard'
     | '/_admin/admin/problems'
@@ -196,6 +208,7 @@ export interface RootRouteChildren {
   StudentRoute: typeof StudentRouteWithChildren;
   LoginRoute: typeof LoginRoute;
   RegisterRoute: typeof RegisterRoute;
+  InvitationTokenRoute: typeof InvitationTokenRoute;
 }
 
 declare module '@tanstack/react-router' {
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       path: '/';
       fullPath: '/';
       preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/invitation/$token': {
+      id: '/invitation/$token';
+      path: '/invitation/$token';
+      fullPath: '/invitation/$token';
+      preLoaderRoute: typeof InvitationTokenRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     '/_student/student/dashboard': {
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   StudentRoute: StudentRouteWithChildren,
   LoginRoute: LoginRoute,
   RegisterRoute: RegisterRoute,
+  InvitationTokenRoute: InvitationTokenRoute,
 };
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

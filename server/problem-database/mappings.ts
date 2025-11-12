@@ -127,8 +127,8 @@ type SqliteSqlTypeMapping = Record<DataType, SqliteType>;
 type SqlServerSqlTypeMapping = Record<DataType, SqlServerType>;
 type OracleSqlTypeMapping = Record<DataType, OracleType>;
 
-// Type for SQL type mapping
-type SqlTypeMapping =
+// Type for SQL type mapping (exported for future SQL dialect integration)
+export type SqlTypeMapping =
   | PostgresSqlTypeMapping
   | MySqlSqlTypeMapping
   | SqliteSqlTypeMapping

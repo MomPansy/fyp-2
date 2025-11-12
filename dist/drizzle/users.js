@@ -7,7 +7,9 @@ const users = pgTable(
     createdAt: timestamp("created_at", { precision: 3, withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true }).defaultNow().notNull().$onUpdate(() => /* @__PURE__ */ new Date()),
     archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
-    email: text("email")
+    email: text("email").notNull(),
+    matriculationNumber: text("matriculation_number"),
+    fullName: text("full_name")
   },
   (table) => [index("users_auth_user_id_idx").on(table.authUserId)]
 );

@@ -35,6 +35,9 @@ export const assessmentKeys = {
   byAssesmentId: (id: string) =>
     [{ ...assessmentKeys.all[0], entity: "detail", id }] as const,
 
+  candidatesByAssessmentId: (id: string) =>
+    [{ ...assessmentKeys.all[0], entity: "candidates", id }] as const,
+
   infinite: (
     filters: AssessmentListFilters,
     sorting: AssessmentListSorting,

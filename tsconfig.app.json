@@ -3,12 +3,12 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true,
     "allowJs": true,
-    "baseUrl": "./src",
     "declaration": false,
     "declarationMap": false,
     "esModuleInterop": true,
     "incremental": false,
     "isolatedModules": true,
+    "types": ["vite/client", "node"],
     "jsx": "react-jsx",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
@@ -16,14 +16,24 @@
     "moduleResolution": "Bundler",
     "noEmit": true,
     "paths": {
-      "server/*": ["../server/*"],
-      "@/*": ["../src/*"]
+      "@/*": ["./src/*"],
+      "src/*": ["./src/*"],
+      "server/*": ["./server/*"],
+      "components/*": ["./src/components/*"],
+      "lib/*": ["./src/lib/*"],
+      "utils/*": ["./src/utils/*"],
+      "hooks/*": ["./src/hooks/*"]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2020",
-    "useDefineForClassFields": true
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["server"]
 }

@@ -51,8 +51,7 @@ export async function executeMysqlQuery(
   sql: string,
   params?: (string | number | boolean | null)[],
 ): Promise<QueryResult> {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [rows, fields] = await pool.execute(sql, params);
+  const [rows] = await pool.execute(sql, params);
   return {
     rows: rows as Record<string, unknown>[],
     affectedRows: (rows as { affectedRows?: number }).affectedRows,

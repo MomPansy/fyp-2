@@ -2,15 +2,18 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { serve } from "@hono/node-server";
 import { logger } from "hono/logger";
 import { factory } from "./factory.js";
+import { route as authRoute } from "./routes/auth/index.js";
 import { route as exampleRoute } from "./routes/example.js";
 import { route as problemsRoute } from "./routes/problems/index.js";
 import { route as pythonRoute } from "./routes/python/index.js";
+import emailRoute from "./routes/email/index.js";
+import { route as invitationsRoute } from "./routes/invitations/index.js";
 const app = factory.createApp();
 app.use(logger());
 app.get("/healthz", (c) => {
   return c.json({ message: "Ok" });
 });
-const apiRoutes = app.basePath("/api").route("/example", exampleRoute).route("/problems", problemsRoute).route("/python", pythonRoute);
+const apiRoutes = app.basePath("/api").route("/auth", authRoute).route("/example", exampleRoute).route("/problems", problemsRoute).route("/python", pythonRoute).route("/email", emailRoute).route("/invitations", invitationsRoute);
 app.get("/*", serveStatic({ root: "./dist/static" })).get("/*", serveStatic({ path: "./dist/static/index.html" }));
 (async () => {
   const port = 3e3;

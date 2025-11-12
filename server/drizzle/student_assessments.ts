@@ -20,10 +20,6 @@ export const studentAssessments = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
     archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
-    dateTimeScheduled: timestamp("date_time_scheduled", {
-      precision: 3,
-      withTimezone: true,
-    }).notNull(),
     assessment: uuid("assessment_id")
       .notNull()
       .references(() => assessments.id, { onDelete: "cascade" }),
@@ -32,11 +28,9 @@ export const studentAssessments = pgTable(
       .references(() => users.id, { onDelete: "cascade" }),
   },
   (table) => [
-    // Unique constraint: prevent duplicate student + assessment + dateTimeScheduled
     unique("unique_student_assessment_datetime").on(
       table.student,
       table.assessment,
-      table.dateTimeScheduled,
     ),
   ],
 ).enableRLS();

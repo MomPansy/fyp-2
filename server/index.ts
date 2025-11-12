@@ -2,9 +2,12 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { serve } from "@hono/node-server";
 import { logger } from "hono/logger";
 import { factory } from "./factory.ts";
+import { route as authRoute } from "./routes/auth/index.ts";
 import { route as exampleRoute } from "./routes/example.ts";
 import { route as problemsRoute } from "./routes/problems/index.ts";
 import { route as pythonRoute } from "./routes/python/index.ts";
+import emailRoute from "./routes/email/index.ts";
+import { route as invitationsRoute } from "./routes/invitations/index.ts";
 
 const app = factory.createApp();
 
@@ -16,9 +19,12 @@ app.get("/healthz", (c) => {
 
 export const apiRoutes = app
   .basePath("/api")
+  .route("/auth", authRoute)
   .route("/example", exampleRoute)
   .route("/problems", problemsRoute)
-  .route("/python", pythonRoute);
+  .route("/python", pythonRoute)
+  .route("/email", emailRoute)
+  .route("/invitations", invitationsRoute);
 
 export type ApiRoutes = typeof apiRoutes;
 

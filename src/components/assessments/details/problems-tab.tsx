@@ -3,7 +3,6 @@ import {
   Button,
   Divider,
   Group,
-  Mark,
   Paper,
   Stack,
   Text,
@@ -29,7 +28,6 @@ import {
 import {
   IconCalendar,
   IconClock,
-  IconEdit,
   IconGripVertical,
   IconTrophy,
 } from "@tabler/icons-react";
@@ -37,6 +35,7 @@ import { useParams } from "@tanstack/react-router";
 import { useDisclosure, useListState } from "@mantine/hooks";
 import { useEffect } from "react";
 import { CSS } from "@dnd-kit/utilities";
+import dayjs from "dayjs";
 import { AssessmentProblem, useFetchAssessmentById } from "../hooks.ts";
 import { ProblemBankModal } from "./problem-bank/index.ts";
 
@@ -49,6 +48,26 @@ export function ProblemsTab() {
     (ap) => ap.user_problems.id,
   );
 
+  // Format the scheduled date
+  const formattedDate = data?.date_time_scheduled
+    ? dayjs(data.date_time_scheduled).format("MMM DD, YYYY - hh:mm A")
+    : "Not scheduled";
+
+  // Determine assessment status
+  const getAssessmentStatus = () => {
+    if (!data?.date_time_scheduled) {
+      return { label: "Draft", color: "gray" };
+    }
+    const now = new Date();
+    const scheduledDate = new Date(data.date_time_scheduled);
+    if (scheduledDate > now) {
+      return { label: "Scheduled", color: "blue" };
+    }
+    return { label: "Active", color: "green" };
+  };
+
+  const status = getAssessmentStatus();
+
   return (
     <>
       <Group>
@@ -57,14 +76,14 @@ export function ProblemsTab() {
             <Stack>
               <Group>
                 <Text fw="bold">{data?.name}</Text>
-                <Badge variant="light">TODO</Badge>
+                <Badge variant="light" color={status.color}>
+                  {status.label}
+                </Badge>
               </Group>
               <Group justify="flex-start" gap="8rem">
                 <Group gap={"3px"} align="center">
                   <IconCalendar size={16} stroke="2.5px" color="blue" />
-                  <Text size="sm">
-                    Date: &nbsp;<Mark>TODO</Mark>
-                  </Text>
+                  <Text size="sm">Date: &nbsp;{formattedDate}</Text>
                 </Group>
                 <Group gap={"3px"} align="center">
                   <IconClock size={16} stroke="2.5px" color="blue" />
@@ -75,7 +94,7 @@ export function ProblemsTab() {
                 <Group gap={"3px"} align="center">
                   <IconTrophy size={16} stroke="2.5px" color="blue" />
                   <Text size="sm">
-                    Score: &nbsp;<Mark>TODO</Mark>
+                    Problems: &nbsp;{data?.assessment_problems.length ?? 0}
                   </Text>
                 </Group>
               </Group>

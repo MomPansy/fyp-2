@@ -13,12 +13,12 @@ import {
 } from "components/problems/querykeys.ts";
 import { supabase } from "lib/supabase.ts";
 import { DEFAULT_PROBLEM_TEMPLATE } from "components/problems/problem-template-html.ts";
-import { Database } from "database.gen";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { api } from "@/lib/api.ts";
 import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
 import { myProblemKeys } from "@/components/my-problems/query-keys.ts";
 import { PROBLEM_EXECUTE_SQL_MUTATION_KEY } from "@/components/problems/create/mutation-key.ts";
+import { Database } from "@/database.gen.ts";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];

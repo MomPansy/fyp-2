@@ -17,6 +17,10 @@ export const assessments = pgTable("assessments", {
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
   duration: numeric("duration").notNull(),
   name: text("name").notNull(),
+  dateTimeScheduled: timestamp("date_time_scheduled", {
+    precision: 3,
+    withTimezone: true,
+  }),
 });
 
 export const assessmentsRelations = relations(assessments, ({ one, many }) => ({

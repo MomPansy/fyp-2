@@ -1,4 +1,4 @@
-import { Database } from "database.gen.ts";
+import { Database } from "@/database.gen.ts";
 import { normalizeFilters } from "@/lib/query-utils.ts";
 
 export type SortOptions = Pick<

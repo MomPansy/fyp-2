@@ -25,7 +25,7 @@ async function executePostgresQuery(pool, sql, params) {
   };
 }
 async function executeMysqlQuery(pool, sql, params) {
-  const [rows, fields] = await pool.execute(sql, params);
+  const [rows] = await pool.execute(sql, params);
   return {
     rows,
     affectedRows: rows.affectedRows

@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant User as User Browser
+    participant Ingress as Ingress Controller
+    participant WebApp as Web App<br/>(Node.js/Hono)
+    participant DB as DB Broker<br/>(Go Service)
+    participant Supabase as Supabase<br/>(Database)
+    participant Database as Database Pod<br/>(Sandbox)
+    participant Prometheus as Prometheus
+
+    Note over User,Prometheus: Connect Flow - Allocate Sandbox Database
+
+    User->>Ingress: POST /api/problems/connect<br/>{ problemId, dialect }<br/>(Authorization + apikey)
+    Ingress->>WebApp: Forward request
+    WebApp->>WebApp: Validate JWT + apikey
+    
+    WebApp->>Supabase: Fetch problem metadata<br/>(tables, columns, relations, CSV paths)
+    Supabase-->>WebApp: Problem metadata
+    
+    WebApp->>WebApp: Transform schema for dialect<br/>(getColumnMappings, getRelationMappings)
+    
+    WebApp->>DB: allocateDatabase(dialect)
+    DB->>DB: Find available sandbox pod
+    DB->>Database: Mark pod as allocated
+    Database-->>DB: 
+    DB->>Prometheus: Update metric:<br/>sandbox_databases_free--
+    Prometheus-->>DB: 
+    DB-->>WebApp: { connectionString, poolName }
+    
+    WebApp->>Database: createPool(key, connectionString, dialect)
+    Database-->>WebApp: 
+    WebApp->>Database: loop<br/>[For each table]
+    WebApp->>Database: sendDatabasePool, tables, dialect)<br/>CREATE TABLES + LOAD CSV data
+    Database->>Database: Fetch CSV from storage path
+    Database-->>WebApp: CSV data
+    Database->>Database: INSERT data into table
+    Database-->>WebApp: Seed complete
+    WebApp-->>Ingress: { poolName, dialect }
+    Ingress-->>User: { poolName, dialect }
+
+    Note over User,Prometheus: Database ready for queries

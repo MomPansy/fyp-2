@@ -12,8 +12,8 @@ import {
   Title,
 } from "@mantine/core";
 import { IconMaximize, IconPlayerPlay } from "@tabler/icons-react";
-import Editor, { EditorProps } from "@monaco-editor/react";
-import { editor as MonacoEditor } from "monaco-editor";
+import MonacoEditorComponent from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
 
 // Sample test result data
 const sampleTestResult = {
@@ -61,15 +61,8 @@ export function EditorTerminal() {
   const [terminalOutput, setTerminalOutput] = useState<
     typeof sampleTestResult | null
   >(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleEditorDidMount: EditorProps["onMount"] = (editor) => {
-    editorRef.current = editor;
-  };
+  const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 
   // Test SQL query
   const testQuery = () => {
@@ -80,22 +73,6 @@ export function EditorTerminal() {
       setTerminalOutput(sampleTestResult);
       setIsTesting(false);
     }, 1000);
-  };
-
-  // Submit SQL query
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const submitQuery = () => {
-    setIsSubmitting(true);
-
-    // Simulate API call with timeout
-    setTimeout(() => {
-      setTerminalOutput({
-        success: true,
-        message: "Your solution passed all test cases!",
-        data: sampleTestResult.data,
-      });
-      setIsSubmitting(false);
-    }, 1500);
   };
 
   // Render terminal output
@@ -179,7 +156,7 @@ export function EditorTerminal() {
       </Group>
       <Divider dir="horizontal" />
       <Box mih={300}>
-        <Editor
+        <MonacoEditorComponent
           height="300px"
           defaultLanguage="sql"
           value={sqlCode}

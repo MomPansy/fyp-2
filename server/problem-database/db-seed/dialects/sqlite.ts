@@ -43,7 +43,7 @@ export async function createTableSqlite(
 //TODO: remove sqlite support
 // eslint-disable-next-line @typescript-eslint/require-await
 export async function setRelationsSqlite(
-  pool: SqlitePool,
+  _pool: SqlitePool,
   baseTableName: string,
   relations: MappedRelation[] | null,
 ): Promise<void> {

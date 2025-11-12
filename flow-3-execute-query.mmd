@@ -1,0 +1,33 @@
+sequenceDiagram
+    participant User as User Browser
+    participant Ingress as Ingress Controller
+    participant WebApp as Web App<br/>(Node.js/Hono)
+    participant Database as Database Pod<br/>(Sandbox)
+
+    Note over User,Database: Execute Query Flow
+
+    User->>Ingress: POST /api/problems/execute<br/>{ poolName, sql, dialect }<br/>(Authorization + apikey)
+    Ingress->>WebApp: Forward request
+    WebApp->>WebApp: Validate JWT + apikey
+    
+    WebApp->>WebApp: getPool(key)<br/>key = poolName-dialect
+    
+    alt Pool not found
+        WebApp-->>Ingress: 404 - No active connection.<br/>Please connect first.
+        Ingress-->>User: 
+    else Pool exists
+        WebApp->>WebApp: Select executor based on dialect<br/>(postgres/mysql/sqlite/sqlserver/oracle)
+        WebApp->>Database: Execute SQL query
+        
+        alt Query successful
+            Database-->>WebApp: { rows, columns, rowCount }
+            WebApp-->>Ingress: Query results
+            Ingress-->>User: { rows, columns, rowCount }
+        else Query failed (syntax/runtime error)
+            Database-->>WebApp: Error (syntax/permission/timeout)
+            WebApp-->>Ingress: 400 - Query failed: {error}
+            Ingress-->>User: Error message
+        end
+    end
+
+    Note over User,Database: User can execute multiple queries<br/>against the same sandbox

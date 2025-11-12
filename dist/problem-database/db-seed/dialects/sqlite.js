@@ -25,7 +25,7 @@ async function createTableSqlite(pool, table) {
     throw error;
   }
 }
-async function setRelationsSqlite(pool, baseTableName, relations) {
+async function setRelationsSqlite(_pool, baseTableName, relations) {
   if (!relations || relations.length === 0) return;
   console.warn(
     `\u26A0\uFE0F SQLite doesn't support adding foreign key constraints after table creation. Relations for ${baseTableName} were ignored.`

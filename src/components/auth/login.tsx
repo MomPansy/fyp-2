@@ -18,6 +18,7 @@ import { useNavigate } from "@tanstack/react-router";
 import classes from "./login.module.css";
 import { supabase } from "lib/supabase.ts";
 import { showError } from "utils/notifications.tsx";
+import { api } from "lib/api.ts";
 
 const redirectUrl = import.meta.env.DEV
   ? "http://localhost:5173"
@@ -70,7 +71,7 @@ export function Login() {
   const verifyOtp = useMutation({
     mutationKey: ["auth", "verify", "otp"],
     mutationFn: async (values: typeof verifyOtpForm.values) => {
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
         email: magicLinkForm.values.email,
         token: values.token,
         type: "email",
@@ -78,10 +79,33 @@ export function Login() {
           redirectTo: redirectUrl,
         },
       });
-      if (error) {
-        throw error;
+      if (otpError) {
+        throw otpError;
       }
-      return data;
+
+      const user = otpData.user;
+      if (!user?.email) {
+        throw new Error("No email found for user.");
+      }
+
+      // Call server endpoint to process invitation
+      const response = await api.auth["process-invitation"].$post({
+        json: {
+          email: user.email,
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          (errorData as { message?: string }).message ??
+          "Failed to process invitation",
+        );
+      }
+
+      // TODO: invalidate the assessments query
+      // const { assessments } = await response.json();
+      return otpData;
     },
     onSuccess: () => {
       navigate({ to: "/" });

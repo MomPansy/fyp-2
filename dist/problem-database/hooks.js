@@ -43,7 +43,7 @@ const allocateSchema = z.object({
 });
 async function fetchProblemTables(problemId) {
   try {
-    const { data, error } = await supabase.from("problem_tables").select("table_name, column_types, relations, data_path").eq("problem_id", problemId);
+    const { data, error } = await supabase.from("user_problem_tables").select("table_name, column_types, relations, data_path").eq("user_problem_id", problemId);
     if (error) {
       console.error("\u274C Supabase query error:", {
         error: error.message,

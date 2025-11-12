@@ -41,7 +41,7 @@ export type Database = {
           created_at: string
           id: string
           problem_id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -49,7 +49,7 @@ export type Database = {
           created_at?: string
           id?: string
           problem_id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -57,7 +57,7 @@ export type Database = {
           created_at?: string
           id?: string
           problem_id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -76,32 +76,85 @@ export type Database = {
           },
         ]
       }
+      assessment_student_invitations: {
+        Row: {
+          active: boolean
+          archived_at: string | null
+          assessment_id: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          invitation_token: string | null
+          matriculation_number: string
+          redeemed_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          active?: boolean
+          archived_at?: string | null
+          assessment_id: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          invitation_token?: string | null
+          matriculation_number: string
+          redeemed_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          active?: boolean
+          archived_at?: string | null
+          assessment_id?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          invitation_token?: string | null
+          matriculation_number?: string
+          redeemed_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_student_invitations_assessment_id_assessments_id_fk"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessments: {
         Row: {
           archived_at: string | null
           created_at: string
+          date_time_scheduled: string | null
           duration: number
           id: string
           name: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           archived_at?: string | null
           created_at?: string
+          date_time_scheduled?: string | null
           duration: number
           id?: string
           name: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           archived_at?: string | null
           created_at?: string
+          date_time_scheduled?: string | null
           duration?: number
           id?: string
           name?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -125,6 +178,7 @@ export type Database = {
           problem_id: string
           relations: Json | null
           table_name: string
+          updated_at: string | null
         }
         Insert: {
           column_types?: Json | null
@@ -136,6 +190,7 @@ export type Database = {
           problem_id: string
           relations?: Json | null
           table_name: string
+          updated_at?: string | null
         }
         Update: {
           column_types?: Json | null
@@ -147,6 +202,7 @@ export type Database = {
           problem_id?: string
           relations?: Json | null
           table_name?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -162,7 +218,7 @@ export type Database = {
         Row: {
           answer: string | null
           archived_at: string | null
-          created_at: string | null
+          created_at: string
           description: string
           id: string
           name: string
@@ -171,7 +227,7 @@ export type Database = {
         Insert: {
           answer?: string | null
           archived_at?: string | null
-          created_at?: string | null
+          created_at?: string
           description: string
           id?: string
           name: string
@@ -180,7 +236,7 @@ export type Database = {
         Update: {
           answer?: string | null
           archived_at?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string
           id?: string
           name?: string
@@ -209,6 +265,48 @@ export type Database = {
         }
         Relationships: []
       }
+      student_assessments: {
+        Row: {
+          archived_at: string | null
+          assessment_id: string
+          created_at: string
+          id: string
+          student_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          assessment_id: string
+          created_at?: string
+          id?: string
+          student_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          student_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_assessments_assessment_id_assessments_id_fk"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_assessments_student_id_users_id_fk"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       submission_details: {
         Row: {
           archived_at: string | null
@@ -218,7 +316,7 @@ export type Database = {
           grade: string
           id: string
           submission_id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           archived_at?: string | null
@@ -228,7 +326,7 @@ export type Database = {
           grade?: string
           id?: string
           submission_id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           archived_at?: string | null
@@ -238,7 +336,7 @@ export type Database = {
           grade?: string
           id?: string
           submission_id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -260,44 +358,34 @@ export type Database = {
       submissions: {
         Row: {
           archived_at: string | null
-          assessment_id: string
           created_at: string
           id: string
           score: number
-          updated_at: string
-          user_id: string
+          student_assessment_id: string
+          updated_at: string | null
         }
         Insert: {
           archived_at?: string | null
-          assessment_id: string
           created_at?: string
           id?: string
           score: number
-          updated_at?: string
-          user_id: string
+          student_assessment_id: string
+          updated_at?: string | null
         }
         Update: {
           archived_at?: string | null
-          assessment_id?: string
           created_at?: string
           id?: string
           score?: number
-          updated_at?: string
-          user_id?: string
+          student_assessment_id?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "submissions_assessment_id_assessments_id_fk"
-            columns: ["assessment_id"]
+            foreignKeyName: "submissions_student_assessment_id_student_assessments_id_fk"
+            columns: ["student_assessment_id"]
             isOneToOne: false
-            referencedRelation: "assessments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "submissions_user_id_users_id_fk"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "student_assessments"
             referencedColumns: ["id"]
           },
         ]
@@ -312,6 +400,7 @@ export type Database = {
           number_of_rows: number | null
           relations: Json | null
           table_name: string
+          updated_at: string | null
           user_problem_id: string
         }
         Insert: {
@@ -323,6 +412,7 @@ export type Database = {
           number_of_rows?: number | null
           relations?: Json | null
           table_name: string
+          updated_at?: string | null
           user_problem_id: string
         }
         Update: {
@@ -334,6 +424,7 @@ export type Database = {
           number_of_rows?: number | null
           relations?: Json | null
           table_name?: string
+          updated_at?: string | null
           user_problem_id?: string
         }
         Relationships: [
@@ -350,7 +441,7 @@ export type Database = {
         Row: {
           answer: string | null
           archived_at: string | null
-          created_at: string | null
+          created_at: string
           description: string
           id: string
           name: string
@@ -361,7 +452,7 @@ export type Database = {
         Insert: {
           answer?: string | null
           archived_at?: string | null
-          created_at?: string | null
+          created_at?: string
           description: string
           id?: string
           name: string
@@ -372,7 +463,7 @@ export type Database = {
         Update: {
           answer?: string | null
           archived_at?: string | null
-          created_at?: string | null
+          created_at?: string
           description?: string
           id?: string
           name?: string
@@ -462,7 +553,9 @@ export type Database = {
           auth_user_id: string
           created_at: string
           email: string
+          full_name: string | null
           id: string
+          matriculation_number: string | null
           updated_at: string
         }
         Insert: {
@@ -470,7 +563,9 @@ export type Database = {
           auth_user_id: string
           created_at?: string
           email: string
+          full_name?: string | null
           id?: string
+          matriculation_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -478,7 +573,9 @@ export type Database = {
           auth_user_id?: string
           created_at?: string
           email?: string
+          full_name?: string | null
           id?: string
+          matriculation_number?: string | null
           updated_at?: string
         }
         Relationships: []

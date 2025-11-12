@@ -59,8 +59,7 @@ function RouteComponent() {
     search: undefined,
     id: id,
   });
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [sorting, setSorting] = useState<ProblemListSorting>({
+  const [sorting] = useState<ProblemListSorting>({
     sortOptions: [{ sortBy: "created_at", order: "desc" }],
   });
 
