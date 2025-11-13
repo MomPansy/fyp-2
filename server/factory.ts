@@ -1,9 +1,13 @@
 import { createFactory } from "hono/factory";
 
+import { JwtPayload } from "./zod/jwt.ts";
 import { appEnvVariables } from "server/env.ts";
 import { type AppEnvVariables } from "server/zod/env.ts";
 
-export type Variables = Record<string, unknown> & AppEnvVariables;
+export type Variables = Record<string, unknown> &
+  AppEnvVariables & {
+    jwtPayload?: JwtPayload;
+  };
 
 export const factory = createFactory<{ Variables: Variables }>({
   initApp: (app) => {

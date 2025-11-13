@@ -17,13 +17,8 @@ export const route = factory
     auth(),
     zValidator("json", processInvitationSchema),
     async (c) => {
+      // auth() middleware guarantees jwtPayload exists
       const jwtPayload = c.get("jwtPayload");
-      if (!jwtPayload) {
-        throw new HTTPException(401, {
-          message: "Unauthorized",
-        });
-      }
-
       const { email } = c.req.valid("json");
       const userId = jwtPayload.user_metadata.user_id;
 
@@ -44,7 +39,9 @@ export const route = factory
 
         if (invitation.length === 0) {
           console.warn(`No invitation found for email: ${email}`);
-          return;
+          return c.json({
+            message: `No pending invitation found for email: ${email}`,
+          });
         }
 
         const invitee = invitation[0];

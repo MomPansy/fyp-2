@@ -6,7 +6,7 @@ import { appEnvVariables, type Variables as AppVariables } from "server/env.ts";
 import { type JwtPayload, jwtPayloadSchema } from "server/zod/jwt.ts";
 
 export type Variables = AppVariables & {
-  jwtPayload?: JwtPayload;
+  jwtPayload: JwtPayload;
 };
 
 const { SUPABASE_ANON_KEY, SUPABASE_JWT_SECRET } = appEnvVariables;
