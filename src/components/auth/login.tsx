@@ -64,7 +64,7 @@ export function Login() {
                   {
                     email: magicLinkForm.values.email,
                     token,
-                    processInvitation: false,
+                    processInvitation: true,
                   },
                   {
                     onSuccess: () => {
