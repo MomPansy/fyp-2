@@ -8,6 +8,7 @@ import { route as problemsRoute } from "./routes/problems/index.ts";
 import { route as pythonRoute } from "./routes/python/index.ts";
 import emailRoute from "./routes/email/index.ts";
 import { route as invitationsRoute } from "./routes/invitations/index.ts";
+import { route as studentAssessmentsRoute } from "./routes/student-assessments/index.ts";
 
 const app = factory.createApp();
 
@@ -24,7 +25,8 @@ export const apiRoutes = app
   .route("/problems", problemsRoute)
   .route("/python", pythonRoute)
   .route("/email", emailRoute)
-  .route("/invitations", invitationsRoute);
+  .route("/invitations", invitationsRoute)
+  .route("/student/assessments", studentAssessmentsRoute);
 
 export type ApiRoutes = typeof apiRoutes;
 

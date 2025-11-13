@@ -1,92 +1,69 @@
-import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
-import { z } from "zod";
+import { eq, and, isNull, inArray } from "drizzle-orm";
 import { factory } from "../../factory.js";
-import { supabase } from "../../lib/supabase.js";
 import { auth } from "../../middlewares/auth.js";
-const processInvitationSchema = z.object({
-  email: z.string().email()
-});
-const route = factory.createApp().post(
-  "/process-invitation",
-  auth(),
-  zValidator("json", processInvitationSchema),
-  async (c) => {
-    const jwtPayload = c.get("jwtPayload");
-    if (!jwtPayload) {
-      throw new HTTPException(401, {
-        message: "Unauthorized"
-      });
-    }
-    const { email } = c.req.valid("json");
-    const userId = jwtPayload.user_metadata.user_id;
-    try {
-      const { data: invitation, error: invitationError } = await supabase.from("assessment_student_invitations").select("*").eq("email", email).is("archived_at", null);
-      if (invitationError) {
-        console.error("Error fetching invitations:", invitationError);
-        throw new HTTPException(500, {
-          message: "Failed to fetch invitations"
-        });
-      }
-      if (invitation.length === 0) {
-        console.warn(`No invitation found for email: ${email}`);
-        return;
-      }
-      const invitee = invitation[0];
-      const { data: userData, error: userUpsertError } = await supabase.from("users").update({
-        email,
-        full_name: invitee.full_name,
-        matriculation_number: invitee.matriculation_number
-      }).eq("auth_user_id", userId).select().single();
-      if (userUpsertError) {
-        console.error("Error updating user:", userUpsertError);
-        throw new HTTPException(500, {
-          message: "Failed to update user information"
-        });
-      }
-      const { error: archiveError } = await supabase.from("assessment_student_invitations").update({ archived_at: (/* @__PURE__ */ new Date()).toISOString() }).in(
-        "id",
-        invitation.map((inv) => inv.id)
-      );
-      if (archiveError) {
-        console.error("Error archiving invitations:", archiveError);
-        throw new HTTPException(500, {
-          message: "Failed to archive invitations"
-        });
-      }
-      const assessments = invitation.map((inv) => inv.assessment_id);
-      const { error: studentAssessmentError } = await supabase.from("student_assessments").upsert(
-        assessments.map((assessment_id) => ({
-          assessment_id,
-          student_id: userData.id
-        }))
-      );
-      if (studentAssessmentError) {
-        console.error(
-          "Error creating student assessments:",
-          studentAssessmentError
-        );
-        throw new HTTPException(500, {
-          message: "Failed to create student assessments"
-        });
-      }
-      console.info(
-        `Successfully processed invitation for user ${userId} (${email})`
-      );
+import { drizzle } from "../../middlewares/drizzle.js";
+import { users } from "../../drizzle/users.js";
+import { assessmentStudentInvitations } from "../../drizzle/assessment_student_invitations.js";
+import { studentAssessments } from "../../drizzle/student_assessments.js";
+const route = factory.createApp().post("/process-invitation", auth(), drizzle(), async (c) => {
+  const jwtPayload = c.get("jwtPayload");
+  const auth_user_id = jwtPayload.sub;
+  const email = jwtPayload.email;
+  const tx = c.var.tx;
+  try {
+    const invitations = await tx.select().from(assessmentStudentInvitations).where(
+      and(
+        eq(assessmentStudentInvitations.email, email),
+        isNull(assessmentStudentInvitations.archivedAt)
+      )
+    );
+    if (invitations.length === 0) {
+      console.warn(`No invitation found for email: ${email}`);
       return c.json({
-        assessments: assessments.map((id) => ({ id }))
-      });
-    } catch (error) {
-      if (error instanceof HTTPException) {
-        throw error;
-      }
-      console.error("Unexpected error in process-invitation:", error);
-      throw new HTTPException(500, {
-        message: "An unexpected error occurred"
+        message: `No pending invitation found for email: ${email}`
       });
     }
+    const invitee = invitations[0];
+    const updatedUsers = await tx.update(users).set({
+      email,
+      fullName: invitee.fullName,
+      matriculationNumber: invitee.matriculationNumber
+    }).where(eq(users.authUserId, auth_user_id)).returning();
+    if (updatedUsers.length === 0) {
+      console.error("Error updating user: user not found");
+      throw new HTTPException(500, {
+        message: "Failed to update user information"
+      });
+    }
+    const userData = updatedUsers[0];
+    await tx.update(assessmentStudentInvitations).set({ archivedAt: /* @__PURE__ */ new Date() }).where(
+      inArray(
+        assessmentStudentInvitations.id,
+        invitations.map((inv) => inv.id)
+      )
+    );
+    const assessmentIds = invitations.map((inv) => inv.assessmentId);
+    await tx.insert(studentAssessments).values(
+      assessmentIds.map((assessmentId) => ({
+        assessment: assessmentId,
+        student: userData.id
+      }))
+    ).onConflictDoNothing();
+    console.info(`Successfully processed invitation for user ${email}`);
+    return c.json({
+      assessments: assessmentIds.map((id) => ({ id }))
+    });
+  } catch (error) {
+    if (error instanceof HTTPException) {
+      throw error;
+    }
+    console.error("Unexpected error in process-invitation:", error);
+    throw new HTTPException(500, {
+      message: "An unexpected error occurred"
+    });
   }
-);
+});
 export {
   route
 };

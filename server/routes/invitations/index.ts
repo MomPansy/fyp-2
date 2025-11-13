@@ -203,7 +203,7 @@ export const route = factory
       }
     },
   )
-  .post(
+  .get(
     "/:token/accept",
     zValidator(
       "param",
@@ -227,7 +227,9 @@ export const route = factory
         }
 
         if (!invitation.active) {
-          throw new HTTPException(400, { message: "Invitation is not active" });
+          throw new HTTPException(400, {
+            message: "Invitation is not active, contact admin for support.",
+          });
         }
 
         // Check if user already exists with this email
@@ -236,55 +238,15 @@ export const route = factory
           (u) => u.email === payload.email,
         );
 
-        let userId: string;
-        let accountExists = false;
-
-        if (userExists) {
-          // User already exists
-          userId = userExists.id;
-          accountExists = true;
-        } else {
-          // Create new user account (passwordless - Supabase will handle magic link/OTP)
-          const { data: authData, error: authError } =
-            await supabase.auth.admin.createUser({
-              email: payload.email,
-              email_confirm: true,
-              user_metadata: {
-                full_name: payload.fullName,
-                matriculation_number: payload.matriculationNumber,
-              },
-            });
-
-          if (authError) {
-            console.error("Supabase auth error:", authError);
-            throw new HTTPException(500, {
-              message: authError.message,
-            });
-          }
-
-          userId = authData.user.id;
-
-          // Associate user with assessment
-          await supabase.from("student_assessments").insert({
-            assessment_id: payload.assessmentId,
-            student_id: userId,
-          });
-
-          // Assign student role
-          await supabase.from("user_roles").insert({
-            user_id: userId,
-            role_id: "student",
-          });
-        }
-
+        // Return success - account creation will happen via Supabase OTP flow
+        // and invitation processing will occur in /auth/process-invitation after login
         return c.json({
           success: true,
-          message: accountExists
-            ? "Welcome back! Please sign in to continue."
-            : "Account created successfully! Please sign in to continue.",
-          userId,
+          message: userExists
+            ? "Invitation accepted! Please sign in to continue."
+            : "Invitation accepted! Please sign in to create your account.",
           assessmentId: payload.assessmentId,
-          accountExists,
+          accountExists: !!userExists,
           email: payload.email,
         });
       } catch (error) {

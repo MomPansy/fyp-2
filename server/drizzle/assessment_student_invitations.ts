@@ -15,10 +15,6 @@ export const assessmentStudentInvitations = pgTable(
     matriculationNumber: text("matriculation_number").notNull(),
     fullName: text("full_name").notNull(),
     invitationToken: text("invitation_token").unique(),
-    redeemedAt: timestamp("redeemed_at", {
-      precision: 3,
-      withTimezone: true,
-    }),
     createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
       .defaultNow()
       .notNull(),

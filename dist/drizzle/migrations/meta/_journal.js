@@ -154,6 +154,13 @@ var entries = [
     when: 1762879560660,
     tag: "0021_famous_hiroim",
     breakpoints: false
+  },
+  {
+    idx: 22,
+    version: "7",
+    when: 1763047317492,
+    tag: "0022_woozy_excalibur",
+    breakpoints: false
   }
 ];
 var journal_default = {

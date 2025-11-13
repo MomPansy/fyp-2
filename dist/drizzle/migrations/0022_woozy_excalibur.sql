@@ -1,0 +1,1 @@
+ALTER TABLE "assessment_student_invitations" DROP COLUMN "redeemed_at";

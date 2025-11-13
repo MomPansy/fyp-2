@@ -148,7 +148,7 @@ const route = factory.createApp().post(
       });
     }
   }
-).post(
+).get(
   "/:token/accept",
   zValidator(
     "param",
@@ -165,48 +165,19 @@ const route = factory.createApp().post(
         throw new HTTPException(404, { message: "Invitation not found" });
       }
       if (!invitation.active) {
-        throw new HTTPException(400, { message: "Invitation is not active" });
+        throw new HTTPException(400, {
+          message: "Invitation is not active, contact admin for support."
+        });
       }
       const { data: existingUser } = await supabase.auth.admin.listUsers();
       const userExists = existingUser.users.find(
         (u) => u.email === payload.email
       );
-      let userId;
-      let accountExists = false;
-      if (userExists) {
-        userId = userExists.id;
-        accountExists = true;
-      } else {
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-          email: payload.email,
-          email_confirm: true,
-          user_metadata: {
-            full_name: payload.fullName,
-            matriculation_number: payload.matriculationNumber
-          }
-        });
-        if (authError) {
-          console.error("Supabase auth error:", authError);
-          throw new HTTPException(500, {
-            message: authError.message
-          });
-        }
-        userId = authData.user.id;
-        await supabase.from("student_assessments").insert({
-          assessment_id: payload.assessmentId,
-          student_id: userId
-        });
-        await supabase.from("user_roles").insert({
-          user_id: userId,
-          role_id: "student"
-        });
-      }
       return c.json({
         success: true,
-        message: accountExists ? "Welcome back! Please sign in to continue." : "Account created successfully! Please sign in to continue.",
-        userId,
+        message: userExists ? "Invitation accepted! Please sign in to continue." : "Invitation accepted! Please sign in to create your account.",
         assessmentId: payload.assessmentId,
-        accountExists,
+        accountExists: !!userExists,
         email: payload.email
       });
     } catch (error) {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Button,
   Paper,
@@ -21,11 +22,17 @@ import {
   IconCheck,
 } from "@tabler/icons-react";
 import { api } from "lib/api.ts";
-import { showError } from "utils/notifications.tsx";
+import { showError, showSuccess } from "utils/notifications.tsx";
+import { useSendOtp, useVerifyOtp } from "hooks/useOtp.ts";
+import { OtpVerification } from "components/auth/OtpVerification.tsx";
+import { dayjs } from "lib/dayjs.ts";
 
 export function InvitationAccept() {
   const { token } = useParams({ from: "/invitation/$token" });
   const navigate = useNavigate();
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
+  const [assessmentId, setAssessmentId] = useState<string | null>(null);
 
   // Fetch invitation details
   const {
@@ -39,24 +46,30 @@ export function InvitationAccept() {
         param: { token },
       });
       if (!response.ok) {
-        const errorData = (await response.json()) as { message?: string };
-        throw new Error(errorData.message ?? "Failed to fetch invitation");
+        const errorMessage = await response.text();
+        throw new Error(errorMessage);
       }
       return response.json();
     },
     retry: false,
   });
 
+  // Send OTP mutation
+  const sendOtpMutation = useSendOtp();
+
+  // Verify OTP mutation
+  const verifyOtpMutation = useVerifyOtp();
+
   // Accept invitation mutation
   const acceptMutation = useMutation({
     mutationKey: ["invitation", "accept", token],
     mutationFn: async () => {
-      const response = await api.invitations[":token"].accept.$post({
+      const response = await api.invitations[":token"].accept.$get({
         param: { token },
       });
       if (!response.ok) {
-        const errorData = (await response.json()) as { message?: string };
-        throw new Error(errorData.message ?? "Failed to accept invitation");
+        const errorMessage = await response.text();
+        throw new Error(errorMessage);
       }
       return response.json();
     },
@@ -64,16 +77,27 @@ export function InvitationAccept() {
       notifications.show({
         title: "Invitation Accepted!",
         message: data.accountExists
-          ? "Welcome back! Redirecting to your assessment..."
-          : "Account created successfully! Redirecting to your assessment...",
+          ? "Welcome back! Sending OTP to your email..."
+          : "Account created successfully! Sending OTP to your email...",
         color: "green",
         icon: <IconCheck size={16} />,
       });
 
-      // Redirect to assessment page
-      setTimeout(() => {
-        navigate({ to: `/student/assessment/${data.assessmentId}` });
-      }, 1500);
+      // Store assessment ID for later use
+      setAssessmentId(data.assessmentId);
+
+      // Store user email and send OTP
+      const email = invitationData?.invitation.email;
+      if (email) {
+        setUserEmail(email);
+        sendOtpMutation.mutate(email, {
+          onSuccess: () => {
+            setShowOtpInput(true);
+          },
+        });
+      } else {
+        showError("Could not send OTP: email not found");
+      }
     },
     onError: (error) => {
       showError(error.message);
@@ -132,99 +156,127 @@ export function InvitationAccept() {
   return (
     <Container size="sm" py={80}>
       <Paper shadow="md" p={30} radius="md" withBorder pos="relative">
-        <LoadingOverlay visible={acceptMutation.isPending} />
+        <LoadingOverlay
+          visible={acceptMutation.isPending || sendOtpMutation.isPending}
+        />
 
         <Title order={2} ta="center" mb="md">
-          Assessment Invitation
+          {showOtpInput ? "Verify Your Email" : "Assessment Invitation"}
         </Title>
 
         <Text ta="center" c="dimmed" size="sm" mb="xl">
-          You've been invited to participate in an assessment
+          {showOtpInput
+            ? "Enter the OTP we sent to your email"
+            : "You've been invited to participate in an assessment"}
         </Text>
 
-        <Stack gap="xl">
-          {/* Assessment Title */}
-          <Paper p="md" withBorder>
-            <Title order={3} size="h4" mb="sm">
-              {invitation.assessmentTitle}
-            </Title>
-            {invitation.assessmentDate && (
-              <Group gap="xs">
-                <ThemeIcon variant="light" size="sm">
-                  <IconCalendar size={14} />
-                </ThemeIcon>
-                <Text size="sm" c="dimmed">
-                  {new Date(invitation.assessmentDate).toLocaleDateString(
-                    "en-US",
-                    {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    },
-                  )}
-                </Text>
-              </Group>
-            )}
-          </Paper>
+        {showOtpInput ? (
+          <OtpVerification
+            email={userEmail}
+            onComplete={(token) => {
+              verifyOtpMutation.mutate(
+                {
+                  email: userEmail,
+                  token,
+                  processInvitation: true,
+                },
+                {
+                  onSuccess: () => {
+                    showSuccess("OTP verified! Redirecting to assessment...");
 
-          {/* Student Information */}
-          <Stack gap="md">
-            <Group gap="xs">
-              <ThemeIcon variant="light" size="md">
-                <IconUser size={16} />
-              </ThemeIcon>
-              <div>
-                <Text size="xs" c="dimmed">
-                  Full Name
-                </Text>
-                <Text fw={500}>{invitation.fullName}</Text>
-              </div>
-            </Group>
+                    // Redirect to assessment page
+                    if (assessmentId) {
+                      setTimeout(() => {
+                        navigate({
+                          to: "/student/assessment/$id",
+                          params: { id: assessmentId },
+                        });
+                      }, 1500);
+                    }
+                  },
+                },
+              );
+            }}
+            isLoading={verifyOtpMutation.isPending}
+          />
+        ) : (
+          <Stack gap="xl">
+            {/* Assessment Title */}
+            <Paper p="md" withBorder>
+              <Title order={3} size="h4" mb="sm">
+                {invitation.assessmentTitle}
+              </Title>
+              {invitation.assessmentDate && (
+                <Group gap="xs">
+                  <ThemeIcon variant="light" size="sm">
+                    <IconCalendar size={14} />
+                  </ThemeIcon>
+                  <Text size="sm" c="dimmed">
+                    {dayjs(invitation.assessmentDate).format(
+                      "MMMM D, YYYY [at] h:mm A",
+                    )}
+                  </Text>
+                </Group>
+              )}
+            </Paper>
 
-            <Group gap="xs">
-              <ThemeIcon variant="light" size="md">
-                <IconMail size={16} />
-              </ThemeIcon>
-              <div>
-                <Text size="xs" c="dimmed">
-                  Email
-                </Text>
-                <Text fw={500}>{invitation.email}</Text>
-              </div>
-            </Group>
-
-            {invitation.matriculationNumber && (
+            {/* Student Information */}
+            <Stack gap="md">
               <Group gap="xs">
                 <ThemeIcon variant="light" size="md">
                   <IconUser size={16} />
                 </ThemeIcon>
                 <div>
                   <Text size="xs" c="dimmed">
-                    Matriculation Number
+                    Full Name
                   </Text>
-                  <Text fw={500}>{invitation.matriculationNumber}</Text>
+                  <Text fw={500}>{invitation.fullName}</Text>
                 </div>
               </Group>
-            )}
+
+              <Group gap="xs">
+                <ThemeIcon variant="light" size="md">
+                  <IconMail size={16} />
+                </ThemeIcon>
+                <div>
+                  <Text size="xs" c="dimmed">
+                    Email
+                  </Text>
+                  <Text fw={500}>{invitation.email}</Text>
+                </div>
+              </Group>
+
+              {invitation.matriculationNumber && (
+                <Group gap="xs">
+                  <ThemeIcon variant="light" size="md">
+                    <IconUser size={16} />
+                  </ThemeIcon>
+                  <div>
+                    <Text size="xs" c="dimmed">
+                      Matriculation Number
+                    </Text>
+                    <Text fw={500}>{invitation.matriculationNumber}</Text>
+                  </div>
+                </Group>
+              )}
+            </Stack>
+
+            {/* Accept Button */}
+            <Button
+              size="lg"
+              fullWidth
+              onClick={() => acceptMutation.mutate()}
+              loading={acceptMutation.isPending}
+            >
+              Accept Invitation & Continue
+            </Button>
+
+            <Text size="xs" c="dimmed" ta="center">
+              By accepting, an account will be created for you and you'll be
+              redirected to the assessment.
+            </Text>
           </Stack>
-
-          {/* Accept Button */}
-          <Button
-            size="lg"
-            fullWidth
-            onClick={() => acceptMutation.mutate()}
-            loading={acceptMutation.isPending}
-          >
-            Accept Invitation & Continue
-          </Button>
-
-          <Text size="xs" c="dimmed" ta="center">
-            By accepting, an account will be created for you and you'll be
-            redirected to the assessment.
-          </Text>
-        </Stack>
+        )}
       </Paper>
     </Container>
   );
