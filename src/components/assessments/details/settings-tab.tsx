@@ -1,62 +1,98 @@
-import { Button, Group, NumberInput, Paper, Stack, Text } from "@mantine/core";
+import {
+  Button,
+  Group,
+  NumberInput,
+  Paper,
+  Stack,
+  Text,
+  TextInput,
+} from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
 import { notifications } from "@mantine/notifications";
 import { useParams } from "@tanstack/react-router";
-import { IconCalendar, IconClock, IconDeviceFloppy } from "@tabler/icons-react";
+import {
+  IconCalendar,
+  IconClock,
+  IconDeviceFloppy,
+  IconEdit,
+} from "@tabler/icons-react";
+import { z } from "zod";
+import { zodResolver } from "mantine-form-zod-resolver";
 import {
   useFetchAssessmentById,
   useUpdateAssessmentSettingsMutation,
+  useUpdateAssessmentNameMutation,
 } from "../hooks.ts";
 
-interface SettingsFormValues {
-  dateTimeScheduled: Date | null;
-  duration: number;
-}
+const settingsSchema = z.object({
+  name: z
+    .string()
+    .min(1, { message: "Assessment name is required" })
+    .max(255, { message: "Assessment name cannot exceed 255 characters" })
+    .refine((val) => val.trim().length > 0, {
+      message: "Assessment name cannot be empty",
+    }),
+  dateTimeScheduled: z
+    .union([z.date(), z.string()])
+    .nullable()
+    .optional()
+    .transform((val) => {
+      if (!val) return null;
+      return typeof val === "string" ? new Date(val) : val;
+    })
+    .refine(
+      (date) => {
+        if (!date) return true;
+        return date >= new Date();
+      },
+      { message: "Scheduled date must be in the future" },
+    ),
+  duration: z
+    .number()
+    .min(1, { message: "Duration must be greater than 0" })
+    .max(480, { message: "Duration cannot exceed 8 hours (480 minutes)" }),
+});
+
+type SettingsFormValues = z.infer<typeof settingsSchema>;
 
 export function SettingsTab() {
   const { id } = useParams({ from: "/_admin/admin/assessment/$id/details" });
   const { data } = useFetchAssessmentById(id);
-  const updateMutation = useUpdateAssessmentSettingsMutation();
+  const updateSettingsMutation = useUpdateAssessmentSettingsMutation();
+  const updateNameMutation = useUpdateAssessmentNameMutation();
 
   const form = useForm<SettingsFormValues>({
+    mode: "uncontrolled",
     initialValues: {
+      name: data?.name ?? "",
       dateTimeScheduled: data?.date_time_scheduled
         ? new Date(data.date_time_scheduled)
         : null,
       duration: data?.duration ? Number(data.duration) : 60,
     },
-    validate: {
-      duration: (value) => {
-        if (!value || value <= 0) {
-          return "Duration must be greater than 0";
-        }
-        if (value > 480) {
-          return "Duration cannot exceed 8 hours (480 minutes)";
-        }
-        return null;
-      },
-      dateTimeScheduled: (value) => {
-        if (value && value < new Date()) {
-          return "Scheduled date must be in the future";
-        }
-        return null;
-      },
-    },
+    validate: zodResolver(settingsSchema),
   });
 
   const handleSubmit = async (values: SettingsFormValues) => {
     try {
-      // Ensure dateTimeScheduled is a Date object or null
-      const dateValue = values.dateTimeScheduled
-        ? values.dateTimeScheduled instanceof Date
-          ? values.dateTimeScheduled.toISOString()
-          : new Date(values.dateTimeScheduled).toISOString()
-        : null;
+      // Check if name has changed
+      const nameChanged = data?.name !== values.name;
 
-      await updateMutation.mutateAsync({
+      // Update name if changed
+      if (nameChanged) {
+        await updateNameMutation.mutateAsync({
+          id,
+          name: values.name,
+        });
+      }
+
+      // Update settings (date and duration)
+      await updateSettingsMutation.mutateAsync({
         id,
-        dateTimeScheduled: dateValue,
+        dateTimeScheduled: values.dateTimeScheduled
+          ? new Date(values.dateTimeScheduled).toISOString()
+          : null,
         duration: values.duration.toString(),
       });
 
@@ -85,6 +121,15 @@ export function SettingsTab() {
             <Text size="xl" fw="bold">
               Assessment Settings
             </Text>
+
+            <TextInput
+              label="Assessment Name"
+              description="Give your assessment a descriptive name"
+              placeholder="Enter assessment name"
+              leftSection={<IconEdit size={18} />}
+              required
+              {...form.getInputProps("name")}
+            />
 
             <DateTimePicker
               label="Scheduled Date & Time"
@@ -117,14 +162,20 @@ export function SettingsTab() {
                 type="button"
                 variant="subtle"
                 onClick={() => form.reset()}
-                disabled={updateMutation.isPending}
+                disabled={
+                  updateSettingsMutation.isPending ||
+                  updateNameMutation.isPending
+                }
               >
                 Reset
               </Button>
               <Button
                 type="submit"
                 leftSection={<IconDeviceFloppy size={18} />}
-                loading={updateMutation.isPending}
+                loading={
+                  updateSettingsMutation.isPending ||
+                  updateNameMutation.isPending
+                }
               >
                 Save Settings
               </Button>

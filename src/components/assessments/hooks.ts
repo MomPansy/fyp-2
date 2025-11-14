@@ -372,3 +372,34 @@ export const useUpdateAssessmentSettingsMutation = () => {
     },
   });
 };
+
+interface UpdateAssessmentNameProps {
+  id: string;
+  name: string;
+}
+
+export const useUpdateAssessmentNameMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: UpdateAssessmentNameProps) => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .update({ name })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific assessment query
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate all assessments list
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
