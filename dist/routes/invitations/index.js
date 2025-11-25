@@ -33,6 +33,11 @@ const route = factory.createApp().post(
           message: "Assessment not found"
         });
       }
+      if (assessment.archivedAt) {
+        throw new HTTPException(403, {
+          message: "Cannot send invitations for a cancelled assessment. Please restore it first."
+        });
+      }
       if (!assessment.dateTimeScheduled) {
         throw new HTTPException(400, {
           message: "Assessment must have a scheduled date/time before sending invitations"
