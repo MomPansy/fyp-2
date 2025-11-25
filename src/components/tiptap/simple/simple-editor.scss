@@ -34,6 +34,12 @@ body {
   font-family: "DM Sans", sans-serif;
 }
 
+.simple-editor-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .content-wrapper {
   height: calc(100% - var(--tt-toolbar-height));
   overflow-y: auto;

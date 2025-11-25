@@ -60,6 +60,15 @@ function RouteComponent() {
       <h2>Problem Description</h2>
       <p>This is a placeholder problem description. The actual problem data could not be loaded.</p>
       <p>Please check your connection and try again, or contact support if the issue persists.</p>
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque laoreet, est et volutpat pulvinar, urna nibh mattis metus, quis pretium leo eros et ex. Vestibulum quis tellus bibendum, aliquam leo a, iaculis ligula. Nam ut elit in quam vestibulum tempor. Morbi tincidunt viverra nisl, sed faucibus nisi pulvinar in. Etiam dolor nibh, ullamcorper vel dui in, maximus porttitor risus. Aenean in pharetra nisi. Fusce pellentesque massa non tincidunt efficitur. Vestibulum facilisis porta ipsum, vitae cursus quam placerat a. Vivamus tempus scelerisque dui, non elementum risus aliquet ut. Mauris ullamcorper libero quis faucibus semper. Aliquam ut orci velit. Duis mollis neque felis, in eleifend magna vehicula quis.
+
+Suspendisse et urna urna. Aenean ut mauris lacinia, scelerisque risus nec, sodales sem. Maecenas ante turpis, sagittis suscipit ante vel, lacinia dapibus eros. Mauris malesuada porta mattis. Integer ullamcorper massa eu nulla accumsan, et condimentum turpis commodo. Quisque et sem scelerisque, pellentesque sem sed, gravida nibh. Vivamus laoreet sapien vel aliquet pharetra.
+
+Ut vel egestas dolor. Morbi molestie dignissim ornare. In sed elementum urna, tempor mattis leo. Proin tempor augue lobortis justo dictum porta. Fusce in imperdiet velit. Nam interdum dolor vitae eros iaculis, eget facilisis enim vehicula. Ut eu accumsan neque, ut vehicula dolor. Vestibulum odio diam, lacinia sed lorem a, vestibulum ultrices velit. Nullam tincidunt dui at dapibus faucibus.
+
+Fusce sed neque ut libero congue convallis. Vestibulum nec finibus leo. Vestibulum blandit lacus magna, sit amet tempor lorem lobortis id. Quisque pharetra, metus eu imperdiet facilisis, nulla dolor imperdiet sem, sit amet ultricies mi arcu at turpis. Morbi vestibulum purus non ullamcorper pulvinar. Vestibulum vel odio et est bibendum fringilla. Morbi id euismod eros, et interdum odio. Proin id nulla ut magna tincidunt ultrices. Vivamus ultrices laoreet fringilla. Etiam feugiat egestas ex nec finibus. Praesent facilisis ante dolor, vel commodo dolor pellentesque cursus.
+
+Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentum est tortor, in lacinia sapien varius sit amet. Morbi non nibh sodales purus dignissim dapibus. Fusce sed ultricies odio, at pulvinar lorem. Proin feugiat in urna rhoncus malesuada. In ultricies, sapien sit amet convallis bibendum, arcu nisl tristique nisl, quis vestibulum ex lacus a ipsum. Cras nec ante sed magna mattis cursus. Praesent id urna felis. Aliquam vehicula turpis et diam facilisis, at laoreet lorem sagittis. Fusce consequat ligula sit amet elit dignissim, vel euismod velit efficitur. Pellentesque vel lorem tempus, sodales mi ut, consectetur velit. Fusce pulvinar libero commodo arcu fermentum, non efficitur nunc aliquam. Curabitur pharetra lorem non augue ullamcorper finibus.</p>
     `,
   };
 

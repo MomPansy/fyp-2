@@ -9,18 +9,15 @@ import {
 } from "@mantine/core";
 import { IconMaximize } from "@tabler/icons-react";
 import { useMutationState } from "@tanstack/react-query";
+import { QueryResult } from "../../../../server/problem-database/db-seed/types.ts";
 
 // Define the expected structure of the SQL execution result
-interface SqlExecutionResult {
-  rows: Record<string, unknown>[];
-  rowCount: number;
-}
 
 export function Terminal() {
   const result = useMutationState({
     filters: { mutationKey: ["problem-execute-sql-mutation-key"] },
     select: (mutation) => ({
-      data: mutation.state.data as SqlExecutionResult | undefined,
+      data: mutation.state.data as QueryResult,
       status: mutation.state.status,
     }),
   });
@@ -37,6 +34,7 @@ export function Terminal() {
     const latestResult = result[result.length - 1];
     const t = latestResult.data;
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!t) {
       return (
         <Text c="dimmed" p="md">
@@ -45,7 +43,33 @@ export function Terminal() {
       );
     }
 
-    const columns = Array.from(new Set(t.rows.flatMap((r) => Object.keys(r))));
+    // Check if this is an error result
+    if ("error" in t) {
+      return (
+        <div className="p-4">
+          <Text c="red" fw={600} mb="md">
+            Query failed
+          </Text>
+          <Box
+            style={{
+              backgroundColor: "#1F2937",
+              border: "1px solid #991B1B",
+              borderRadius: "4px",
+              padding: "12px",
+            }}
+          >
+            <Text c="red" style={{ fontFamily: "monospace", fontSize: "13px" }}>
+              {t.error}
+            </Text>
+          </Box>
+        </div>
+      );
+    }
+
+    // Success result - render table
+    const rows = t.rows ?? [];
+    const rowCount = t.rowCount ?? rows.length;
+    const columns = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
 
     const formatValue = (v: unknown): string => {
       if (v === null || v === undefined) {
@@ -68,10 +92,12 @@ export function Terminal() {
     return (
       <div className="p-4">
         <Text c="green" fw={600} mb="md">
-          Query executed successfully — {t.rowCount} rows returned
+          Query executed successfully — {rowCount} row
+          {rowCount !== 1 ? "s" : ""}{" "}
+          {rows.length > 0 ? "returned" : "affected"}
         </Text>
 
-        {t.rows.length > 0 ? (
+        {rows.length > 0 ? (
           <Table
             highlightOnHover
             withTableBorder
@@ -105,7 +131,7 @@ export function Terminal() {
             </Table.Thead>
 
             <Table.Tbody>
-              {t.rows.map((row, i) => (
+              {rows.map((row, i) => (
                 <Table.Tr key={i}>
                   {columns.map((key, j) => {
                     const val = row[key];
@@ -145,8 +171,11 @@ export function Terminal() {
             </Table.Tbody>
           </Table>
         ) : (
-          <Text c="dimmed" p="md">
-            No data returned from query
+          <Text
+            c="dimmed"
+            style={{ fontFamily: "monospace", fontSize: "13px" }}
+          >
+            Query executed successfully (no rows returned)
           </Text>
         )}
       </div>

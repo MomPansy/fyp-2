@@ -40,6 +40,7 @@ export async function executePostgresQuery(
   params?: (string | number | boolean | null)[],
 ): Promise<QueryResult> {
   const result = await pool.query(sql, params);
+  console.info("Postgres query result:", result);
   return {
     rows: result.rows as Record<string, unknown>[],
     rowCount: result.rowCount ?? 0,

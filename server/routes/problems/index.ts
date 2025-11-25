@@ -52,7 +52,7 @@ export const route = factory
     async (c) => {
       const { problemId, tableName } = c.req.valid("json");
       const jwt = c.get("jwtPayload");
-      const userId = jwt?.user_metadata.user_id;
+      const userId = jwt.user_metadata.user_id;
 
       if (!userId) {
         throw new HTTPException(401, {
@@ -200,9 +200,14 @@ export const route = factory
         return c.json(result);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
-        throw new HTTPException(400, {
-          message: `Query failed: ${message}`,
-        });
+        console.error("Query execution error:", message);
+        // Return the SQL error message in the response so the terminal can display it
+        return c.json(
+          {
+            error: message,
+          },
+          400,
+        );
       }
     },
   )
@@ -354,7 +359,7 @@ export const route = factory
 
       const { templateProblemId } = c.req.valid("json");
       const jwt = c.get("jwtPayload");
-      const userId = jwt?.user_metadata.user_id;
+      const userId = jwt.user_metadata.user_id;
 
       if (!userId) {
         throw new HTTPException(401, {
