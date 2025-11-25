@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   Button,
   Group,
@@ -14,7 +15,7 @@ import {
   Checkbox,
   ActionIcon,
 } from "@mantine/core";
-import { IconClock, IconEdit } from "@tabler/icons-react";
+import { IconCalendar, IconClock, IconEdit } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useCallback, useState } from "react";
 import { dayjs } from "@/lib/dayjs.ts";
@@ -28,6 +29,7 @@ import { TableSkeleton } from "@/components/assessments/skeleton.tsx";
 import { Filters } from "@/components/assessments/filters.tsx";
 import { generateUUID } from "@/lib/utils.ts";
 import { useUser } from "@/hooks/auth.ts";
+import { getAssessmentStatus } from "@/components/assessments/utils.ts";
 
 export const Route = createFileRoute("/_admin/admin/assessments")({
   component: RouteComponent,
@@ -187,15 +189,10 @@ function AssessmentPage() {
                               : undefined
                           }
                           style={{ cursor: "pointer" }}
-                          onClick={() => {
-                            // Toggle checkbox selection
-                            setSelectedRows((prevSelectedRows) =>
-                              prevSelectedRows.includes(assessment.id)
-                                ? prevSelectedRows.filter(
-                                  (id) => id !== assessment.id,
-                                )
-                                : [...prevSelectedRows, assessment.id],
-                            );
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleClick(assessment.id);
                           }}
                         >
                           <Table.Td>
@@ -220,9 +217,20 @@ function AssessmentPage() {
                           <Table.Td style={{ minWidth: "400px" }}>
                             <Flex align="flex-start" gap="md">
                               <Box>
-                                <Text fw={600} size="md" mb={4}>
-                                  {assessment.name}
-                                </Text>
+                                <Group gap="xs" mb={4}>
+                                  <Text fw={600} size="md">
+                                    {assessment.name}
+                                  </Text>
+                                  <Badge
+                                    variant="light"
+                                    color={
+                                      getAssessmentStatus(assessment).color
+                                    }
+                                    size="sm"
+                                  >
+                                    {getAssessmentStatus(assessment).label}
+                                  </Badge>
+                                </Group>
                                 <Text size="sm" c="dimmed" mb={8}>
                                   No description available
                                 </Text>
@@ -239,11 +247,16 @@ function AssessmentPage() {
                                         : "No time limit"}
                                     </Text>
                                   </Group>
-                                  <Text size="xs" c="dimmed">
-                                    {dayjs(assessment.created_at).format(
-                                      "MMM D, YYYY",
-                                    )}
-                                  </Text>
+                                  <Group gap="xs">
+                                    <IconCalendar size={12} />
+                                    <Text size="xs" c="dimmed">
+                                      {assessment.date_time_scheduled
+                                        ? dayjs(
+                                          assessment.date_time_scheduled,
+                                        ).format("MMM D, YYYY")
+                                        : "Not scheduled"}
+                                    </Text>
+                                  </Group>
                                 </Flex>
                               </Box>
                             </Flex>

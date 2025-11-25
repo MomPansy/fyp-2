@@ -18,6 +18,7 @@ import {
   useFetchAssessmentCandidateInvitations,
   useUpsertAssessmentCandidateMutation,
   useSendInvitationsMutation,
+  useFetchAssessmentById,
 } from "../hooks.ts";
 import { DropCSV } from "@/components/problems/dropzone.tsx";
 import { Row } from "@/components/problems/database/table-manager/csv-import.store.ts";
@@ -40,6 +41,9 @@ export function CandidatesTab() {
     from: "/_admin/admin/assessment/$id/details",
   });
   const { data } = useFetchAssessmentCandidateInvitations(assessment_id);
+  const { data: assessmentData } = useFetchAssessmentById(assessment_id);
+  const isCancelled = !!assessmentData?.archived_at;
+
   const displayCandidates: Row[] =
     candidates.length > 0 ? candidates : (data as Row[]);
 
@@ -238,6 +242,12 @@ export function CandidatesTab() {
 
   return (
     <Stack>
+      {isCancelled && (
+        <Alert variant="light" color="red" title="Assessment Cancelled">
+          This assessment is cancelled. Restore it to manage candidates or send
+          invitations.
+        </Alert>
+      )}
       <Alert
         variant="light"
         color="blue"
@@ -248,7 +258,12 @@ export function CandidatesTab() {
         <strong>email</strong>, <strong>full_name</strong>, and{" "}
         <strong>matriculation_number</strong>.
       </Alert>
-      <DropCSV onDrop={onDrop} accept={[MIME_TYPES.csv]} maxFiles={1} />
+      <DropCSV
+        onDrop={onDrop}
+        accept={[MIME_TYPES.csv]}
+        maxFiles={1}
+        disabled={isCancelled}
+      />
       {displayCandidates.length > 0 && (
         <Stack gap="md">
           <Group justify="space-between">
@@ -305,13 +320,19 @@ export function CandidatesTab() {
           </ScrollArea>
           <Group justify="flex-end">
             {candidates.length > 0 && (
-              <Button onClick={handleSave} variant="light">
+              <Button
+                onClick={handleSave}
+                variant="light"
+                disabled={isCancelled}
+              >
                 Save Candidates
               </Button>
             )}
             <Button
               onClick={handleSendInvitations}
-              disabled={displayCandidates.length === 0 || isSending}
+              disabled={
+                displayCandidates.length === 0 || isSending || isCancelled
+              }
               loading={isSending}
               leftSection={<IconSend size={16} />}
             >

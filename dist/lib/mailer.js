@@ -15,8 +15,15 @@ function getMailTransporter() {
     // For development with Mailpit, accept any cert
     tls: {
       rejectUnauthorized: false
-    }
+    },
+    logger: true,
+    // Enable logging
+    debug: true
+    // Enable debug output
   });
+  console.info(
+    `[Mailer] Using SMTP: ${appEnvVariables.SMTP_HOST}:${appEnvVariables.SMTP_PORT}`
+  );
   return transporter;
 }
 function getGmailTransporter() {

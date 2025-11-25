@@ -216,6 +216,20 @@ export const useAddAssessmentProblemMutation = () => {
       assessment,
       problems,
     }: AddAssessmentProblemMutationProps) => {
+      // Check if assessment is archived first
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("assessments")
+        .select("archived_at")
+        .eq("id", assessment)
+        .single();
+
+      if (assessmentError) throw new Error(assessmentError.message);
+      if (assessmentData.archived_at) {
+        throw new Error(
+          "Cannot modify a cancelled assessment. Please restore it first.",
+        );
+      }
+
       const { data, error } = await supabase
         .from("assessment_problems")
         .upsert(
@@ -252,6 +266,20 @@ export const useUpsertAssessmentCandidateMutation = () => {
       }
 
       const assessmentId = candidates[0].assessment_id;
+
+      // Check if assessment is archived first
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("assessments")
+        .select("archived_at")
+        .eq("id", assessmentId)
+        .single();
+
+      if (assessmentError) throw new Error(assessmentError.message);
+      if (assessmentData.archived_at) {
+        throw new Error(
+          "Cannot modify candidates for a cancelled assessment. Please restore it first.",
+        );
+      }
 
       // Check if there are existing invitations before deleting
       const { data: existingInvitations, error: checkError } = await supabase
@@ -337,7 +365,7 @@ export const useSendInvitationsMutation = () => {
 interface UpdateAssessmentSettingsProps {
   id: string;
   dateTimeScheduled: string | null;
-  duration: string;
+  duration: number;
 }
 
 export const useUpdateAssessmentSettingsMutation = () => {
@@ -348,11 +376,25 @@ export const useUpdateAssessmentSettingsMutation = () => {
       dateTimeScheduled,
       duration,
     }: UpdateAssessmentSettingsProps) => {
+      // Check if assessment is archived first
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("assessments")
+        .select("archived_at")
+        .eq("id", id)
+        .single();
+
+      if (assessmentError) throw new Error(assessmentError.message);
+      if (assessmentData.archived_at) {
+        throw new Error(
+          "Cannot update settings for a cancelled assessment. Please restore it first.",
+        );
+      }
+
       const { data, error } = await supabase
         .from("assessments")
         .update({
           date_time_scheduled: dateTimeScheduled,
-          duration: Number(duration),
+          duration: duration,
         })
         .eq("id", id)
         .select()
@@ -382,9 +424,83 @@ export const useUpdateAssessmentNameMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, name }: UpdateAssessmentNameProps) => {
+      // Check if assessment is archived first
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("assessments")
+        .select("archived_at")
+        .eq("id", id)
+        .single();
+
+      if (assessmentError) throw new Error(assessmentError.message);
+      if (assessmentData.archived_at) {
+        throw new Error(
+          "Cannot update name for a cancelled assessment. Please restore it first.",
+        );
+      }
+
       const { data, error } = await supabase
         .from("assessments")
         .update({ name })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific assessment query
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate all assessments list
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
+
+interface CancelAssessmentProps {
+  id: string;
+}
+
+export const useCancelAssessmentMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: CancelAssessmentProps) => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .update({ archived_at: new Date().toISOString() })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      return data;
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific assessment query
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate all assessments list
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
+
+interface RestoreAssessmentProps {
+  id: string;
+}
+
+export const useRestoreAssessmentMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: RestoreAssessmentProps) => {
+      const { data, error } = await supabase
+        .from("assessments")
+        .update({ archived_at: null })
         .eq("id", id)
         .select()
         .single();

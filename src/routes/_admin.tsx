@@ -1,4 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+/* eslint-disable @typescript-eslint/only-throw-error */
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { accessTokenQueryOptions } from "@/hooks/auth.ts";
 import { Sidebar } from "components/sidebar.tsx";
 export const Route = createFileRoute("/_admin")({
@@ -7,14 +8,19 @@ export const Route = createFileRoute("/_admin")({
       const { payload } = await queryClient.ensureQueryData(
         accessTokenQueryOptions,
       );
-
       // Only allow admins to access this route
       if (payload.user_metadata.role !== "admin") {
-        redirect({ to: "/student/dashboard", throw: true });
+        throw redirect({ to: "/student/dashboard" });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_error) {
-      redirect({ to: "/login", throw: true });
+    } catch (error) {
+      // If it's a redirect, re-throw it so it's not caught here
+      if (isRedirect(error)) {
+        throw error;
+      }
+
+      console.info("User not authenticated, redirecting to login");
+      console.error(error);
+      throw redirect({ to: "/login" });
     }
   },
   component: RouteComponent,

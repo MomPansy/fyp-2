@@ -11,9 +11,13 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { MantineProvider } from "@mantine/core";
+import { DatesProvider } from "@mantine/dates";
 import { Notifications } from "@mantine/notifications";
 import { theme } from "./theme.ts";
 import { routeTree } from "./routeTree.gen.ts";
+
+// Import dayjs config with plugins
+import "./lib/dayjs.ts";
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -42,8 +46,12 @@ if (!rootElement.innerHTML) {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <MantineProvider theme={theme}>
-          <RouterProvider router={router} />
-          <Notifications position="top-right" />
+          <DatesProvider
+            settings={{ firstDayOfWeek: 0, locale: "Asia/Singapore" }}
+          >
+            <RouterProvider router={router} />
+            <Notifications position="top-right" />
+          </DatesProvider>
         </MantineProvider>
       </QueryClientProvider>
     </StrictMode>,

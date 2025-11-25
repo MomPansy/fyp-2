@@ -1,4 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+/* eslint-disable @typescript-eslint/only-throw-error */
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { Sidebar } from "components/sidebar.tsx";
 import { accessTokenQueryOptions } from "@/hooks/auth.ts";
 
@@ -11,11 +12,15 @@ export const Route = createFileRoute("/_student")({
 
       // Only allow students to access this route
       if (payload.user_metadata.role !== "student") {
-        redirect({ to: "/login", throw: true });
+        throw redirect({ to: "/login" });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_error) {
-      redirect({ to: "/login", throw: true });
+    } catch (error) {
+      // If it's a redirect, re-throw it so it's not caught here
+      if (isRedirect(error)) {
+        throw error;
+      }
+
+      throw redirect({ to: "/login" });
     }
   },
   component: RouteComponent,

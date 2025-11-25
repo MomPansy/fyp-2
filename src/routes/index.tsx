@@ -1,4 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+/* eslint-disable @typescript-eslint/only-throw-error */
+import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
 import { accessTokenQueryOptions } from "hooks/auth.ts";
 
 export const Route = createFileRoute("/")({
@@ -10,13 +11,19 @@ export const Route = createFileRoute("/")({
 
       // Redirect to appropriate dashboard based on role
       if (payload.user_metadata.role === "admin") {
-        redirect({ to: "/admin/dashboard", throw: true });
+        throw redirect({ to: "/admin/dashboard" });
       } else {
-        redirect({ to: "/student/dashboard", throw: true });
+        throw redirect({ to: "/student/dashboard" });
       }
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_error) {
-      redirect({ to: "/login", throw: true });
+    } catch (error) {
+      // If it's a redirect, re-throw it so it's not caught here
+      if (isRedirect(error)) {
+        throw error;
+      }
+
+      // Authentication error - redirect to login
+      console.error("Authentication error, redirecting to login:", error);
+      throw redirect({ to: "/login" });
     }
   },
 });

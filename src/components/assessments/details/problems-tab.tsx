@@ -29,6 +29,7 @@ import {
   IconCalendar,
   IconClock,
   IconGripVertical,
+  IconTimeDuration60,
   IconTrophy,
 } from "@tabler/icons-react";
 import { useParams } from "@tanstack/react-router";
@@ -37,6 +38,7 @@ import { useEffect } from "react";
 import { CSS } from "@dnd-kit/utilities";
 import dayjs from "dayjs";
 import { AssessmentProblem, useFetchAssessmentById } from "../hooks.ts";
+import { getAssessmentStatus } from "../utils.ts";
 import { ProblemBankModal } from "./problem-bank/index.ts";
 
 export function ProblemsTab() {
@@ -50,23 +52,17 @@ export function ProblemsTab() {
 
   // Format the scheduled date
   const formattedDate = data?.date_time_scheduled
-    ? dayjs(data.date_time_scheduled).format("MMM DD, YYYY - hh:mm A")
+    ? dayjs(data.date_time_scheduled).format("DD MMM YYYY")
+    : undefined;
+
+  const formattedTime = data?.date_time_scheduled
+    ? dayjs(data.date_time_scheduled).format("hh:mm A")
     : "Not scheduled";
 
-  // Determine assessment status
-  const getAssessmentStatus = () => {
-    if (!data?.date_time_scheduled) {
-      return { label: "Draft", color: "gray" };
-    }
-    const now = new Date();
-    const scheduledDate = new Date(data.date_time_scheduled);
-    if (scheduledDate > now) {
-      return { label: "Scheduled", color: "blue" };
-    }
-    return { label: "Active", color: "green" };
-  };
-
-  const status = getAssessmentStatus();
+  const status = data
+    ? getAssessmentStatus(data)
+    : { label: "Draft", color: "gray" };
+  const isCancelled = !!data?.archived_at;
 
   return (
     <>
@@ -85,8 +81,14 @@ export function ProblemsTab() {
                   <IconCalendar size={16} stroke="2.5px" color="blue" />
                   <Text size="sm">Date: &nbsp;{formattedDate}</Text>
                 </Group>
+                {formattedTime && (
+                  <Group gap={"3px"} align="center">
+                    <IconClock size={16} stroke="2.5px" color="blue" />
+                    <Text size="sm">Time: &nbsp;{formattedTime}</Text>
+                  </Group>
+                )}
                 <Group gap={"3px"} align="center">
-                  <IconClock size={16} stroke="2.5px" color="blue" />
+                  <IconTimeDuration60 size={16} stroke="2.5px" color="blue" />
                   <Text size="sm">
                     Duration: &nbsp;{data?.duration ?? 60} minutes
                   </Text>
@@ -105,8 +107,15 @@ export function ProblemsTab() {
                 <Text fw="bold">
                   Problems ({data?.assessment_problems.length ?? 0})
                 </Text>
-                <Button onClick={open}>Manage</Button>
+                <Button onClick={open} disabled={isCancelled}>
+                  Manage
+                </Button>
               </Group>
+              {isCancelled && (
+                <Text size="sm" c="dimmed">
+                  This assessment is cancelled. Restore it to manage problems.
+                </Text>
+              )}
               <DNDListHandle problems={data?.assessment_problems} />
             </Stack>
           </Stack>
