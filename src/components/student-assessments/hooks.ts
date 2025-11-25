@@ -39,6 +39,7 @@ export interface EndedResponse {
 export interface ActiveResponse {
   status: "active";
   assessment: ActiveAssessment;
+  serverTime?: string; // ISO timestamp from server for time synchronization
 }
 
 export type StudentAssessmentResponse =

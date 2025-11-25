@@ -195,11 +195,15 @@ function AssessmentPage() {
                             handleClick(assessment.id);
                           }}
                         >
-                          <Table.Td>
+                          <Table.Td
+                            onClick={(event) => {
+                              event.stopPropagation();
+                            }}
+                          >
                             <Checkbox
                               aria-label="Select row"
                               checked={selectedRows.includes(assessment.id)}
-                              onChange={(event) =>
+                              onChange={(event) => {
                                 setSelectedRows(
                                   event.currentTarget.checked
                                     ? [...selectedRows, assessment.id]
@@ -207,10 +211,6 @@ function AssessmentPage() {
                                       (id) => id !== assessment.id,
                                     ),
                                 )
-                              }
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
                               }}
                             />
                           </Table.Td>

@@ -1,7 +1,7 @@
 import { Panel } from "react-resizable-panels";
 import MonacoEditorReact from "@monaco-editor/react";
 import { editor } from "monaco-editor";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   Button,
   Select,
@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { IconPlayerPlay, IconCheck, IconInfoCircle } from "@tabler/icons-react";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useSaveUserProblemMutation } from "./hooks.ts";
 import {
   SUPPORTED_DIALECTS,
@@ -25,6 +25,9 @@ import { showErrorNotification } from "@/components/notifications.ts";
 
 interface SqlEditorProps {
   podName?: string;
+  problemId: string;
+  initialCode?: string;
+  onCodeChange?: (code: string) => void;
 }
 
 // Map dialect values to user-friendly labels
@@ -41,11 +44,12 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
   label: dialectLabels[dialect],
 }));
 
-export function SqlEditor({ podName }: SqlEditorProps) {
-  const { id: problemId } = useParams({
-    from: "/_admin/admin/problem/$id/create",
-  });
-
+export function SqlEditor({
+  podName,
+  problemId,
+  initialCode,
+  onCodeChange,
+}: SqlEditorProps) {
   const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -53,11 +57,26 @@ export function SqlEditor({ podName }: SqlEditorProps) {
   const { mutate: saveAnswer } = useSaveUserProblemMutation();
 
   const [sqlCode, setSqlCode] = useState<string | undefined>(
+    initialCode ??
     `SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`,
   );
 
   const [sqlDialect, setSqlDialect] = useState<Dialect>("postgres");
   const [opened, { open, close }] = useDisclosure(false);
+
+  // Update sqlCode when initialCode changes (when switching problems)
+  useEffect(() => {
+    if (initialCode !== undefined) {
+      setSqlCode(initialCode);
+    }
+  }, [initialCode]);
+
+  // Call onCodeChange when sqlCode changes
+  useEffect(() => {
+    if (onCodeChange && sqlCode !== undefined) {
+      onCodeChange(sqlCode);
+    }
+  }, [sqlCode, onCodeChange]);
 
   const handleDialectChange = (value: string | null) => {
     if (value && SUPPORTED_DIALECTS.includes(value as Dialect)) {
@@ -90,6 +109,13 @@ export function SqlEditor({ podName }: SqlEditorProps) {
     if (!sqlCode) {
       showErrorNotification({
         message: "SQL code cannot be empty.",
+      });
+      return;
+    }
+
+    if (!problemId) {
+      showErrorNotification({
+        message: "Problem ID is not available.",
       });
       return;
     }

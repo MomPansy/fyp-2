@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { Panel, PanelGroup } from "react-resizable-panels";
 import {
   databaseConnectionQueryOptions,
   userProblemDetailQueryOptions,
@@ -11,6 +11,10 @@ import {
   Terminal,
 } from "@/components/problems/create/index.ts";
 import { accessTokenQueryOptions } from "@/hooks/auth.ts";
+import {
+  HorizontalResizeHandle,
+  VerticalResizeHandle,
+} from "@/components/resize-handles.tsx";
 
 export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -48,6 +52,7 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
 
 function RouteComponent() {
   const loaderData = Route.useLoaderData();
+  const { id } = Route.useParams();
 
   // Provide placeholder data if loader data is not available
   const problemDetails = loaderData?.problemDetails ?? {
@@ -69,31 +74,11 @@ function RouteComponent() {
       <VerticalResizeHandle />
       <Panel defaultSize={60} minSize={40}>
         <PanelGroup direction="vertical" className="h-full">
-          <SqlEditor podName={databaseConnectionKey?.podName} />
+          <SqlEditor podName={databaseConnectionKey?.podName} problemId={id} />
           <HorizontalResizeHandle />
           <Terminal />
         </PanelGroup>
       </Panel>
     </PanelGroup>
-  );
-}
-
-function VerticalResizeHandle() {
-  return (
-    <PanelResizeHandle className="w-2 bg-gray-300 hover:bg-gray-400 transition-colors">
-      <div className="h-full flex items-center justify-center">
-        <div className="w-1 h-8 bg-gray-500 rounded"></div>
-      </div>
-    </PanelResizeHandle>
-  );
-}
-
-function HorizontalResizeHandle() {
-  return (
-    <PanelResizeHandle className="h-2 bg-gray-300 hover:bg-gray-400 transition-colors">
-      <div className="w-full flex items-center justify-center">
-        <div className="h-1 w-8 bg-gray-500 rounded"></div>
-      </div>
-    </PanelResizeHandle>
   );
 }

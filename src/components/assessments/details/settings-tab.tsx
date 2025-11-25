@@ -77,7 +77,7 @@ export function SettingsTab() {
     mode: "uncontrolled",
     initialValues: {
       name: data?.name ?? "",
-      dateTimeScheduled: data?.date_time_scheduled,
+      dateTimeScheduled: data?.date_time_scheduled ?? null,
       duration: data?.duration ?? 60,
     },
     validate: zodResolver(settingsSchema),
@@ -96,15 +96,10 @@ export function SettingsTab() {
         });
       }
 
-      // Convert local datetime to UTC for storage
-      const dateTimeScheduledUTC = values.dateTimeScheduled
-        ? dayjs(values.dateTimeScheduled).utc().format()
-        : null;
-
       // Update settings (date and duration)
       await updateSettingsMutation.mutateAsync({
         id,
-        dateTimeScheduled: dateTimeScheduledUTC,
+        dateTimeScheduled: values.dateTimeScheduled ?? null,
         duration: values.duration,
       });
 

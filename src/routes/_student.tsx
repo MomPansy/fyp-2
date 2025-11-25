@@ -1,5 +1,12 @@
 /* eslint-disable @typescript-eslint/only-throw-error */
-import { createFileRoute, redirect, isRedirect } from "@tanstack/react-router";
+import { Suspense } from "react";
+import {
+  createFileRoute,
+  redirect,
+  isRedirect,
+  Outlet,
+  useRouterState,
+} from "@tanstack/react-router";
 import { Sidebar } from "components/sidebar.tsx";
 import { accessTokenQueryOptions } from "@/hooks/auth.ts";
 
@@ -27,5 +34,21 @@ export const Route = createFileRoute("/_student")({
 });
 
 function RouteComponent() {
+  const routerState = useRouterState();
+  const pathname = routerState.location.pathname;
+
+  // Hide sidebar for assessment routes (full screen experience)
+  const hideNavbar = pathname.includes("/student/assessment/");
+
+  if (hideNavbar) {
+    return (
+      <div style={{ height: "100vh", overflow: "hidden" }}>
+        <Suspense>
+          <Outlet />
+        </Suspense>
+      </div>
+    );
+  }
+
   return <Sidebar />;
 }

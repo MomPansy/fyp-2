@@ -11,7 +11,6 @@ import {
   ThemeIcon,
   Alert,
 } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import {
@@ -21,6 +20,7 @@ import {
   IconAlertCircle,
   IconCheck,
 } from "@tabler/icons-react";
+import { showSuccessNotification } from "../notifications.ts";
 import { api } from "lib/api.ts";
 import { showError, showSuccess } from "utils/notifications.tsx";
 import { useSendOtp, useVerifyOtp } from "hooks/useOtp.ts";
@@ -74,7 +74,7 @@ export function InvitationAccept() {
       return response.json();
     },
     onSuccess: (data) => {
-      notifications.show({
+      showSuccessNotification({
         title: "Invitation Accepted!",
         message: data.accountExists
           ? "Welcome back! Sending OTP to your email..."
