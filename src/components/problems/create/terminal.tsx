@@ -9,15 +9,29 @@ import {
 } from "@mantine/core";
 import { IconMaximize } from "@tabler/icons-react";
 import { useMutationState } from "@tanstack/react-query";
-import { QueryResult } from "../../../../server/problem-database/db-seed/types.ts";
 
-// Define the expected structure of the SQL execution result
+// Type definitions based on the API response structure
+interface QuerySuccess {
+  rows?: Record<string, unknown>[];
+  rowCount?: number;
+  affectedRows?: number;
+}
+
+interface QueryError {
+  error: string;
+}
+
+type QueryResult = QuerySuccess | QueryError;
+
+function isQueryError(data: QueryResult): data is QueryError {
+  return "error" in data;
+}
 
 export function Terminal() {
   const result = useMutationState({
     filters: { mutationKey: ["problem-execute-sql-mutation-key"] },
     select: (mutation) => ({
-      data: mutation.state.data as QueryResult,
+      data: mutation.state.data as QueryResult | undefined,
       status: mutation.state.status,
     }),
   });
@@ -34,7 +48,6 @@ export function Terminal() {
     const latestResult = result[result.length - 1];
     const t = latestResult.data;
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!t) {
       return (
         <Text c="dimmed" p="md">
@@ -43,33 +56,39 @@ export function Terminal() {
       );
     }
 
-    // Check if this is an error result
-    if ("error" in t) {
+    // Handle error case
+    if (isQueryError(t)) {
       return (
         <div className="p-4">
           <Text c="red" fw={600} mb="md">
-            Query failed
+            Query execution failed
           </Text>
-          <Box
-            style={{
-              backgroundColor: "#1F2937",
-              border: "1px solid #991B1B",
-              borderRadius: "4px",
-              padding: "12px",
-            }}
+          <Text
+            c="red"
+            style={{ fontFamily: "monospace", whiteSpace: "pre-wrap" }}
           >
-            <Text c="red" style={{ fontFamily: "monospace", fontSize: "13px" }}>
-              {t.error}
-            </Text>
-          </Box>
+            {t.error}
+          </Text>
         </div>
       );
     }
 
-    // Success result - render table
-    const rows = t.rows ?? [];
-    const rowCount = t.rowCount ?? rows.length;
-    const columns = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
+    // Handle success case - t is now QuerySuccess
+    if (!t.rows || t.rows.length === 0) {
+      return (
+        <div className="p-4">
+          <Text c="green" fw={600} mb="md">
+            Query executed successfully {" — "}{" "}
+            {t.rowCount ?? t.affectedRows ?? 0} rows affected
+          </Text>
+          <Text c="dimmed" p="md">
+            No data returned from query
+          </Text>
+        </div>
+      );
+    }
+
+    const columns = Array.from(new Set(t.rows.flatMap((r) => Object.keys(r))));
 
     const formatValue = (v: unknown): string => {
       if (v === null || v === undefined) {
@@ -92,12 +111,10 @@ export function Terminal() {
     return (
       <div className="p-4">
         <Text c="green" fw={600} mb="md">
-          Query executed successfully — {rowCount} row
-          {rowCount !== 1 ? "s" : ""}{" "}
-          {rows.length > 0 ? "returned" : "affected"}
+          Query executed successfully — {t.rowCount} rows returned
         </Text>
 
-        {rows.length > 0 ? (
+        {t.rows.length > 0 ? (
           <Table
             highlightOnHover
             withTableBorder
@@ -131,7 +148,7 @@ export function Terminal() {
             </Table.Thead>
 
             <Table.Tbody>
-              {rows.map((row, i) => (
+              {t.rows.map((row, i) => (
                 <Table.Tr key={i}>
                   {columns.map((key, j) => {
                     const val = row[key];
@@ -171,11 +188,8 @@ export function Terminal() {
             </Table.Tbody>
           </Table>
         ) : (
-          <Text
-            c="dimmed"
-            style={{ fontFamily: "monospace", fontSize: "13px" }}
-          >
-            Query executed successfully (no rows returned)
+          <Text c="dimmed" p="md">
+            No data returned from query
           </Text>
         )}
       </div>

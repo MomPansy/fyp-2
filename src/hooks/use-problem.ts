@@ -4,7 +4,7 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query";
-import { QueryResult } from "server/problem-database/db-seed/types.ts";
+import { InferResponseType } from "hono";
 import { Dialect } from "server/problem-database/mappings.ts";
 import { showErrorNotification } from "components/notifications.ts";
 import {
@@ -279,8 +279,16 @@ interface ExecuteSQLMutationOptions {
   sql: string;
 }
 
+export type ExecuteSQLMutationResult = InferResponseType<
+  typeof api.problems.execute.$post
+>;
+
 export const useExecuteSQLMutation = () => {
-  return useMutation<QueryResult, Error, ExecuteSQLMutationOptions>({
+  return useMutation<
+    ExecuteSQLMutationResult,
+    Error,
+    ExecuteSQLMutationOptions
+  >({
     mutationKey: [PROBLEM_EXECUTE_SQL_MUTATION_KEY],
     mutationFn: async ({
       podName,

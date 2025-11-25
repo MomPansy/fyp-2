@@ -18,17 +18,11 @@ export interface SeedTable {
   relations: MappedRelation[] | null;
 }
 
-interface SuccessResult {
+export interface QueryResult {
   rows?: Record<string, unknown>[];
   rowCount?: number;
   affectedRows?: number;
 }
-
-interface ErrorResult {
-  error: string;
-}
-
-export type QueryResult = SuccessResult | ErrorResult;
 
 export interface CountResult extends Record<string, unknown> {
   count: number;
