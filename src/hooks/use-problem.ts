@@ -305,16 +305,9 @@ export const useExecuteSQLMutation = () => {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error("Failed to execute SQL");
-      }
+      // Return the data regardless of status - let the terminal handle errors
+      // The backend returns { error: "message" } for SQL errors
       return data;
-    },
-    onError: (error) => {
-      showErrorNotification({
-        title: "Failed to execute SQL",
-        message: error.message || "An unknown error occurred",
-      });
     },
   });
 };
