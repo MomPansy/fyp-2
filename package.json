@@ -78,7 +78,8 @@
     "postgres": "^3.4.5",
     "vaul": "^1.1.2",
     "zod": "^3.24.1",
-    "zustand": "^5.0.7"
+    "zustand": "^5.0.7",
+    "jose": "^5.9.2"
   },
   "devDependencies": {
     "@devoss/tailwind-plugin-mantine": "^2.1.0",
@@ -135,7 +136,6 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.12",
     "globals": "^15.9.0",
-    "jose": "^5.9.2",
     "js-cookie": "^3.0.5",
     "libsodium-wrappers": "^0.7.15",
     "lint-staged": "^15.2.10",
