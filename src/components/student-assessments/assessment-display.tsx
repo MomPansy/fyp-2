@@ -63,36 +63,91 @@ export function AssessmentEnded({ data }: AssessmentEndedProps) {
   const timeAgo = endDate.fromNow();
 
   return (
-    <Stack gap="lg" align="center" justify="center" mih={400}>
-      <Paper p="xl" radius="md" withBorder w="100%" maw={600}>
-        <Stack gap="md" align="center">
-          <IconClockOff
-            size={64}
-            stroke={1.5}
-            color="var(--mantine-color-red-6)"
-          />
-          <Title order={2} ta="center">
-            Assessment Ended
-          </Title>
-          <Text size="lg" ta="center" c="dimmed">
-            {data.assessmentName}
-          </Text>
-          <Alert color="red" radius="md" w="100%">
-            <Stack gap="xs">
-              <Text fw={500}>Assessment Period</Text>
-              <Text size="sm">
-                Started: {scheduledDate.format("MMMM D, YYYY [at] h:mm A")}
-              </Text>
-              <Text size="sm">
-                Ended: {endDate.format("MMMM D, YYYY [at] h:mm A")}
-              </Text>
-              <Text size="sm" c="dimmed">
-                Ended {timeAgo}
-              </Text>
+    <Stack gap="xl" align="center" justify="center" mih={400}>
+      <Paper
+        p="xl"
+        radius="lg"
+        withBorder
+        w="100%"
+        maw={500}
+        shadow="md"
+        style={{
+          borderColor: "var(--mantine-color-gray-3)",
+          background:
+            "linear-gradient(180deg, var(--mantine-color-gray-0) 0%, var(--mantine-color-white) 100%)",
+        }}
+      >
+        <Stack gap="xl" align="center">
+          <div
+            style={{
+              background: "var(--mantine-color-red-0)",
+              borderRadius: "50%",
+              padding: "1.25rem",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <IconClockOff
+              size={48}
+              stroke={1.5}
+              color="var(--mantine-color-red-6)"
+            />
+          </div>
+
+          <Stack gap="xs" align="center">
+            <Badge color="red" variant="light" size="lg" radius="sm">
+              Assessment Closed
+            </Badge>
+            <Title order={2} ta="center" fw={600}>
+              {data.assessmentName}
+            </Title>
+          </Stack>
+
+          <Card
+            w="100%"
+            padding="md"
+            radius="md"
+            withBorder
+            style={{
+              borderColor: "var(--mantine-color-gray-2)",
+              backgroundColor: "var(--mantine-color-gray-0)",
+            }}
+          >
+            <Stack gap="sm">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text size="sm" c="dimmed" fw={500}>
+                  Started
+                </Text>
+                <Text size="sm" fw={500}>
+                  {scheduledDate.format("MMM D, YYYY · h:mm A")}
+                </Text>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Text size="sm" c="dimmed" fw={500}>
+                  Ended
+                </Text>
+                <Text size="sm" fw={500}>
+                  {endDate.format("MMM D, YYYY · h:mm A")}
+                </Text>
+              </div>
             </Stack>
-          </Alert>
+          </Card>
+
           <Text size="sm" ta="center" c="dimmed">
-            This assessment is no longer available for completion.
+            This assessment ended {timeAgo} and is no longer available.
           </Text>
         </Stack>
       </Paper>

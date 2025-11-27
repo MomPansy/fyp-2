@@ -25,6 +25,7 @@ import { api } from "lib/api.ts";
 import { showError, showSuccess } from "utils/notifications.tsx";
 import { useSendOtp, useVerifyOtp } from "hooks/useOtp.ts";
 import { OtpVerification } from "components/auth/OtpVerification.tsx";
+import { AssessmentEnded } from "components/student-assessments/assessment-display.tsx";
 import { dayjs } from "lib/dayjs.ts";
 
 export function InvitationAccept() {
@@ -45,10 +46,47 @@ export function InvitationAccept() {
       const response = await api.invitations[":token"].$get({
         param: { token },
       });
+
+      // Handle different status codes
+      if (response.status === 410) {
+        // Assessment has ended
+        const data = (await response.json()) as {
+          success: false;
+          error: string;
+          message: string;
+          assessmentTitle: string;
+          assessmentDate: string | null;
+          assessmentEndDate?: string;
+        };
+        return {
+          ...data,
+          success: false,
+          error: "assessment_ended" as const,
+        };
+      }
+
+      if (response.status === 400) {
+        // Token expired or other client error
+        const data = (await response.json()) as {
+          success: false;
+          error?: string;
+          message: string;
+          assessmentTitle?: string;
+          assessmentId?: string;
+        };
+        const errorType = data.error ?? "bad_request";
+        return {
+          ...data,
+          success: false,
+          error: errorType,
+        };
+      }
+
       if (!response.ok) {
         const errorMessage = await response.text();
         throw new Error(errorMessage);
       }
+
       return response.json();
     },
     retry: false,
@@ -87,16 +125,21 @@ export function InvitationAccept() {
       setAssessmentId(data.assessmentId);
 
       // Store user email and send OTP
-      const email = invitationData?.invitation.email;
-      if (email) {
-        setUserEmail(email);
-        sendOtpMutation.mutate(email, {
-          onSuccess: () => {
-            setShowOtpInput(true);
-          },
-        });
+      // Only access invitation data if it's a successful response
+      if (invitationData && "invitation" in invitationData) {
+        const email = invitationData.invitation.email;
+        if (email) {
+          setUserEmail(email);
+          sendOtpMutation.mutate(email, {
+            onSuccess: () => {
+              setShowOtpInput(true);
+            },
+          });
+        } else {
+          showError("Could not send OTP: email not found");
+        }
       } else {
-        showError("Could not send OTP: email not found");
+        showError("Could not send OTP: invitation data not available");
       }
     },
     onError: (error) => {
@@ -134,7 +177,78 @@ export function InvitationAccept() {
     );
   }
 
-  if (!invitationData?.invitation) {
+  // Handle assessment ended
+  if (
+    invitationData &&
+    "error" in invitationData &&
+    invitationData.error === "assessment_ended"
+  ) {
+    const assessmentTitle =
+      "assessmentTitle" in invitationData
+        ? (invitationData.assessmentTitle ?? "")
+        : "";
+    const assessmentDate =
+      "assessmentDate" in invitationData && invitationData.assessmentDate
+        ? invitationData.assessmentDate
+        : "";
+    const assessmentEndDate =
+      "assessmentEndDate" in invitationData && invitationData.assessmentEndDate
+        ? invitationData.assessmentEndDate
+        : "";
+
+    return (
+      <Container size="sm" py={80}>
+        <AssessmentEnded
+          data={{
+            status: "ended",
+            assessmentName: assessmentTitle,
+            scheduledDate: assessmentDate,
+            endDate: assessmentEndDate,
+          }}
+        />
+      </Container>
+    );
+  }
+
+  // Handle expired token (but assessment still active)
+  if (
+    invitationData &&
+    "error" in invitationData &&
+    invitationData.error === "token_expired"
+  ) {
+    return (
+      <Container size="sm" py={80}>
+        <Paper shadow="md" p={30} radius="md" withBorder>
+          <Stack gap="md" align="center">
+            <ThemeIcon size={64} radius="md" color="yellow" variant="light">
+              <IconAlertCircle size={32} />
+            </ThemeIcon>
+            <Title order={2} ta="center">
+              Invitation Link Expired
+            </Title>
+            <Text ta="center" c="dimmed">
+              {"assessmentTitle" in invitationData &&
+                invitationData.assessmentTitle}
+            </Text>
+            <Alert color="yellow" variant="light" w="100%">
+              <Text size="sm">
+                {"message" in invitationData && invitationData.message}
+              </Text>
+            </Alert>
+            <Button
+              fullWidth
+              onClick={() => navigate({ to: "/login" })}
+              leftSection={<IconMail size={16} />}
+            >
+              Sign In
+            </Button>
+          </Stack>
+        </Paper>
+      </Container>
+    );
+  }
+
+  if (!invitationData || !("invitation" in invitationData)) {
     return (
       <Container size="sm" py={80}>
         <Paper shadow="md" p={30} radius="md" withBorder>

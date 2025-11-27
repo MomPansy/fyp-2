@@ -42,7 +42,8 @@ async function verifyInvitationToken(token) {
     return validatedPayload;
   } catch (error) {
     if (error instanceof Error) {
-      if (error.message.includes("expired")) {
+      console.error("Invitation token verification error:", error.message);
+      if (error.message.includes("expired") || error.message.includes('"exp" claim timestamp check failed')) {
         throw new Error("Invitation link has expired");
       }
       throw new Error(`Invalid invitation token: ${error.message}`);

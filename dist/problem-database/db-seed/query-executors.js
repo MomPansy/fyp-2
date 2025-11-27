@@ -19,6 +19,7 @@ function narrowPool(pool, dialect) {
 }
 async function executePostgresQuery(pool, sql, params) {
   const result = await pool.query(sql, params);
+  console.info("Postgres query result:", result);
   return {
     rows: result.rows,
     rowCount: result.rowCount ?? 0
@@ -60,10 +61,29 @@ async function executeOracleQuery(pool, sql, params) {
     rowCount: result.rowCount ?? result.affectedRows ?? 0
   };
 }
+async function executeQueryByDialect(pool, sql, dialect) {
+  switch (dialect) {
+    case "postgres":
+      return await executePostgresQuery(pool, sql);
+    case "mysql":
+      return await executeMysqlQuery(pool, sql);
+    case "sqlite":
+      return await executeSqliteQuery(pool, sql);
+    case "sqlserver":
+      return await executeSqlServerQuery(pool, sql);
+    case "oracle":
+      return await executeOracleQuery(pool, sql);
+    default:
+      throw new HTTPException(400, {
+        message: `Unsupported dialect: ${dialect}`
+      });
+  }
+}
 export {
   executeMysqlQuery,
   executeOracleQuery,
   executePostgresQuery,
+  executeQueryByDialect,
   executeSqlServerQuery,
   executeSqliteQuery,
   narrowPool

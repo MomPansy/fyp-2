@@ -7,8 +7,9 @@ import {
   Table,
   ScrollArea,
 } from "@mantine/core";
-import { IconMaximize } from "@tabler/icons-react";
+import { IconMaximize, IconCheck, IconX } from "@tabler/icons-react";
 import { useMutationState } from "@tanstack/react-query";
+import { SUBMIT_ASSESSMENT_MUTATION_KEY } from "./hooks.ts";
 
 // Type definitions based on the API response structure
 interface QuerySuccess {
@@ -23,6 +24,16 @@ interface QueryError {
 
 type QueryResult = QuerySuccess | QueryError;
 
+// Type for assessment submission result
+interface SubmitAssessmentResult {
+  columns?: string[];
+  rows?: Record<string, unknown>[];
+  rowCount?: number;
+  grade?: "pass" | "failed";
+  gradeError?: string;
+  error?: string;
+}
+
 function isQueryError(data: QueryResult): data is QueryError {
   return "error" in data;
 }
@@ -35,6 +46,103 @@ export function Terminal() {
       status: mutation.state.status,
     }),
   });
+
+  const assessmentResult = useMutationState({
+    filters: { mutationKey: SUBMIT_ASSESSMENT_MUTATION_KEY },
+    select: (mutation) => ({
+      data: mutation.state.data as SubmitAssessmentResult | undefined,
+      status: mutation.state.status,
+    }),
+  });
+
+  const renderAssessmentOutput = () => {
+    if (assessmentResult.length === 0) {
+      return null;
+    }
+
+    const latestResult = assessmentResult[assessmentResult.length - 1];
+    const t = latestResult.data;
+
+    if (!t) {
+      return null;
+    }
+
+    // Handle error case
+    if (t.error) {
+      return (
+        <div className="p-4">
+          <Text c="red" fw={600} mb="md">
+            Submission failed
+          </Text>
+          <Text
+            c="red"
+            style={{ fontFamily: "monospace", whiteSpace: "pre-wrap" }}
+          >
+            {t.error}
+          </Text>
+        </div>
+      );
+    }
+
+    // Handle grade result
+    if (t.grade === "pass") {
+      return (
+        <div className="p-4">
+          <Box
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "12px",
+            }}
+          >
+            <IconCheck size={24} color="#10B981" />
+            <Text c="green" fw={700} size="lg">
+              All tests passed!
+            </Text>
+          </Box>
+          <Text c="dimmed" size="sm">
+            Great work! Your solution produces the correct output.
+          </Text>
+        </div>
+      );
+    }
+
+    if (t.grade === "failed") {
+      return (
+        <div className="p-4">
+          <Box
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              marginBottom: "12px",
+            }}
+          >
+            <IconX size={24} color="#EF4444" />
+            <Text c="red" fw={700} size="lg">
+              Tests failed
+            </Text>
+          </Box>
+          <Text c="dimmed" size="sm" mb="md">
+            Your solution did not produce the expected output. Review your query
+            and try again.
+          </Text>
+          {t.gradeError && (
+            <Text
+              c="red"
+              style={{ fontFamily: "monospace", whiteSpace: "pre-wrap" }}
+              size="sm"
+            >
+              {t.gradeError}
+            </Text>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   const renderTerminalOutput = () => {
     if (result.length === 0) {
@@ -216,6 +324,7 @@ export function Terminal() {
           </Tooltip>
         </Box>
         <ScrollArea style={{ flex: 1 }} type="auto">
+          {renderAssessmentOutput()}
           {renderTerminalOutput()}
         </ScrollArea>
       </Box>

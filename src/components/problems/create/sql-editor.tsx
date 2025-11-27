@@ -13,9 +13,17 @@ import {
   Stack,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
-import { IconPlayerPlay, IconCheck, IconInfoCircle } from "@tabler/icons-react";
+import {
+  IconPlayerPlay,
+  IconCheck,
+  IconInfoCircle,
+  IconSend,
+} from "@tabler/icons-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useSaveUserProblemMutation } from "./hooks.ts";
+import {
+  useSaveUserProblemMutation,
+  useSubmitAssessmentMutation,
+} from "./hooks.ts";
 import {
   SUPPORTED_DIALECTS,
   type Dialect,
@@ -23,12 +31,24 @@ import {
 import { useExecuteSQLMutation } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
-interface SqlEditorProps {
+interface BaseSqlEditorProps {
   podName?: string;
   problemId: string;
   initialCode?: string;
   onCodeChange?: (code: string) => void;
 }
+
+interface AdminSqlEditorProps extends BaseSqlEditorProps {
+  mode: "admin";
+}
+
+interface StudentSqlEditorProps extends BaseSqlEditorProps {
+  mode: "student";
+  studentAssessmentId: string;
+  assessmentProblemId: string;
+}
+
+type SqlEditorProps = AdminSqlEditorProps | StudentSqlEditorProps;
 
 // Map dialect values to user-friendly labels
 const dialectLabels: Record<Dialect, string> = {
@@ -44,17 +64,16 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
   label: dialectLabels[dialect],
 }));
 
-export function SqlEditor({
-  podName,
-  problemId,
-  initialCode,
-  onCodeChange,
-}: SqlEditorProps) {
+export function SqlEditor(props: SqlEditorProps) {
+  const { podName, problemId, initialCode, onCodeChange, mode } = props;
   const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const { mutate, isPending } = useExecuteSQLMutation();
-  const { mutate: saveAnswer } = useSaveUserProblemMutation();
+  const { mutate: saveAnswer, isPending: isSaving } =
+    useSaveUserProblemMutation();
+  const { mutate: submitAnswer, isPending: isSubmitting } =
+    useSubmitAssessmentMutation();
 
   const [sqlCode, setSqlCode] = useState<string | undefined>(
     initialCode ??
@@ -101,6 +120,7 @@ export function SqlEditor({
     });
   };
 
+  // Admin mode: Save answer with confirmation modal
   const handleSaveAnswer = () => {
     open();
   };
@@ -125,6 +145,7 @@ export function SqlEditor({
         problemId,
         answer: sqlCode,
         saveAsTemplate,
+        dialect: sqlDialect,
       },
       {
         onSuccess: () => {
@@ -141,6 +162,56 @@ export function SqlEditor({
       },
     );
   };
+
+  // Student mode: Submit answer directly
+  const handleSubmit = () => {
+    if (mode !== "student") return;
+
+    if (!sqlCode) {
+      showErrorNotification({
+        message: "SQL code cannot be empty.",
+      });
+      return;
+    }
+
+    if (!podName) {
+      showErrorNotification({
+        title: "Database Connection Error",
+        message:
+          "No database connection available. Please ensure you are connected to the assessment.",
+      });
+      return;
+    }
+
+    submitAnswer({
+      studentAssessmentId: props.studentAssessmentId,
+      assessmentProblemId: props.assessmentProblemId,
+      podName,
+      sql: sqlCode,
+      dialect: sqlDialect,
+    });
+  };
+
+  const actionButton =
+    mode === "admin" ? (
+      <Button
+        color="green"
+        leftSection={<IconCheck size={16} />}
+        onClick={handleSaveAnswer}
+        loading={isSaving}
+      >
+        Save Answer
+      </Button>
+    ) : (
+      <Button
+        color="blue"
+        leftSection={<IconSend size={16} />}
+        onClick={handleSubmit}
+        loading={isSubmitting}
+      >
+        Submit
+      </Button>
+    );
 
   return (
     <Panel defaultSize={60} minSize={20}>
@@ -163,14 +234,7 @@ export function SqlEditor({
             >
               Test
             </Button>
-            <Button
-              color="green"
-              leftSection={<IconCheck size={16} />}
-              onClick={handleSaveAnswer}
-              loading={isPending}
-            >
-              Save Answer
-            </Button>
+            {actionButton}
           </Group>
         </div>
         <div className="flex-1 min-h-0">
@@ -195,11 +259,13 @@ export function SqlEditor({
           />
         </div>
 
-        <ConfirmationModal
-          isOpen={opened}
-          onClose={close}
-          onConfirm={handleConfirmSave}
-        />
+        {mode === "admin" && (
+          <ConfirmationModal
+            isOpen={opened}
+            onClose={close}
+            onConfirm={handleConfirmSave}
+          />
+        )}
       </div>
     </Panel>
   );

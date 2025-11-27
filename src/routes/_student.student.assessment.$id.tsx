@@ -139,8 +139,11 @@ function AssessmentActive() {
           <Panel defaultSize={45} minSize={30}>
             <PanelGroup direction="vertical" className="h-full">
               <SqlEditor
+                mode="student"
                 podName={undefined}
                 problemId={currentProblem.id}
+                studentAssessmentId={assessmentId}
+                assessmentProblemId={currentProblem.id}
                 initialCode={currentAnswer}
                 onCodeChange={(code) =>
                   handleAnswerChange(currentProblem.id, code)

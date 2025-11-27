@@ -1,85 +1,105 @@
-import { eq, and, isNull } from "drizzle-orm";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { HTTPException } from "hono/http-exception";
+import { eq } from "drizzle-orm/sql/expressions/conditions";
 import { factory } from "server/factory.ts";
-import { assessments } from "server/drizzle/assessments.ts";
-import { studentAssessments } from "server/drizzle/student_assessments.ts";
-import { assessmentProblems } from "server/drizzle/assessment_problems.ts";
-import { users } from "server/drizzle/users.ts";
 import { auth } from "server/middlewares/auth.ts";
+import { assessmentStatus } from "server/middlewares/assessment-status.ts";
 import { drizzle } from "server/middlewares/drizzle.ts";
+import {
+  Dialect,
+  SUPPORTED_DIALECTS,
+} from "server/problem-database/mappings.ts";
+import { getPool } from "server/problem-database/pool-manager.ts";
+import type { QueryResult } from "server/problem-database/db-seed/index.ts";
+import { executeQueryByDialect } from "server/problem-database/db-seed/query-executors.ts";
+import type { DatabasePool } from "server/problem-database/pools.ts";
+import { assessmentProblems } from "server/drizzle/assessment_problems.ts";
+import { userProblems } from "server/drizzle/user_problems.ts";
+import { submissions } from "server/drizzle/submissions.ts";
+import { submissionDetails } from "server/drizzle/submission_details.ts";
 
-export const route = factory.createApp().get(
-  "/:id",
-  zValidator(
-    "param",
-    z.object({
-      id: z.string().uuid(),
-    }),
-  ),
-  auth(),
-  drizzle(),
-  async (c) => {
-    const assessmentId = c.req.param("id");
-    const { tx } = c.var;
-    const jwtPayload = c.get("jwtPayload");
+// Helper function to grade a submission by comparing candidate result with answer
+async function gradeSubmission(
+  pool: DatabasePool,
+  candidateResult: QueryResult,
+  userProblem: { answer: string; dialect: Dialect },
+  assessmentProblemId: string,
+): Promise<{ grade: "pass" | "failed"; errorMessage: string | null }> {
+  try {
+    const answerResult = await executeQueryByDialect(
+      pool,
+      userProblem.answer,
+      userProblem.dialect,
+    );
 
-    // Get the auth user ID from JWT (this is the Supabase auth.users.id)
-    const authUserId = jwtPayload.sub;
+    // Compare results
+    const grade =
+      JSON.stringify(candidateResult.rows) === JSON.stringify(answerResult.rows)
+        ? "pass"
+        : "failed";
 
-    // Look up the internal user ID from our users table
-    const user = await tx.query.users.findFirst({
-      where: eq(users.authUserId, authUserId),
+    return { grade, errorMessage: null };
+  } catch (answerError: unknown) {
+    // If the answer query fails, mark as failed and capture the error
+    const errorMessage =
+      answerError instanceof Error ? answerError.message : String(answerError);
+
+    console.error("Error executing answer query:", {
+      assessmentProblemId,
+      error: errorMessage,
+      answer: userProblem.answer,
     });
 
-    if (!user) {
-      return c.json({ error: "User not found" }, 404);
-    }
+    return {
+      grade: "failed",
+      errorMessage: `Failed to execute answer query: ${errorMessage}`,
+    };
+  }
+}
 
-    // Check if student is invited to this assessment
-    const studentAssessment = await tx.query.studentAssessments.findFirst({
-      where: and(
-        eq(studentAssessments.assessment, assessmentId),
-        eq(studentAssessments.student, user.id),
-        isNull(studentAssessments.archivedAt),
-      ),
-    });
+export const route = factory
+  .createApp()
+  .get(
+    "/:id",
+    zValidator(
+      "param",
+      z.object({
+        id: z.string().uuid(),
+      }),
+    ),
+    auth(),
+    drizzle(),
+    assessmentStatus(),
+    (c) => {
+      const assessmentStatusResult = c.get("assessmentStatus");
 
-    if (!studentAssessment) {
-      return c.json({ error: "Assessment not found or access denied" }, 404);
-    }
+      // Handle different assessment statuses
+      if (assessmentStatusResult.status === "not_started") {
+        return c.json({
+          status: "not_started",
+          scheduledDate: assessmentStatusResult.scheduledDate?.toISOString(),
+          assessmentName: assessmentStatusResult.assessmentName,
+        });
+      }
 
-    // Fetch the assessment with its problems
-    const assessment = await tx.query.assessments.findFirst({
-      where: eq(assessments.id, assessmentId),
-      with: {
-        assessmentProblems: {
-          where: isNull(assessmentProblems.archivedAt),
-          with: {
-            problem: {
-              columns: {
-                id: true,
-                name: true,
-                description: true,
-              },
-            },
-          },
-        },
-      },
-    });
+      if (assessmentStatusResult.status === "ended") {
+        return c.json({
+          status: "ended",
+          scheduledDate: assessmentStatusResult.scheduledDate?.toISOString(),
+          endDate: assessmentStatusResult.endDate?.toISOString(),
+          assessmentName: assessmentStatusResult.assessmentName,
+        });
+      }
 
-    if (!assessment) {
-      return c.json({ error: "Assessment not found" }, 404);
-    }
+      // Status is "active"
+      const { assessment } = assessmentStatusResult;
 
-    // Server-side validation of assessment timing
-    const now = new Date();
-    const scheduledDate = assessment.dateTimeScheduled
-      ? new Date(assessment.dateTimeScheduled)
-      : null;
+      if (!assessment) {
+        // This shouldn't happen, but TypeScript needs the check
+        return c.json({ error: "Assessment data missing" }, 500);
+      }
 
-    // If no scheduled date, assessment is always available
-    if (!scheduledDate) {
       return c.json({
         status: "active",
         assessment: {
@@ -87,53 +107,141 @@ export const route = factory.createApp().get(
           name: assessment.name,
           duration: assessment.duration,
           dateTimeScheduled: assessment.dateTimeScheduled,
-          problems: assessment.assessmentProblems.map((ap) => ({
-            id: ap.problem.id,
-            name: ap.problem.name,
-            description: ap.problem.description,
-          })),
+          endDate: assessment.endDate?.toISOString(),
+          problems: assessment.problems,
         },
       });
-    }
+    },
+  )
+  .post(
+    "/:id/submit",
+    zValidator(
+      "param",
+      z.object({
+        id: z.string().uuid(),
+      }),
+    ),
+    auth(),
+    drizzle({ lazy: true }),
+    assessmentStatus(),
+    zValidator(
+      "json",
+      z.object({
+        podName: z.string(),
+        sql: z.string(),
+        dialect: z.enum(SUPPORTED_DIALECTS),
+        assessmentProblemId: z.string(),
+      }),
+    ),
+    async (c) => {
+      const { id: studentAssessmentId } = c.req.valid("param");
+      const { podName, sql, dialect, assessmentProblemId } =
+        c.req.valid("json");
 
-    // Assessment has not started yet
-    if (now < scheduledDate) {
-      return c.json({
-        status: "not_started",
-        scheduledDate: scheduledDate.toISOString(),
-        assessmentName: assessment.name,
+      const { withTx } = c.var;
+      const key = `${podName}-${dialect}`;
+      const pool = getPool(key);
+
+      if (!pool) {
+        throw new HTTPException(404, {
+          message: `No active connection pool found for pod: ${podName}. Please connect first.`,
+        });
+      }
+
+      // create or update a submission
+      const submissionId = await withTx(async (tx) => {
+        const [submission] = await tx
+          .insert(submissions)
+          .values({
+            studentAssessment: studentAssessmentId,
+          } satisfies typeof submissions.$inferInsert)
+          .onConflictDoUpdate({
+            target: submissions.studentAssessment,
+            set: {
+              updatedAt: new Date(),
+            },
+          })
+          .returning({
+            id: submissions.id,
+          });
+        return submission.id;
       });
-    }
 
-    // Calculate end time
-    const durationMinutes = Number(assessment.duration);
-    const endDate = new Date(scheduledDate.getTime() + durationMinutes * 60000);
+      // Execute candidate's query and grade it
+      try {
+        // Execute the candidate's query
+        const result = await executeQueryByDialect(pool, sql, dialect);
 
-    // Assessment has ended
-    if (now > endDate) {
-      return c.json({
-        status: "ended",
-        scheduledDate: scheduledDate.toISOString(),
-        endDate: endDate.toISOString(),
-        assessmentName: assessment.name,
-      });
-    }
+        // Get user problem with answer
+        const userProblem = await withTx(async (tx) => {
+          const [userProblem] = await tx
+            .select({
+              answer: userProblems.answer,
+              dialect: userProblems.dialect,
+            })
+            .from(assessmentProblems)
+            .innerJoin(
+              userProblems,
+              eq(assessmentProblems.problem, userProblems.id),
+            )
+            .where(eq(assessmentProblems.id, assessmentProblemId));
 
-    // Assessment is active
-    return c.json({
-      status: "active",
-      assessment: {
-        id: assessment.id,
-        name: assessment.name,
-        duration: assessment.duration,
-        dateTimeScheduled: assessment.dateTimeScheduled,
-        endDate: endDate.toISOString(),
-        problems: assessment.assessmentProblems.map((ap) => ({
-          id: ap.problem.id,
-          name: ap.problem.name,
-          description: ap.problem.description,
-        })),
-      },
-    });
-  },
-);
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (!userProblem) {
+            throw new HTTPException(404, {
+              message: `Problem not found for assessment problem ID: ${assessmentProblemId}`,
+            });
+          }
+
+          if (!userProblem.answer) {
+            throw new HTTPException(400, {
+              message: `No answer provided for problem ID: ${assessmentProblemId}`,
+            });
+          }
+
+          return {
+            answer: userProblem.answer,
+            dialect: userProblem.dialect,
+          };
+        });
+
+        // Grade the submission by comparing with the answer
+        const gradeResult = await gradeSubmission(
+          pool,
+          result,
+          userProblem,
+          assessmentProblemId,
+        );
+
+        // Insert submission details
+        await withTx(async (tx) => {
+          await tx.insert(submissionDetails).values({
+            submissionId,
+            assignmentProblemId: assessmentProblemId,
+            candidateAnswer: sql,
+            dialect,
+            grade: gradeResult.grade,
+          } satisfies typeof submissionDetails.$inferInsert);
+        });
+
+        // Return the candidate's result along with grading info
+        return c.json({
+          ...result,
+          grade: gradeResult.grade,
+          ...(gradeResult.errorMessage && {
+            gradeError: gradeResult.errorMessage,
+          }),
+        });
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("Query execution error:", message);
+        // Return the SQL error message in the response so the terminal can display it
+        return c.json(
+          {
+            error: message,
+          },
+          400,
+        );
+      }
+    },
+  );

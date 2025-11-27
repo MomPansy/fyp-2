@@ -1,4 +1,4 @@
-import { pgTable, timestamp, uuid, numeric } from "drizzle-orm/pg-core";
+import { pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { studentAssessments } from "./student_assessments.ts";
 
@@ -11,7 +11,6 @@ export const submissions = pgTable("submissions", {
     .defaultNow()
     .$onUpdate(() => new Date()),
   archivedAt: timestamp("archived_at", { precision: 3, withTimezone: true }),
-  score: numeric("score").notNull(),
   studentAssessment: uuid("student_assessment_id")
     .notNull()
     .references(() => studentAssessments.id, { onDelete: "cascade" }),

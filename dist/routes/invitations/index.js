@@ -2,18 +2,21 @@ import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { decodeJwt } from "jose";
 import { factory } from "../../factory.js";
 import { supabase } from "../../lib/supabase.js";
 import {
   signInvitationToken,
   getInvitationExpiration,
   generateInvitationUrl,
-  verifyInvitationToken
+  verifyInvitationToken,
+  invitationTokenPayloadSchema
 } from "../../lib/invitation-jwt.js";
 import { sendInvitationEmail } from "../../lib/mailer.js";
 import { drizzle } from "../../middlewares/drizzle.js";
 import { assessmentStudentInvitations } from "../../drizzle/assessment_student_invitations.js";
 import { assessments } from "../../drizzle/assessments.js";
+import { getAssessmentTimingStatus } from "../../lib/assessment-utils.js";
 const route = factory.createApp().post(
   "/send",
   zValidator(
@@ -118,15 +121,58 @@ const route = factory.createApp().post(
     })
   ),
   async (c) => {
+    let isTokenExpired = false;
+    let payload;
     try {
       const token = c.req.param("token");
-      const payload = await verifyInvitationToken(token);
+      try {
+        payload = await verifyInvitationToken(token);
+      } catch (verifyError) {
+        if (verifyError instanceof Error && verifyError.message.includes("expired")) {
+          isTokenExpired = true;
+          const decoded = decodeJwt(token);
+          payload = invitationTokenPayloadSchema.parse(decoded);
+        } else {
+          throw verifyError;
+        }
+      }
       const { data: invitation, error: invitationError } = await supabase.from("assessment_student_invitations").select("*, assessments(*)").eq("id", payload.invitationId).single();
       if (invitationError) {
         throw new HTTPException(404, { message: "Invitation not found" });
       }
       if (!invitation.active) {
         throw new HTTPException(400, { message: "Invitation is not active" });
+      }
+      const timing = getAssessmentTimingStatus(
+        invitation.assessments.date_time_scheduled,
+        invitation.assessments.duration
+      );
+      const hasAssessmentEnded = timing.status === "ended";
+      if (isTokenExpired && hasAssessmentEnded) {
+        return c.json(
+          {
+            success: false,
+            error: "assessment_ended",
+            message: "This assessment has ended",
+            assessmentTitle: invitation.assessments.name,
+            assessmentDate: invitation.assessments.date_time_scheduled,
+            assessmentEndDate: timing.endDate?.toISOString()
+          },
+          410
+          // 410 Gone - resource existed but is no longer available
+        );
+      }
+      if (isTokenExpired) {
+        return c.json(
+          {
+            success: false,
+            error: "token_expired",
+            message: "Your invitation link has expired. If you already have an account, please sign in directly.",
+            assessmentTitle: invitation.assessments.name,
+            assessmentId: payload.assessmentId
+          },
+          400
+        );
       }
       return c.json({
         success: true,
@@ -143,11 +189,6 @@ const route = factory.createApp().post(
     } catch (error) {
       console.error("Error fetching invitation:", error);
       if (error instanceof HTTPException) throw error;
-      if (error instanceof Error && error.message.includes("expired")) {
-        throw new HTTPException(400, {
-          message: "Invitation link has expired"
-        });
-      }
       throw new HTTPException(500, {
         message: error instanceof Error ? error.message : "Failed to fetch invitation"
       });

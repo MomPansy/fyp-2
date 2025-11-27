@@ -1,9 +1,17 @@
-import { customType } from "drizzle-orm/pg-core";
+import { customType, pgEnum } from "drizzle-orm/pg-core";
 const citext = customType({
   dataType() {
     return "citext";
   }
 });
+const dialects = pgEnum("dialects", [
+  "mysql",
+  "postgres",
+  "sqlite",
+  "sqlserver",
+  "oracle"
+]);
 export {
-  citext
+  citext,
+  dialects
 };

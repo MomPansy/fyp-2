@@ -161,6 +161,13 @@ var entries = [
     when: 1763047317492,
     tag: "0022_woozy_excalibur",
     breakpoints: false
+  },
+  {
+    idx: 23,
+    version: "7",
+    when: 1764236516851,
+    tag: "0023_rich_sharon_ventura",
+    breakpoints: false
   }
 ];
 var journal_default = {

@@ -20,13 +20,7 @@ import {
   getPool,
   removePool
 } from "../../problem-database/pool-manager.js";
-import {
-  executeMysqlQuery,
-  executeOracleQuery,
-  executePostgresQuery,
-  executeSqliteQuery,
-  executeSqlServerQuery
-} from "../../problem-database/db-seed/query-executors.js";
+import { executeQueryByDialect } from "../../problem-database/db-seed/query-executors.js";
 const route = factory.createApp().post(
   "/init-upload",
   auth(),
@@ -40,7 +34,7 @@ const route = factory.createApp().post(
   async (c) => {
     const { problemId, tableName } = c.req.valid("json");
     const jwt = c.get("jwtPayload");
-    const userId = jwt?.user_metadata.user_id;
+    const userId = jwt.user_metadata.user_id;
     if (!userId) {
       throw new HTTPException(401, {
         message: "Missing user context for file upload"
@@ -125,47 +119,30 @@ const route = factory.createApp().post(
     z.object({
       podName: z.string(),
       sql: z.string(),
-      dialect: z.string()
+      dialect: z.enum(SUPPORTED_DIALECTS)
     })
   ),
   async (c) => {
     const { podName, sql, dialect } = c.req.valid("json");
     const key = `${podName}-${dialect}`;
     const pool = getPool(key);
-    if (!pool || !dialect) {
+    if (!pool) {
       throw new HTTPException(404, {
         message: `No active connection pool found for pod: ${podName}. Please connect first.`
       });
     }
     try {
-      let result;
-      switch (dialect) {
-        case "postgres":
-          result = await executePostgresQuery(pool, sql);
-          break;
-        case "mysql":
-          result = await executeMysqlQuery(pool, sql);
-          break;
-        case "sqlite":
-          result = await executeSqliteQuery(pool, sql);
-          break;
-        case "sqlserver":
-          result = await executeSqlServerQuery(pool, sql);
-          break;
-        case "oracle":
-          result = await executeOracleQuery(pool, sql);
-          break;
-        default:
-          throw new HTTPException(400, {
-            message: `Unsupported dialect: ${dialect}`
-          });
-      }
+      const result = await executeQueryByDialect(pool, sql, dialect);
       return c.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      throw new HTTPException(400, {
-        message: `Query failed: ${message}`
-      });
+      console.error("Query execution error:", message);
+      return c.json(
+        {
+          error: message
+        },
+        400
+      );
     }
   }
 ).post(
@@ -194,13 +171,15 @@ const route = factory.createApp().post(
     z.object({
       problemId: z.string(),
       answer: z.string(),
+      dialect: z.enum(SUPPORTED_DIALECTS),
       saveAsTemplate: z.boolean()
     })
   ),
   async (c) => {
-    const { problemId, answer, saveAsTemplate } = c.req.valid("json");
+    const { problemId, answer, dialect, saveAsTemplate } = c.req.valid("json");
     const { data, error: userProblemsError } = await supabase.from("user_problems").update({
-      answer
+      answer,
+      dialect
     }).eq("id", problemId).select("*, user_problem_tables(*)").single();
     if (userProblemsError) {
       throw new HTTPException(500, {
@@ -269,7 +248,7 @@ const route = factory.createApp().post(
   async (c) => {
     const { templateProblemId } = c.req.valid("json");
     const jwt = c.get("jwtPayload");
-    const userId = jwt?.user_metadata.user_id;
+    const userId = jwt.user_metadata.user_id;
     if (!userId) {
       throw new HTTPException(401, {
         message: "Missing user context for using template"
@@ -287,6 +266,7 @@ const route = factory.createApp().post(
       problem_id: templateProblem.id,
       description: templateProblem.description,
       answer: templateProblem.answer,
+      dialect: templateProblem.dialect,
       user_id: userId
     }).select("id").single();
     if (userProblemError) {

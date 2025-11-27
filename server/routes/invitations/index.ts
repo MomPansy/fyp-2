@@ -2,6 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { HTTPException } from "hono/http-exception";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
+import { decodeJwt } from "jose";
 
 import { factory } from "../../factory.ts";
 import { supabase } from "../../lib/supabase.ts";
@@ -10,11 +11,13 @@ import {
   getInvitationExpiration,
   generateInvitationUrl,
   verifyInvitationToken,
+  invitationTokenPayloadSchema,
 } from "../../lib/invitation-jwt.ts";
 import { sendInvitationEmail } from "../../lib/mailer.ts";
 import { drizzle } from "server/middlewares/drizzle.ts";
 import { assessmentStudentInvitations } from "server/drizzle/assessment_student_invitations.ts";
 import { assessments } from "server/drizzle/assessments.ts";
+import { getAssessmentTimingStatus } from "server/lib/assessment-utils.ts";
 
 /**
  * Invitation routes:
@@ -162,9 +165,28 @@ export const route = factory
       }),
     ),
     async (c) => {
+      let isTokenExpired = false;
+      let payload;
+
       try {
         const token = c.req.param("token");
-        const payload = await verifyInvitationToken(token);
+        
+        // Try to verify token normally
+        try {
+          payload = await verifyInvitationToken(token);
+        } catch (verifyError) {
+          // If token is expired, decode it without verification to get the invitation ID
+          if (
+            verifyError instanceof Error &&
+            verifyError.message.includes("expired")
+          ) {
+            isTokenExpired = true;
+            const decoded = decodeJwt(token);
+            payload = invitationTokenPayloadSchema.parse(decoded);
+          } else {
+            throw verifyError;
+          }
+        }
 
         const { data: invitation, error: invitationError } = await supabase
           .from("assessment_student_invitations")
@@ -180,7 +202,44 @@ export const route = factory
           throw new HTTPException(400, { message: "Invitation is not active" });
         }
 
-        // Just return invitation details, don't create account yet
+        // Use shared utility for timing status calculation
+        const timing = getAssessmentTimingStatus(
+          invitation.assessments.date_time_scheduled,
+          invitation.assessments.duration,
+        );
+        const hasAssessmentEnded = timing.status === "ended";
+
+        // If token is expired but assessment has ended, return assessment ended status
+        if (isTokenExpired && hasAssessmentEnded) {
+          return c.json(
+            {
+              success: false,
+              error: "assessment_ended",
+              message: "This assessment has ended",
+              assessmentTitle: invitation.assessments.name,
+              assessmentDate: invitation.assessments.date_time_scheduled,
+              assessmentEndDate: timing.endDate?.toISOString(),
+            },
+            410, // 410 Gone - resource existed but is no longer available
+          );
+        }
+
+        // If token is expired but assessment is still active, return token expired error
+        if (isTokenExpired) {
+          return c.json(
+            {
+              success: false,
+              error: "token_expired",
+              message:
+                "Your invitation link has expired. If you already have an account, please sign in directly.",
+              assessmentTitle: invitation.assessments.name,
+              assessmentId: payload.assessmentId,
+            },
+            400,
+          );
+        }
+
+        // Token is valid - return invitation details
         return c.json({
           success: true,
           invitation: {
@@ -196,11 +255,6 @@ export const route = factory
       } catch (error) {
         console.error("Error fetching invitation:", error);
         if (error instanceof HTTPException) throw error;
-        if (error instanceof Error && error.message.includes("expired")) {
-          throw new HTTPException(400, {
-            message: "Invitation link has expired",
-          });
-        }
         throw new HTTPException(500, {
           message:
             error instanceof Error

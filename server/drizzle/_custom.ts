@@ -1,4 +1,4 @@
-import { customType } from "drizzle-orm/pg-core";
+import { customType, pgEnum } from "drizzle-orm/pg-core";
 
 export const citext = customType<{
   data: string;
@@ -24,3 +24,11 @@ export interface ForeignKeyMapping {
   foreignTableColumn: string;
   foreignTableType: string;
 }
+
+export const dialects = pgEnum("dialects", [
+  "mysql",
+  "postgres",
+  "sqlite",
+  "sqlserver",
+  "oracle",
+]);

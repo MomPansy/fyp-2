@@ -22,20 +22,7 @@ import {
   removePool,
 } from "server/problem-database/pool-manager.ts";
 import type { SeedTable } from "server/problem-database/db-seed/index.ts";
-import {
-  executeMysqlQuery,
-  executeOracleQuery,
-  executePostgresQuery,
-  executeSqliteQuery,
-  executeSqlServerQuery,
-} from "server/problem-database/db-seed/query-executors.ts";
-import type {
-  MysqlPool,
-  OraclePool,
-  PostgresPool,
-  SqlitePool,
-  SqlServerPool,
-} from "server/problem-database/pools.ts";
+import { executeQueryByDialect } from "server/problem-database/db-seed/query-executors.ts";
 
 export const route = factory
   .createApp()
@@ -160,7 +147,7 @@ export const route = factory
       z.object({
         podName: z.string(),
         sql: z.string(),
-        dialect: z.string(),
+        dialect: z.enum(SUPPORTED_DIALECTS),
       }),
     ),
     async (c) => {
@@ -168,35 +155,14 @@ export const route = factory
       const key = `${podName}-${dialect}`;
       const pool = getPool(key);
 
-      if (!pool || !dialect) {
+      if (!pool) {
         throw new HTTPException(404, {
           message: `No active connection pool found for pod: ${podName}. Please connect first.`,
         });
       }
 
       try {
-        let result;
-        switch (dialect) {
-          case "postgres":
-            result = await executePostgresQuery(pool as PostgresPool, sql);
-            break;
-          case "mysql":
-            result = await executeMysqlQuery(pool as MysqlPool, sql);
-            break;
-          case "sqlite":
-            result = await executeSqliteQuery(pool as SqlitePool, sql);
-            break;
-          case "sqlserver":
-            result = await executeSqlServerQuery(pool as SqlServerPool, sql);
-            break;
-          case "oracle":
-            result = await executeOracleQuery(pool as OraclePool, sql);
-            break;
-          default:
-            throw new HTTPException(400, {
-              message: `Unsupported dialect: ${dialect}`,
-            });
-        }
+        const result = await executeQueryByDialect(pool, sql, dialect);
         return c.json(result);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);
@@ -240,16 +206,19 @@ export const route = factory
       z.object({
         problemId: z.string(),
         answer: z.string(),
+        dialect: z.enum(SUPPORTED_DIALECTS),
         saveAsTemplate: z.boolean(),
       }),
     ),
     async (c) => {
-      const { problemId, answer, saveAsTemplate } = c.req.valid("json");
+      const { problemId, answer, dialect, saveAsTemplate } =
+        c.req.valid("json");
 
       const { data, error: userProblemsError } = await supabase
         .from("user_problems")
         .update({
           answer: answer,
+          dialect: dialect,
         })
         .eq("id", problemId)
         .select("*, user_problem_tables(*)")
@@ -392,6 +361,7 @@ export const route = factory
           problem_id: templateProblem.id,
           description: templateProblem.description,
           answer: templateProblem.answer,
+          dialect: templateProblem.dialect,
           user_id: userId,
         })
         .select("id")

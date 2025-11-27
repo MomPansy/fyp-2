@@ -87,7 +87,6 @@ export type Database = {
           id: string
           invitation_token: string | null
           matriculation_number: string
-          redeemed_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -100,7 +99,6 @@ export type Database = {
           id?: string
           invitation_token?: string | null
           matriculation_number: string
-          redeemed_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -113,7 +111,6 @@ export type Database = {
           id?: string
           invitation_token?: string | null
           matriculation_number?: string
-          redeemed_at?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -220,6 +217,7 @@ export type Database = {
           archived_at: string | null
           created_at: string
           description: string
+          dialect: Database["public"]["Enums"]["dialects"]
           id: string
           name: string
           updated_at: string | null
@@ -229,6 +227,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           description: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           id?: string
           name: string
           updated_at?: string | null
@@ -238,6 +237,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           description?: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           id?: string
           name?: string
           updated_at?: string | null
@@ -313,6 +313,7 @@ export type Database = {
           assignment_problem_id: string
           candidate_answer: string
           created_at: string
+          dialect: Database["public"]["Enums"]["dialects"]
           grade: string
           id: string
           submission_id: string
@@ -323,6 +324,7 @@ export type Database = {
           assignment_problem_id: string
           candidate_answer: string
           created_at?: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           grade?: string
           id?: string
           submission_id: string
@@ -333,6 +335,7 @@ export type Database = {
           assignment_problem_id?: string
           candidate_answer?: string
           created_at?: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           grade?: string
           id?: string
           submission_id?: string
@@ -360,7 +363,6 @@ export type Database = {
           archived_at: string | null
           created_at: string
           id: string
-          score: number
           student_assessment_id: string
           updated_at: string | null
         }
@@ -368,7 +370,6 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
-          score: number
           student_assessment_id: string
           updated_at?: string | null
         }
@@ -376,7 +377,6 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           id?: string
-          score?: number
           student_assessment_id?: string
           updated_at?: string | null
         }
@@ -443,6 +443,7 @@ export type Database = {
           archived_at: string | null
           created_at: string
           description: string
+          dialect: Database["public"]["Enums"]["dialects"]
           id: string
           name: string
           problem_id: string | null
@@ -454,6 +455,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           description: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           id?: string
           name: string
           problem_id?: string | null
@@ -465,6 +467,7 @@ export type Database = {
           archived_at?: string | null
           created_at?: string
           description?: string
+          dialect?: Database["public"]["Enums"]["dialects"]
           id?: string
           name?: string
           problem_id?: string | null
@@ -591,7 +594,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      dialects: "mysql" | "postgres" | "sqlite" | "sqlserver" | "oracle"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -721,7 +724,9 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      dialects: ["mysql", "postgres", "sqlite", "sqlserver", "oracle"],
+    },
   },
 } as const
 

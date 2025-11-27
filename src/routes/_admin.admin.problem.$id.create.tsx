@@ -83,7 +83,11 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
       <VerticalResizeHandle />
       <Panel defaultSize={60} minSize={40}>
         <PanelGroup direction="vertical" className="h-full">
-          <SqlEditor podName={databaseConnectionKey?.podName} problemId={id} />
+          <SqlEditor
+            mode="admin"
+            podName={databaseConnectionKey?.podName}
+            problemId={id}
+          />
           <HorizontalResizeHandle />
           <Terminal />
         </PanelGroup>

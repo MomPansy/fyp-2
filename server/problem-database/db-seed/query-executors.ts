@@ -103,3 +103,27 @@ export async function executeOracleQuery(
     rowCount: result.rowCount ?? result.affectedRows ?? 0,
   };
 }
+
+// Helper function to execute query based on dialect
+export async function executeQueryByDialect(
+  pool: PostgresPool | MysqlPool | SqlitePool | SqlServerPool | OraclePool,
+  sql: string,
+  dialect: Dialect,
+): Promise<QueryResult> {
+  switch (dialect) {
+    case "postgres":
+      return await executePostgresQuery(pool as PostgresPool, sql);
+    case "mysql":
+      return await executeMysqlQuery(pool as MysqlPool, sql);
+    case "sqlite":
+      return await executeSqliteQuery(pool as SqlitePool, sql);
+    case "sqlserver":
+      return await executeSqlServerQuery(pool as SqlServerPool, sql);
+    case "oracle":
+      return await executeOracleQuery(pool as OraclePool, sql);
+    default:
+      throw new HTTPException(400, {
+        message: `Unsupported dialect: ${dialect}`,
+      });
+  }
+}

@@ -8,6 +8,7 @@ import {
 import { relations } from "drizzle-orm";
 import { users } from "./users.js";
 import { problems } from "./problems.js";
+import { dialects } from "./_custom.js";
 const userProblems = pgTable(
   "user_problems",
   {
@@ -17,6 +18,7 @@ const userProblems = pgTable(
     name: text("name").notNull(),
     description: text("description").notNull(),
     answer: text("answer"),
+    dialect: dialects("dialect").notNull().default("postgres"),
     createdAt: timestamp("created_at", { precision: 3, withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { precision: 3, withTimezone: true }).defaultNow().$onUpdate(() => /* @__PURE__ */ new Date()),
     archived_at: timestamp("archived_at", { precision: 3, withTimezone: true })

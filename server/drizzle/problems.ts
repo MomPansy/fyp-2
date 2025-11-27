@@ -1,12 +1,14 @@
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { assessmentProblems } from "./assessment_problems.ts";
+import { dialects } from "./_custom.ts";
 
 export const problems = pgTable("problems", {
   id: uuid("id").primaryKey().notNull().defaultRandom(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   answer: text("answer"),
+  dialect: dialects("dialect").notNull().default("postgres"),
   createdAt: timestamp("created_at", { precision: 3, withTimezone: true })
     .defaultNow()
     .notNull(),
