@@ -31,6 +31,7 @@ import {
   HorizontalResizeHandle,
 } from "@/components/resize-handles.tsx";
 import { databaseConnectionQueryOptions } from "@/hooks/use-problem.ts";
+import { PendingComponent } from "@/components/problems/create/route-skeleton.tsx";
 
 // Helper function to get localStorage key for an assessment
 function getStorageKey(assessmentId: string): string {
@@ -62,6 +63,7 @@ export const Route = createFileRoute("/_student/student/assessment/$id")({
     return databaseConnections;
   },
   component: RouteComponent,
+  pendingComponent: PendingComponent,
 });
 
 function LoadingSkeleton() {

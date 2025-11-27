@@ -155,12 +155,6 @@ export const route = factory
           .values({
             studentAssessment: studentAssessmentId,
           } satisfies typeof submissions.$inferInsert)
-          .onConflictDoUpdate({
-            target: submissions.studentAssessment,
-            set: {
-              updatedAt: new Date(),
-            },
-          })
           .returning({
             id: submissions.id,
           });
