@@ -44,9 +44,14 @@ const settingsSchema = z.object({
       message: "Assessment name cannot be empty",
     }),
   dateTimeScheduled: z
-    .string()
+    .union([z.date(), z.string()])
     .nullable()
     .optional()
+    .transform((val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      return dayjs.utc(val).local().toDate();
+    })
     .refine(
       (date) => {
         if (!date) return true;
@@ -77,7 +82,10 @@ export function SettingsTab() {
     mode: "uncontrolled",
     initialValues: {
       name: data?.name ?? "",
-      dateTimeScheduled: data?.date_time_scheduled ?? null,
+      // Parse the UTC string from the database and convert to local Date object
+      dateTimeScheduled: data?.date_time_scheduled
+        ? dayjs.utc(data.date_time_scheduled).local().toDate()
+        : null,
       duration: data?.duration ?? 60,
     },
     validate: zodResolver(settingsSchema),
@@ -97,9 +105,12 @@ export function SettingsTab() {
       }
 
       // Update settings (date and duration)
+      // Convert the local Date to UTC ISO string for the database
       await updateSettingsMutation.mutateAsync({
         id,
-        dateTimeScheduled: values.dateTimeScheduled ?? null,
+        dateTimeScheduled: values.dateTimeScheduled
+          ? dayjs(values.dateTimeScheduled).utc().format()
+          : null,
         duration: values.duration,
       });
 
