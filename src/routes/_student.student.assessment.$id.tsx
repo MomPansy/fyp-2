@@ -21,6 +21,7 @@ import {
   VerticalResizeHandle,
   HorizontalResizeHandle,
 } from "@/components/resize-handles.tsx";
+import { databaseConnectionQueryOptions } from "@/hooks/use-problem.ts";
 
 // Helper function to get localStorage key for an assessment
 function getStorageKey(assessmentId: string): string {
@@ -29,9 +30,15 @@ function getStorageKey(assessmentId: string): string {
 
 export const Route = createFileRoute("/_student/student/assessment/$id")({
   loader: async ({ context: { queryClient }, params }) => {
-    return await queryClient.ensureQueryData(
+    const databaseConnectionKey = await queryClient.ensureQueryData(
+      databaseConnectionQueryOptions(params.id, "postgres"),
+    );
+
+    await queryClient.ensureQueryData(
       fetchStudentAssessmentQueryOptions(params.id),
     );
+
+    return databaseConnectionKey;
   },
   component: RouteComponent,
 });
@@ -52,6 +59,7 @@ function AssessmentActive() {
   const { id: assessmentId } = Route.useParams();
   const { data } = useFetchStudentAssessment(assessmentId);
   const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
+  const { podName } = Route.useLoaderData();
 
   // State to store answers for each problem
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
@@ -131,7 +139,10 @@ function AssessmentActive() {
                 </Text>
               </Box>
               <div className="flex-1 overflow-hidden">
-                <ProblemDescription description={currentProblem.description} />
+                <ProblemDescription
+                  key={currentProblem.id}
+                  description={currentProblem.description}
+                />
               </div>
             </div>
           </Panel>
@@ -139,8 +150,9 @@ function AssessmentActive() {
           <Panel defaultSize={45} minSize={30}>
             <PanelGroup direction="vertical" className="h-full">
               <SqlEditor
+                key={currentProblem.id}
                 mode="student"
-                podName={undefined}
+                podName={podName}
                 problemId={currentProblem.id}
                 studentAssessmentId={assessmentId}
                 assessmentProblemId={currentProblem.id}
