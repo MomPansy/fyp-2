@@ -18,6 +18,7 @@ import { userProblems } from "server/drizzle/user_problems.ts";
 import { submissions } from "server/drizzle/submissions.ts";
 import { submissionDetails } from "server/drizzle/submission_details.ts";
 import { studentAssessments } from "server/drizzle/student_assessments.ts";
+import { assessmentProblems } from "server/drizzle/assessment_problems.ts";
 
 // Helper function to grade a submission by comparing candidate result with answer
 async function gradeSubmission(
@@ -150,8 +151,6 @@ export const route = factory
         });
       }
 
-      // get student_assessment_id using assessmentId and studentId from jwtPayload
-
       // create or update a submission
       // TODO: can shift this to route param on the frontend later
       const submissionId = await withTx(async (tx) => {
@@ -230,9 +229,28 @@ export const route = factory
 
         // Insert submission details
         await withTx(async (tx) => {
+          // get assessment problem id
+          const [assessmentProblem] = await tx
+            .select({
+              id: assessmentProblems.id,
+            })
+            .from(assessmentProblems)
+            .where(
+              and(
+                eq(assessmentProblems.assessment, assessmentId),
+                eq(assessmentProblems.problem, problemId),
+              ),
+            );
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (!assessmentProblem) {
+            throw new HTTPException(404, {
+              message: `Assessment problem not found for assessment ID: ${assessmentId} and problem ID: ${problemId}`,
+            });
+          }
+
           await tx.insert(submissionDetails).values({
             submissionId,
-            assignmentProblemId: problemId,
+            assessmentProblemId: assessmentProblem.id,
             candidateAnswer: sql,
             dialect,
             grade: gradeResult.grade,
