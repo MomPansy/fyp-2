@@ -1,6 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Suspense, useState, useEffect, useCallback } from "react";
-import { Stack, Skeleton, Container, Box, Text, Group } from "@mantine/core";
+import {
+  Stack,
+  Skeleton,
+  Container,
+  Box,
+  Text,
+  Group,
+  Alert,
+} from "@mantine/core";
+import { IconAlertCircle } from "@tabler/icons-react";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import {
   fetchStudentAssessmentQueryOptions,
@@ -30,15 +39,27 @@ function getStorageKey(assessmentId: string): string {
 
 export const Route = createFileRoute("/_student/student/assessment/$id")({
   loader: async ({ context: { queryClient }, params }) => {
-    const databaseConnectionKey = await queryClient.ensureQueryData(
-      databaseConnectionQueryOptions(params.id, "postgres"),
-    );
-
-    await queryClient.ensureQueryData(
+    const data = await queryClient.ensureQueryData(
       fetchStudentAssessmentQueryOptions(params.id),
     );
 
-    return databaseConnectionKey;
+    const databaseConnections = new Map<
+      string,
+      { podName: string; dialect: string; key: string }
+    >();
+
+    if (data.status === "active") {
+      const { assessment } = data;
+      const { problems } = assessment;
+      for (const problem of problems) {
+        const connectionData = await queryClient.ensureQueryData(
+          databaseConnectionQueryOptions(problem.id, "postgres"),
+        );
+        databaseConnections.set(problem.id, connectionData);
+      }
+    }
+
+    return databaseConnections;
   },
   component: RouteComponent,
 });
@@ -55,11 +76,27 @@ function LoadingSkeleton() {
   );
 }
 
+function ConnectionError() {
+  return (
+    <Box className="h-full flex items-center justify-center p-4">
+      <Alert
+        icon={<IconAlertCircle size={16} />}
+        title="Database Connection Error"
+        color="red"
+        variant="filled"
+      >
+        Unable to connect to the database for this problem. Please try
+        refreshing the page or contact support if the issue persists.
+      </Alert>
+    </Box>
+  );
+}
+
 function AssessmentActive() {
   const { id: assessmentId } = Route.useParams();
   const { data } = useFetchStudentAssessment(assessmentId);
   const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
-  const { podName } = Route.useLoaderData();
+  const databaseConnections = Route.useLoaderData();
 
   // State to store answers for each problem
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
@@ -93,6 +130,7 @@ function AssessmentActive() {
 
   const { assessment } = data;
   const currentProblem = assessment.problems[selectedProblemIndex];
+  const currentConnection = databaseConnections.get(currentProblem.id);
   const currentAnswer =
     answers[currentProblem.id] ??
     `SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`;
@@ -148,22 +186,26 @@ function AssessmentActive() {
           </Panel>
           <VerticalResizeHandle />
           <Panel defaultSize={45} minSize={30}>
-            <PanelGroup direction="vertical" className="h-full">
-              <SqlEditor
-                key={currentProblem.id}
-                mode="student"
-                podName={podName}
-                problemId={currentProblem.id}
-                studentAssessmentId={assessmentId}
-                assessmentProblemId={currentProblem.id}
-                initialCode={currentAnswer}
-                onCodeChange={(code) =>
-                  handleAnswerChange(currentProblem.id, code)
-                }
-              />
-              <HorizontalResizeHandle />
-              <Terminal />
-            </PanelGroup>
+            {currentConnection ? (
+              <PanelGroup direction="vertical" className="h-full">
+                <SqlEditor
+                  key={currentProblem.id}
+                  mode="student"
+                  podName={currentConnection.podName}
+                  problemId={currentProblem.id}
+                  studentAssessmentId={assessmentId}
+                  assessmentProblemId={currentProblem.id}
+                  initialCode={currentAnswer}
+                  onCodeChange={(code) =>
+                    handleAnswerChange(currentProblem.id, code)
+                  }
+                />
+                <HorizontalResizeHandle />
+                <Terminal />
+              </PanelGroup>
+            ) : (
+              <ConnectionError />
+            )}
           </Panel>
         </PanelGroup>
       </div>
