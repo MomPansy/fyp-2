@@ -44,8 +44,8 @@ interface AdminSqlEditorProps extends BaseSqlEditorProps {
 
 interface StudentSqlEditorProps extends BaseSqlEditorProps {
   mode: "student";
-  studentAssessmentId: string;
-  assessmentProblemId: string;
+  assessmentId: string;
+  problemId: string;
 }
 
 type SqlEditorProps = AdminSqlEditorProps | StudentSqlEditorProps;
@@ -184,8 +184,8 @@ export function SqlEditor(props: SqlEditorProps) {
     }
 
     submitAnswer({
-      studentAssessmentId: props.studentAssessmentId,
-      assessmentProblemId: props.assessmentProblemId,
+      assessmentId: props.assessmentId,
+      problemId: props.problemId,
       podName,
       sql: sqlCode,
       dialect: sqlDialect,

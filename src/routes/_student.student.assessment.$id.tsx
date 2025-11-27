@@ -195,8 +195,7 @@ function AssessmentActive() {
                   mode="student"
                   podName={currentConnection.podName}
                   problemId={currentProblem.id}
-                  studentAssessmentId={assessmentId}
-                  assessmentProblemId={currentProblem.id}
+                  assessmentId={assessmentId}
                   initialCode={currentAnswer}
                   onCodeChange={(code) =>
                     handleAnswerChange(currentProblem.id, code)

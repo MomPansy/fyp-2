@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
-import { eq } from "drizzle-orm/sql/expressions/conditions";
+import { and, eq } from "drizzle-orm/sql/expressions/conditions";
 import { factory } from "server/factory.ts";
 import { auth } from "server/middlewares/auth.ts";
 import { assessmentStatus } from "server/middlewares/assessment-status.ts";
@@ -18,6 +18,7 @@ import { assessmentProblems } from "server/drizzle/assessment_problems.ts";
 import { userProblems } from "server/drizzle/user_problems.ts";
 import { submissions } from "server/drizzle/submissions.ts";
 import { submissionDetails } from "server/drizzle/submission_details.ts";
+import { studentAssessments } from "server/drizzle/student_assessments.ts";
 
 // Helper function to grade a submission by comparing candidate result with answer
 async function gradeSubmission(
@@ -130,13 +131,15 @@ export const route = factory
         podName: z.string(),
         sql: z.string(),
         dialect: z.enum(SUPPORTED_DIALECTS),
-        assessmentProblemId: z.string(),
+        problemId: z.string(),
       }),
     ),
     async (c) => {
-      const { id: studentAssessmentId } = c.req.valid("param");
-      const { podName, sql, dialect, assessmentProblemId } =
-        c.req.valid("json");
+      const { id: assessmentId } = c.req.valid("param");
+      const { podName, sql, dialect, problemId } = c.req.valid("json");
+
+      const jwtPayload = c.get("jwtPayload");
+      const studentId = jwtPayload.user_metadata.user_id;
 
       const { withTx } = c.var;
       const key = `${podName}-${dialect}`;
@@ -148,8 +151,31 @@ export const route = factory
         });
       }
 
+      // get student_assessment_id using assessmentId and studentId from jwtPayload
+
       // create or update a submission
+      // TODO: can shift this to route param on the frontend later
       const submissionId = await withTx(async (tx) => {
+        const [studentAssessment] = await tx
+          .select({
+            studentAssessmentId: studentAssessments.id,
+          })
+          .from(studentAssessments)
+          .where(
+            and(
+              eq(studentAssessments.assessment, assessmentId),
+              eq(studentAssessments.student, studentId),
+            ),
+          );
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!studentAssessment) {
+          throw new HTTPException(404, {
+            message: `Student assessment not found for assessment ID: ${assessmentId} and student ID: ${studentId}`,
+          });
+        }
+        const studentAssessmentId = studentAssessment.studentAssessmentId;
+
+        // create or update a submission
         const [submission] = await tx
           .insert(submissions)
           .values({
@@ -178,18 +204,18 @@ export const route = factory
               userProblems,
               eq(assessmentProblems.problem, userProblems.id),
             )
-            .where(eq(assessmentProblems.id, assessmentProblemId));
+            .where(eq(assessmentProblems.id, problemId));
 
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (!userProblem) {
             throw new HTTPException(404, {
-              message: `Problem not found for assessment problem ID: ${assessmentProblemId}`,
+              message: `Problem not found for assessment problem ID: ${problemId}`,
             });
           }
 
           if (!userProblem.answer) {
             throw new HTTPException(400, {
-              message: `No answer provided for problem ID: ${assessmentProblemId}`,
+              message: `No answer provided for problem ID: ${problemId}`,
             });
           }
 
@@ -204,14 +230,14 @@ export const route = factory
           pool,
           result,
           userProblem,
-          assessmentProblemId,
+          problemId,
         );
 
         // Insert submission details
         await withTx(async (tx) => {
           await tx.insert(submissionDetails).values({
             submissionId,
-            assignmentProblemId: assessmentProblemId,
+            assignmentProblemId: problemId,
             candidateAnswer: sql,
             dialect,
             grade: gradeResult.grade,
