@@ -14,7 +14,6 @@ import { getPool } from "server/problem-database/pool-manager.ts";
 import type { QueryResult } from "server/problem-database/db-seed/index.ts";
 import { executeQueryByDialect } from "server/problem-database/db-seed/query-executors.ts";
 import type { DatabasePool } from "server/problem-database/pools.ts";
-import { assessmentProblems } from "server/drizzle/assessment_problems.ts";
 import { userProblems } from "server/drizzle/user_problems.ts";
 import { submissions } from "server/drizzle/submissions.ts";
 import { submissionDetails } from "server/drizzle/submission_details.ts";
@@ -199,12 +198,8 @@ export const route = factory
               answer: userProblems.answer,
               dialect: userProblems.dialect,
             })
-            .from(assessmentProblems)
-            .innerJoin(
-              userProblems,
-              eq(assessmentProblems.problem, userProblems.id),
-            )
-            .where(eq(assessmentProblems.id, problemId));
+            .from(userProblems)
+            .where(eq(userProblems.id, problemId));
 
           // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
           if (!userProblem) {
