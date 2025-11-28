@@ -13,6 +13,8 @@ jobs:
       # Step 1: Checkout code
       - name: Checkout Code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Fetch at least 2 commits for git diff to work
 
       # Step 2: Log in to Docker Registry
       - name: Log in to Docker Registry
@@ -25,8 +27,12 @@ jobs:
       - name: Check for Changes in Node.js app
         id: node_changes
         run: |
-          if git diff --quiet HEAD^ HEAD -- src server package.json nixpacks.toml Dockerfile; then
-            echo "node_changes=false" >> $GITHUB_OUTPUT
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- src server package.json nixpacks.toml Dockerfile; then
+              echo "node_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "node_changes=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "node_changes=true" >> $GITHUB_OUTPUT
           fi
@@ -35,8 +41,12 @@ jobs:
       - name: Check for Changes in Python app
         id: python_changes
         run: |
-          if git diff --quiet HEAD^ HEAD -- python/; then
-            echo "python_changes=false" >> $GITHUB_OUTPUT
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- python/; then
+              echo "python_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "python_changes=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "python_changes=true" >> $GITHUB_OUTPUT
           fi
@@ -45,8 +55,12 @@ jobs:
       - name: Check for Changes in Go server
         id: go_changes
         run: |
-          if git diff --quiet HEAD^ HEAD -- database-infra/server/; then
-            echo "go_changes=false" >> $GITHUB_OUTPUT
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            if git diff --quiet HEAD^ HEAD -- database-infra/server/; then
+              echo "go_changes=false" >> $GITHUB_OUTPUT
+            else
+              echo "go_changes=true" >> $GITHUB_OUTPUT
+            fi
           else
             echo "go_changes=true" >> $GITHUB_OUTPUT
           fi
