@@ -250,6 +250,76 @@ export const useAddAssessmentProblemMutation = () => {
   });
 };
 
+/**
+ * Syncs assessment candidates by removing all existing records and inserting the new ones.
+ * This handles both updates and deletions properly.
+ */
+export const useSyncAssessmentCandidatesMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      assessmentId,
+      candidates,
+    }: {
+      assessmentId: string;
+      candidates: {
+        email: string;
+        matriculation_number: string;
+        full_name: string;
+      }[];
+    }) => {
+      // Check if assessment is archived first
+      const { data: assessmentData, error: assessmentError } = await supabase
+        .from("assessments")
+        .select("archived_at")
+        .eq("id", assessmentId)
+        .single();
+
+      if (assessmentError) throw new Error(assessmentError.message);
+      if (assessmentData.archived_at) {
+        throw new Error(
+          "Cannot modify candidates for a cancelled assessment. Please restore it first.",
+        );
+      }
+
+      // Delete all existing invitations for this assessment
+      // eslint-disable-next-line drizzle/enforce-delete-with-where
+      const { error: deleteError } = await supabase
+        .from("assessment_student_invitations")
+        .delete()
+        .eq("assessment_id", assessmentId);
+
+      if (deleteError) throw new Error(deleteError.message);
+
+      // If there are new candidates to insert, insert them
+      if (candidates.length > 0) {
+        const { error: insertError } = await supabase
+          .from("assessment_student_invitations")
+          .insert(
+            candidates.map((c) => ({
+              assessment_id: assessmentId,
+              email: c.email,
+              matriculation_number: c.matriculation_number,
+              full_name: c.full_name,
+            })),
+          );
+
+        if (insertError) throw new Error(insertError.message);
+      }
+
+      return { assessmentId };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.candidatesByAssessmentId(data.assessmentId),
+      });
+    },
+  });
+};
+
+/**
+ * @deprecated Use useSyncAssessmentCandidatesMutation instead
+ */
 export const useUpsertAssessmentCandidateMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({

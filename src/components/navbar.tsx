@@ -53,14 +53,19 @@ export function Navbar() {
       showErrorNotification({
         message: error.message,
       });
-    } else {
-      showSuccessNotification({
-        message: "Successfully logged out!",
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["accessToken"],
-      });
+      return;
     }
+
+    showSuccessNotification({
+      message: "Successfully logged out!",
+    });
+
+    // Remove the cached access token data completely so the login page
+    // doesn't think the user is still authenticated
+    queryClient.removeQueries({
+      queryKey: ["accessToken"],
+    });
+
     navigate({ to: "/login" });
   };
 

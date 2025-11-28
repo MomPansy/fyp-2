@@ -9,7 +9,7 @@ import { Suspense } from "react";
 import { fetchAssessmentQueryOptions } from "@/components/assessments/hooks.ts";
 import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { ProblemsTab } from "@/components/assessments/details/problems-tab.tsx";
-import { CandidatesTab } from "@/components/assessments/details/candidates-tab.tsx";
+import { CandidatesTab } from "@/components/assessments/details/candidates-tab/index.ts";
 import { SettingsTab } from "@/components/assessments/details/settings-tab.tsx";
 
 export const Route = createFileRoute("/_admin/admin/assessment/$id/details")({
@@ -73,7 +73,6 @@ function RouteComponent() {
             Settings
           </Tabs.Tab>
         </Tabs.List>
-
         <Tabs.Panel value="problems">
           <Suspense fallback={<TabsSkeleton />}>
             <ProblemsTab />

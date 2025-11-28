@@ -1,4 +1,4 @@
-@import './styles/_variables.scss';
+@import "./styles/_variables.scss";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,4 +20,33 @@ body,
   margin: 0;
   padding: 0;
   height: 100%;
+}
+
+/* Override mantine-react-table sort button styling */
+.mrt-table-head-sort-button {
+  --ai-bg: transparent !important;
+  --ai-color: var(--mantine-color-gray-6) !important;
+  --ai-hover: var(--mantine-color-gray-1) !important;
+  --ai-size: 1.25rem !important;
+}
+
+.mrt-table-head-sort-button svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* Align mantine-react-table top toolbar */
+.mrt-top-toolbar {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+/* Actions container should be full width */
+.MRT_TopToolbar-module_actions-container__-uL0u {
+  width: 100% !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
 }
