@@ -50,6 +50,8 @@ interface CsvImportState {
   setFilteredColumns: (cols: string[]) => void;
   setColumnTypes: (cols: ColumnType[]) => void;
   setLoading: (v: boolean) => void;
+  setTableMetadata: (metadata: TableMetadata[]) => void;
+  updateTableName: (oldName: string, newName: string) => void;
 
   // local relations
   addRelation: (foreignTableName: string) => void;
@@ -204,6 +206,40 @@ export const useCsvImportStore = create<CsvImportState>()(
     setLoading: (v) => set({ isLoading: v }),
     setTableMetadata: (metadata: TableMetadata[]) => {
       set({ tableMetadata: metadata });
+    },
+    updateTableName: (oldName: string, newName: string) => {
+      // Update fileName if it matches the old name
+      const currentFileName = get().fileName;
+      const newFileName =
+        currentFileName === oldName ? newName : currentFileName;
+
+      // Update relations - both baseTableName and foreignTableName
+      const updatedRelations = get().relations.map((rel) => ({
+        ...rel,
+        baseTableName:
+          rel.baseTableName === oldName ? newName : rel.baseTableName,
+        foreignTableName:
+          rel.foreignTableName === oldName ? newName : rel.foreignTableName,
+      }));
+
+      // Update tableMetadata - tableName and relations within each table
+      const updatedTableMetadata = get().tableMetadata?.map((table) => ({
+        ...table,
+        tableName: table.tableName === oldName ? newName : table.tableName,
+        relations: table.relations.map((rel) => ({
+          ...rel,
+          baseTableName:
+            rel.baseTableName === oldName ? newName : rel.baseTableName,
+          foreignTableName:
+            rel.foreignTableName === oldName ? newName : rel.foreignTableName,
+        })),
+      }));
+
+      set({
+        fileName: newFileName,
+        relations: updatedRelations,
+        tableMetadata: updatedTableMetadata,
+      });
     },
 
     // derived

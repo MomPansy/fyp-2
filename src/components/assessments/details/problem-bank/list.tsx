@@ -27,6 +27,7 @@ export function ProblemBankList({
   filters,
   sorting,
   existingProblemIds,
+  onClose,
   ...props
 }: ProblemBankListProps) {
   const { user_id } = useUser();
@@ -75,6 +76,7 @@ export function ProblemBankList({
       {
         onSuccess: () => {
           setSelectedProblems([]);
+          onClose();
         },
         onError: (error) => {
           showErrorNotification({
@@ -153,6 +155,13 @@ export function ProblemBankList({
               ) : (
                 data?.pages
                   .flatMap((page) => page.items)
+                  .sort((a, b) => {
+                    const aSelected = selectedProblems.includes(a.id);
+                    const bSelected = selectedProblems.includes(b.id);
+                    if (aSelected && !bSelected) return -1;
+                    if (!aSelected && bSelected) return 1;
+                    return 0;
+                  })
                   .map((problem) => (
                     <Table.Tr
                       key={problem.id}
@@ -162,8 +171,10 @@ export function ProblemBankList({
                           ? "var(--mantine-color-blue-light)"
                           : undefined
                       }
-                      onClick={() => {
+                      onClick={(e) => {
                         // Toggle checkbox selection
+                        e.preventDefault();
+                        e.stopPropagation();
                         setSelectedProblems((prevSelected) =>
                           prevSelected.includes(problem.id)
                             ? prevSelected.filter((id) => id !== problem.id)

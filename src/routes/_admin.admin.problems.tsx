@@ -37,11 +37,11 @@ import {
   useDeleteUserProblemMutation,
 } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
-import { SimpleEditor } from "@/components/tiptap/simple/simple-editor.tsx";
 import { useUser } from "@/hooks/auth.ts";
 import { dayjs } from "@/lib/dayjs.ts";
 import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { generateUUID } from "@/lib/utils.ts";
+import { ProblemPreviewModal } from "@/components/problems/problem-preview-modal.tsx";
 
 const problemSearchSchema = z.object({
   id: z.string().optional(),
@@ -399,7 +399,7 @@ function ListContent({ filters, sorting }: ListProps) {
         if (!problemId) return null;
         return (
           <Suspense fallback={<LoadingOverlay />}>
-            <ProblemPreviewModal
+            <ProblemPreviewModalWrapper
               onClose={deselectProblem}
               problemId={problemId}
             />
@@ -454,12 +454,15 @@ function DeleteConfirmationModal({
   );
 }
 
-interface ProblemPreviewModalProps {
+interface ProblemPreviewModalWrapperProps {
   problemId: string;
   onClose: () => void;
 }
 
-function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
+function ProblemPreviewModalWrapper({
+  onClose,
+  problemId,
+}: ProblemPreviewModalWrapperProps) {
   const { user_id: userId } = useUser();
   const { data: problem } = useSuspenseQuery(
     userProblemDetailQueryOptions(problemId, userId, {
@@ -477,17 +480,12 @@ function ProblemPreviewModal({ onClose, problemId }: ProblemPreviewModalProps) {
   }
 
   return (
-    <Modal opened={true} onClose={onClose} size="auto" title={problem.name}>
-      <Modal.Body>
-        <SimpleEditor
-          initialContent={problem.description}
-          readonly
-          styles={{
-            editor: { maxWidth: "1400px", padding: 0 },
-          }}
-          showToolbar={false}
-        />
-      </Modal.Body>
-    </Modal>
+    <ProblemPreviewModal
+      problem={{
+        name: problem.name,
+        description: problem.description,
+      }}
+      onClose={onClose}
+    />
   );
 }

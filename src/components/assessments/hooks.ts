@@ -23,6 +23,7 @@ export interface AssessmentProblem {
     id: UserProblem["id"];
     name: UserProblem["name"];
     description: UserProblem["description"];
+    answer: UserProblem["answer"];
   };
 }
 
@@ -187,7 +188,9 @@ export const fetchAssessmentQueryOptions = (id: string) => {
     queryFn: async (): Promise<AssessmentPageItem | null> => {
       const { data, error } = await supabase
         .from("assessments")
-        .select("*, assessment_problems(user_problems(id, name, description))")
+        .select(
+          "*, assessment_problems(user_problems(id, name, description, answer))",
+        )
         .eq("id", id)
         .single();
 
@@ -230,19 +233,32 @@ export const useAddAssessmentProblemMutation = () => {
         );
       }
 
-      const { data, error } = await supabase
+      // Delete all existing problems for this assessment
+      // eslint-disable-next-line drizzle/enforce-delete-with-where
+      const { error: deleteError } = await supabase
         .from("assessment_problems")
-        .upsert(
-          problems.map((problem) => ({
-            assessment_id: assessment,
-            problem_id: problem,
-          })),
-        )
-        .select("assessment_id");
+        .delete()
+        .eq("assessment_id", assessment);
 
-      if (error) throw new Error(error.message);
+      if (deleteError) throw new Error(deleteError.message);
 
-      return data;
+      // Insert the new set of problems (if any)
+      if (problems.length > 0) {
+        const { data, error } = await supabase
+          .from("assessment_problems")
+          .insert(
+            problems.map((problem) => ({
+              assessment_id: assessment,
+              problem_id: problem,
+            })),
+          )
+          .select("assessment_id");
+
+        if (error) throw new Error(error.message);
+        return data;
+      }
+
+      return [];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assessmentKeys.all });

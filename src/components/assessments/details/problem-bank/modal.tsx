@@ -31,6 +31,7 @@ export function ProblemBankModal({
             filters={filters}
             sorting={sorting}
             existingProblemIds={existingProblemIds}
+            onClose={close}
             flex={1}
           />
         </Group>

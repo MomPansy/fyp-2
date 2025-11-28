@@ -9,37 +9,19 @@ import {
 } from "@mantine/core";
 
 import {
-  closestCenter,
-  DndContext,
-  DragEndEvent,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-
-import {
-  arrayMove,
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-
-import {
   IconCalendar,
   IconClock,
-  IconGripVertical,
   IconTimeDuration60,
   IconTrophy,
 } from "@tabler/icons-react";
 import { useParams } from "@tanstack/react-router";
-import { useDisclosure, useListState } from "@mantine/hooks";
-import { useEffect } from "react";
-import { CSS } from "@dnd-kit/utilities";
+import { useDisclosure } from "@mantine/hooks";
+import { useState } from "react";
 import dayjs from "dayjs";
 import { AssessmentProblem, useFetchAssessmentById } from "../hooks.ts";
 import { getAssessmentStatus } from "../utils.ts";
 import { ProblemBankModal } from "./problem-bank/index.ts";
+import { ProblemPreviewModal } from "@/components/problems/problem-preview-modal.tsx";
 
 export function ProblemsTab() {
   const { id } = useParams({ from: "/_admin/admin/assessment/$id/details" });
@@ -116,7 +98,7 @@ export function ProblemsTab() {
                   This assessment is cancelled. Restore it to manage problems.
                 </Text>
               )}
-              <DNDListHandle problems={data?.assessment_problems} />
+              <ProblemsList problems={data?.assessment_problems} />
             </Stack>
           </Stack>
         </Paper>
@@ -131,89 +113,51 @@ export function ProblemsTab() {
   );
 }
 
-function DNDListHandle({
+function ProblemsList({
   problems,
 }: {
   problems: AssessmentProblem[] | undefined;
 }) {
-  const [state, handlers] = useListState<AssessmentProblem>([]);
+  const [selectedProblem, setSelectedProblem] =
+    useState<AssessmentProblem | null>(null);
 
-  // Sync with props only when problems change
-  useEffect(() => {
-    if (problems) {
-      handlers.setState(problems);
-    }
-  }, [problems, handlers]);
+  if (!problems || problems.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No problems added yet.
+      </Text>
+    );
+  }
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor),
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) {
-      // No movement needed if dropped in same position or outside valid drop zone
-      return;
-    }
-    const oldIndex = state.findIndex((i) => i.user_problems.id === active.id);
-    const newIndex = state.findIndex((i) => i.user_problems.id === over.id);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      handlers.setState(arrayMove(state, oldIndex, newIndex));
-    }
-  };
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={state.map((i) => i.user_problems.id)}
-        strategy={verticalListSortingStrategy}
-      >
-        {state.map((item) => (
-          <SortableItem {...item} key={item.user_problems.id} />
+    <>
+      <Stack gap="xs">
+        {problems.map((item) => (
+          <Button
+            onClick={() => setSelectedProblem(item)}
+            variant="default"
+            size="xl"
+            justify="flex-start"
+            key={item.user_problems.id}
+          >
+            <Text>{item.user_problems.name}</Text>
+          </Button>
         ))}
-      </SortableContext>
-    </DndContext>
-  );
-}
+      </Stack>
 
-function SortableItem(item: AssessmentProblem) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: item.user_problems.id,
-  });
-
-  return (
-    <Paper
-      p="md"
-      radius="sm"
-      withBorder
-      ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
-      shadow={isDragging ? "md" : undefined}
-      {...attributes}
-    >
-      <Group>
-        <div {...listeners}>
-          <IconGripVertical stroke={1.5} />
-        </div>
-        <Group flex={1} justify="flex-start">
-          <Text>{item.user_problems.name}</Text>
-        </Group>
-      </Group>
-    </Paper>
+      <ProblemPreviewModal
+        problem={
+          selectedProblem
+            ? {
+              name: selectedProblem.user_problems.name,
+              description: selectedProblem.user_problems.description,
+              answer: selectedProblem.user_problems.answer,
+            }
+            : null
+        }
+        onClose={() => setSelectedProblem(null)}
+        showAnswer
+      />
+    </>
   );
 }

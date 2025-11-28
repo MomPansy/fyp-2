@@ -418,6 +418,110 @@ export function useDeleteUserProblemTableMutation() {
   });
 }
 
+export function useUpdateUserProblemTableMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      tableId,
+      problemId,
+      tableName,
+      description,
+      oldTableName,
+    }: {
+      tableId: string;
+      problemId: string;
+      tableName?: string;
+      description?: string;
+      oldTableName?: string;
+    }) => {
+      const updateData: { table_name?: string; description?: string } = {};
+      if (tableName !== undefined) updateData.table_name = tableName;
+      if (description !== undefined) updateData.description = description;
+
+      const { data, error } = await supabase
+        .from("user_problem_tables")
+        .update(updateData)
+        .eq("id", tableId)
+        .eq("user_problem_id", problemId)
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // If table name changed, update relations in all tables that reference this table
+      if (
+        tableName !== undefined &&
+        oldTableName &&
+        tableName !== oldTableName
+      ) {
+        // Get all tables for this problem to update their relations
+        const { data: allTables, error: fetchError } = await supabase
+          .from("user_problem_tables")
+          .select("id, relations")
+          .eq("user_problem_id", problemId);
+
+        if (fetchError) {
+          throw new Error(
+            "Error fetching tables for relation update: " + fetchError.message,
+          );
+        }
+
+        // Update relations in each table that references the renamed table
+        for (const table of allTables) {
+          if (!table.relations || !Array.isArray(table.relations)) continue;
+
+          const relations = table.relations as unknown as ForeignKeyMapping[];
+          let hasChanges = false;
+
+          const updatedRelations = relations.map((relation) => {
+            const updated = { ...relation };
+
+            // Update baseTableName if it matches the old table name
+            if (relation.baseTableName === oldTableName) {
+              updated.baseTableName = tableName;
+              hasChanges = true;
+            }
+
+            // Update foreignTableName if it matches the old table name
+            if (relation.foreignTableName === oldTableName) {
+              updated.foreignTableName = tableName;
+              hasChanges = true;
+            }
+
+            return updated;
+          });
+
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          if (hasChanges) {
+            const { error: updateError } = await supabase
+              .from("user_problem_tables")
+              .update({ relations: updatedRelations })
+              .eq("id", table.id);
+
+            if (updateError) {
+              console.error(
+                `Error updating relations for table ${table.id}:`,
+                updateError,
+              );
+            }
+          }
+        }
+      }
+
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: userProblemTableKeys.metadataByProblemId(
+          data.user_problem_id,
+        ),
+      });
+    },
+  });
+}
+
 export function useDeleteUserProblemMutation() {
   const queryClient = useQueryClient();
   return useMutation<unknown, Error, { problemId: string }>({

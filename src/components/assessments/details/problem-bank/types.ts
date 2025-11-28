@@ -8,6 +8,7 @@ export interface ProblemBankListProps extends PaperProps {
   filters: ProblemListFilters;
   sorting: ProblemListSorting;
   existingProblemIds?: string[];
+  onClose: () => void;
 }
 
 export interface ProblemBankFiltersProps extends PaperProps {
