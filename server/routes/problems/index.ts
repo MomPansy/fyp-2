@@ -189,7 +189,9 @@ export const route = factory
       }
 
       try {
+        console.info("Executing SQL query:", { podName, dialect, sql });
         const result = await executeQueryByDialect(pool, sql, dialect);
+        console.info("Query execution result:", { dialect, result });
         return c.json(result);
       } catch (error: unknown) {
         const message = error instanceof Error ? error.message : String(error);

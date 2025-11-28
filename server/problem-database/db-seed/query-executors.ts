@@ -39,6 +39,7 @@ export async function executePostgresQuery(
   sql: string,
   params?: (string | number | boolean | null)[],
 ): Promise<QueryResult> {
+  console.info("Executing Postgres query:", { sql, params });
   const result = await pool.query(sql, params);
   console.info("Postgres query result:", result);
   return {
@@ -52,7 +53,9 @@ export async function executeMysqlQuery(
   sql: string,
   params?: (string | number | boolean | null)[],
 ): Promise<QueryResult> {
+  console.info("Executing MySQL query:", { sql, params });
   const [rows] = await pool.execute(sql, params);
+  console.info("MySQL query result:", rows);
   return {
     rows: rows as Record<string, unknown>[],
     affectedRows: (rows as { affectedRows?: number }).affectedRows,
