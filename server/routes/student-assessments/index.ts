@@ -135,6 +135,7 @@ export const route = factory
       }),
     ),
     async (c) => {
+      // TODO: Clean this whole route up, theres too many joins
       const { id: assessmentId } = c.req.valid("param");
       const { podName, sql, dialect, problemId } = c.req.valid("json");
 

@@ -83,9 +83,9 @@ func main() {
 			return
 		}
 
-		// For now, only support postgres - but validate it
-		if req.Dialect != "postgres" {
-			http.Error(w, fmt.Sprintf("Unsupported dialect: %s. Currently only 'postgres' is supported", req.Dialect), http.StatusBadRequest)
+		// Validate supported dialects
+		if req.Dialect != "postgres" && req.Dialect != "mysql" {
+			http.Error(w, fmt.Sprintf("Unsupported dialect: %s. Supported dialects: 'postgres', 'mysql'", req.Dialect), http.StatusBadRequest)
 			return
 		}
 
@@ -97,10 +97,18 @@ func main() {
 			return
 		}
 
-		// Use consistent username 'admin' - tests should use this
-		conn := fmt.Sprintf(
-			"postgres://admin:password@%s:5432/default_db?sslmode=disable",
-			pod.Status.PodIP)
+		// Build connection string based on dialect
+		var conn string
+		switch d {
+		case "postgres":
+			conn = fmt.Sprintf(
+				"postgres://admin:password@%s:5432/default_db?sslmode=disable",
+				pod.Status.PodIP)
+		case "mysql":
+			conn = fmt.Sprintf(
+				"mysql://admin:password@%s:3306/default_db",
+				pod.Status.PodIP)
+		}
 
 		log.Printf("Successfully allocated pod %s for dialect %s", pod.Name, d)
 		json.NewEncoder(w).Encode(AllocateResp{Conn: conn, Pod: pod.Name})
@@ -190,7 +198,15 @@ func grabOrCreatePod(cs *kubernetes.Clientset, dialect string) (*corev1.Pod, err
 	}
 
 	// 2. scale deployment +1
-	depName := "pg-sandbox" // hardcoded for postgres for now
+	var depName string
+	switch dialect {
+	case "postgres":
+		depName = "pg-sandbox"
+	case "mysql":
+		depName = "mysql-sandbox"
+	default:
+		return nil, fmt.Errorf("unsupported dialect: %s", dialect)
+	}
 	scale, err := cs.AppsV1().Deployments(ns).GetScale(context.TODO(), depName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get deployment scale: %v", err)

@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-sandbox
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: mysql-sandbox
+  template:
+    metadata:
+      labels:
+        app: mysql-sandbox
+        dialect: mysql
+        state: free
+    spec:
+      subdomain: mysql-sandbox # Enable per-pod DNS
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: mysql-init-scripts
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          args: ["--max_connections=10"]
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_USER
+              value: "{{ .Values.DB_USERNAME }}"
+            - name: MYSQL_PASSWORD
+              value: "{{ .Values.DB_PASSWORD }}"
+            - name: MYSQL_ROOT_PASSWORD
+              value: "{{ .Values.DB_PASSWORD }}"
+            - name: MYSQL_DATABASE
+              value: "default_db"
+          readinessProbe:
+            exec:
+              command:
+                - "mysqladmin"
+                - "ping"
+                - "-h"
+                - "127.0.0.1"
+                - "-u"
+                - "{{ .Values.DB_USERNAME }}"
+                - "-p{{ .Values.DB_PASSWORD }}"
+            initialDelaySeconds: 5
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
