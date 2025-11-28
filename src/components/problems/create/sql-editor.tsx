@@ -1,7 +1,7 @@
 import { Panel } from "react-resizable-panels";
 import MonacoEditorReact from "@monaco-editor/react";
 import { editor } from "monaco-editor";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import {
   Button,
   Select,
@@ -32,7 +32,8 @@ import { useExecuteSQLMutation } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
 interface BaseSqlEditorProps {
-  podName?: string;
+  postgresPodName?: string;
+  mysqlPodName?: string;
   problemId: string;
   initialCode?: string;
   onCodeChange?: (code: string) => void;
@@ -65,7 +66,14 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
 }));
 
 export function SqlEditor(props: SqlEditorProps) {
-  const { podName, problemId, initialCode, onCodeChange, mode } = props;
+  const {
+    postgresPodName,
+    mysqlPodName,
+    problemId,
+    initialCode,
+    onCodeChange,
+    mode,
+  } = props;
   const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -76,12 +84,18 @@ export function SqlEditor(props: SqlEditorProps) {
     useSubmitAssessmentMutation();
 
   const [sqlCode, setSqlCode] = useState<string | undefined>(
-    initialCode ??
-    `SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`,
+    // eslint-disable-next-line prettier/prettier
+    initialCode ?? `SELECT * FROM CITY WHERE COUNTRYCODE = 'USA' AND POPULATION > 100000`,
   );
 
   const [sqlDialect, setSqlDialect] = useState<Dialect>("postgres");
   const [opened, { open, close }] = useDisclosure(false);
+
+  const podName = useMemo(
+    () => (sqlDialect === "mysql" ? mysqlPodName : postgresPodName),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sqlDialect],
+  );
 
   // Update sqlCode when initialCode changes (when switching problems)
   useEffect(() => {

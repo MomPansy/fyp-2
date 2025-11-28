@@ -46,7 +46,10 @@ export const Route = createFileRoute("/_student/student/assessment/$id")({
 
     const databaseConnections = new Map<
       string,
-      { podName: string; dialect: string; key: string }
+      {
+        postgres: { podName: string; dialect: string };
+        mysql: { podName: string; dialect: string };
+      }
     >();
 
     if (data.status === "active") {
@@ -54,7 +57,7 @@ export const Route = createFileRoute("/_student/student/assessment/$id")({
       const { problems } = assessment;
       for (const problem of problems) {
         const connectionData = await queryClient.ensureQueryData(
-          databaseConnectionQueryOptions(problem.id, "postgres"),
+          databaseConnectionQueryOptions(problem.id),
         );
         databaseConnections.set(problem.id, connectionData);
       }
@@ -193,7 +196,8 @@ function AssessmentActive() {
                 <SqlEditor
                   key={currentProblem.id}
                   mode="student"
-                  podName={currentConnection.podName}
+                  postgresPodName={currentConnection.postgres.podName}
+                  mysqlPodName={currentConnection.mysql.podName}
                   problemId={currentProblem.id}
                   assessmentId={assessmentId}
                   initialCode={currentAnswer}

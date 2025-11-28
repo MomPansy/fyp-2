@@ -28,8 +28,8 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
           columns: ["description"],
         }),
       );
-      const databaseConnectionKey = await queryClient.ensureQueryData(
-        databaseConnectionQueryOptions(params.id, "postgres"),
+      const databaseConnection = await queryClient.ensureQueryData(
+        databaseConnectionQueryOptions(params.id),
       );
 
       if (!problemDetails) {
@@ -38,7 +38,7 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
 
       return {
         problemDetails,
-        databaseConnectionKey,
+        databaseConnection,
       };
     } catch (error) {
       console.error("Failed to load problem data:", error);
@@ -72,7 +72,7 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
     `,
   };
 
-  const databaseConnectionKey = loaderData?.databaseConnectionKey;
+  const databaseConnection = loaderData?.databaseConnection;
 
   return (
     <PanelGroup direction="horizontal" className="h-full">
@@ -85,7 +85,8 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
         <PanelGroup direction="vertical" className="h-full">
           <SqlEditor
             mode="admin"
-            podName={databaseConnectionKey?.podName}
+            postgresPodName={databaseConnection?.postgres.podName}
+            mysqlPodName={databaseConnection?.mysql.podName}
             problemId={id}
           />
           <HorizontalResizeHandle />

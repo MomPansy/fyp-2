@@ -312,31 +312,19 @@ export const useExecuteSQLMutation = () => {
   });
 };
 
-export const databaseConnectionQueryOptions = (
-  problemId: string,
-  dialect: Dialect,
-) => {
+export const databaseConnectionQueryOptions = (problemId: string) => {
   return queryOptions({
-    queryKey: ["database", "connect", problemId, dialect],
+    queryKey: ["database", "connect", problemId],
     queryFn: async () => {
       const response = await api.problems.connect.$post({
         json: {
           problemId,
-          dialect,
         },
       });
 
       const data = await response.json();
 
-      const { podName } = data;
-
-      const key = `${podName}-${dialect}`;
-
-      return {
-        podName,
-        dialect,
-        key,
-      };
+      return data;
     },
     // Increase timeout for long-running database operations
     staleTime: 5 * 60 * 1000, // 5 minutes

@@ -109,33 +109,60 @@ export const route = factory
       "json",
       z.object({
         problemId: z.string(),
-        dialect: z.enum(SUPPORTED_DIALECTS),
       }),
     ),
     async (c) => {
-      const { problemId, dialect } = c.req.valid("json");
+      const { problemId } = c.req.valid("json");
 
       const problemTables = await fetchProblemTables(problemId);
 
-      const processedTables: SeedTable[] = problemTables.map((table) => ({
+      const processedTablesPostgres: SeedTable[] = problemTables.map(
+        (table) => ({
+          table_name: table.table_name,
+          column_types: getColumnMappings("postgres", table.column_types),
+          data_path: table.data_path,
+          relations: getRelationsMappings("postgres", table.relations),
+        }),
+      );
+
+      const processedTablesMysql: SeedTable[] = problemTables.map((table) => ({
         table_name: table.table_name,
-        column_types: getColumnMappings(dialect, table.column_types),
+        column_types: getColumnMappings("mysql", table.column_types),
         data_path: table.data_path,
-        relations: getRelationsMappings(dialect, table.relations),
+        relations: getRelationsMappings("mysql", table.relations),
       }));
 
-      const { connectionString, podName } = await allocateDatabase(dialect);
+      const [postgresResult, mysqlResult] = await Promise.all([
+        allocateDatabase("postgres"),
+        allocateDatabase("mysql"),
+      ]);
 
       // transfer connection string storage to redis
-      const key = `${podName}-${dialect}`;
-      const pool = await createPool(key, connectionString, dialect);
+      const postgresKey = `${postgresResult.podName}-postgres`;
+      const mysqlKey = `${mysqlResult.podName}-mysql`;
 
-      // 1) Create tables
-      await seedDatabase(pool, processedTables, dialect);
+      const [postgresPool, mysqlPool] = await Promise.all([
+        createPool(postgresKey, postgresResult.connectionString, "postgres"),
+        createPool(mysqlKey, mysqlResult.connectionString, "mysql"),
+      ]);
+
+      // 1) Create tables in both databases
+      await Promise.all([
+        seedDatabase(postgresPool, processedTablesPostgres, "postgres"),
+        seedDatabase(mysqlPool, processedTablesMysql, "mysql"),
+      ]);
 
       return c.json({
-        podName,
-        dialect,
+        postgres: {
+          podName: postgresResult.podName,
+          dialect: "postgres",
+          key: postgresKey,
+        },
+        mysql: {
+          podName: mysqlResult.podName,
+          dialect: "mysql",
+          key: mysqlKey,
+        },
       });
     },
   )
