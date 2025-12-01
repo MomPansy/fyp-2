@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_admin/admin/problem/$id/create")({
       const userId = jwtPayload.user_metadata.user_id;
       const problemDetails = await queryClient.ensureQueryData(
         userProblemDetailQueryOptions(params.id, userId, {
-          columns: ["description"],
+          columns: ["description", "answer"],
         }),
       );
       const databaseConnection = await queryClient.ensureQueryData(
@@ -74,6 +74,8 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
 
   const databaseConnection = loaderData?.databaseConnection;
 
+  const answer = loaderData?.problemDetails.answer;
+
   return (
     <PanelGroup direction="horizontal" className="h-full">
       <Panel defaultSize={40} minSize={25}>
@@ -87,6 +89,7 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
             mode="admin"
             postgresPodName={databaseConnection?.postgres.podName}
             mysqlPodName={databaseConnection?.mysql.podName}
+            answer={answer}
             problemId={id}
           />
           <HorizontalResizeHandle />

@@ -35,7 +35,7 @@ interface BaseSqlEditorProps {
   postgresPodName?: string;
   mysqlPodName?: string;
   problemId: string;
-  initialCode?: string;
+  initialCode?: string | null;
   onCodeChange?: (code: string) => void;
 }
 
@@ -99,7 +99,7 @@ export function SqlEditor(props: SqlEditorProps) {
 
   // Update sqlCode when initialCode changes (when switching problems)
   useEffect(() => {
-    if (initialCode !== undefined) {
+    if (initialCode) {
       setSqlCode(initialCode);
     }
   }, [initialCode]);
