@@ -84,8 +84,8 @@ func main() {
 		}
 
 		// Validate supported dialects
-		if req.Dialect != "postgres" && req.Dialect != "mysql" {
-			http.Error(w, fmt.Sprintf("Unsupported dialect: %s. Supported dialects: 'postgres', 'mysql'", req.Dialect), http.StatusBadRequest)
+		if req.Dialect != "postgres" && req.Dialect != "mysql" && req.Dialect != "sqlserver" {
+			http.Error(w, fmt.Sprintf("Unsupported dialect: %s. Supported dialects: 'postgres', 'mysql', 'sqlserver'", req.Dialect), http.StatusBadRequest)
 			return
 		}
 
@@ -107,6 +107,10 @@ func main() {
 		case "mysql":
 			conn = fmt.Sprintf(
 				"mysql://admin:password@%s:3306/default_db",
+				pod.Status.PodIP)
+		case "sqlserver":
+			conn = fmt.Sprintf(
+				"sqlserver://sa:Password123!@%s:1433?database=default_db&trustServerCertificate=true",
 				pod.Status.PodIP)
 		}
 
@@ -204,6 +208,8 @@ func grabOrCreatePod(cs *kubernetes.Clientset, dialect string) (*corev1.Pod, err
 		depName = "pg-sandbox"
 	case "mysql":
 		depName = "mysql-sandbox"
+	case "sqlserver":
+		depName = "sqlserver-sandbox"
 	default:
 		return nil, fmt.Errorf("unsupported dialect: %s", dialect)
 	}

@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sqlserver-sandbox
+  namespace: "{{ .Release.Namespace }}"
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: sqlserver-sandbox
+  template:
+    metadata:
+      labels:
+        app: sqlserver-sandbox
+        dialect: sqlserver
+        state: free
+    spec:
+      subdomain: sqlserver-sandbox # Enable per-pod DNS
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: init-scripts
+          configMap:
+            name: sqlserver-init-scripts
+      containers:
+        - name: sqlserver
+          image: mcr.microsoft.com/mssql/server:2022-latest
+          ports:
+            - containerPort: 1433
+          env:
+            - name: ACCEPT_EULA
+              value: "Y"
+            - name: MSSQL_SA_PASSWORD
+              value: "Password123!"
+            - name: MSSQL_PID
+              value: "Developer"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          readinessProbe:
+            exec:
+              command:
+                - "/opt/mssql-tools18/bin/sqlcmd"
+                - "-S"
+                - "localhost"
+                - "-U"
+                - "sa"
+                - "-P"
+                - "Password123!"
+                - "-C"
+                - "-Q"
+                - "SELECT 1 FROM sys.databases WHERE name = 'default_db'"
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    # Wait for SQL Server to be ready
+                    for i in {1..60}; do
+                      /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Password123!" -C -Q "SELECT 1" &>/dev/null && break
+                      sleep 2
+                    done
+                    # Create default database
+                    /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "Password123!" -C -Q "IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'default_db') CREATE DATABASE default_db"
+          volumeMounts:
+            - name: data
+              mountPath: /var/opt/mssql

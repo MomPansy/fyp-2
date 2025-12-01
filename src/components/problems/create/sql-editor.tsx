@@ -34,6 +34,7 @@ import { showErrorNotification } from "@/components/notifications.ts";
 interface BaseSqlEditorProps {
   postgresKey?: string;
   mysqlKey?: string;
+  sqlserverKey?: string;
   problemId: string;
   initialCode?: string | null;
   onCodeChange?: (code: string) => void;
@@ -66,8 +67,15 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
 }));
 
 export function SqlEditor(props: SqlEditorProps) {
-  const { postgresKey, mysqlKey, problemId, initialCode, onCodeChange, mode } =
-    props;
+  const {
+    postgresKey,
+    mysqlKey,
+    sqlserverKey,
+    problemId,
+    initialCode,
+    onCodeChange,
+    mode,
+  } = props;
   const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -85,12 +93,17 @@ export function SqlEditor(props: SqlEditorProps) {
   const [sqlDialect, setSqlDialect] = useState<Dialect>("postgres");
   const [opened, { open, close }] = useDisclosure(false);
 
-  const podKey = useMemo(
-    () => (sqlDialect === "mysql" ? mysqlKey : postgresKey),
-
+  const podKey = useMemo(() => {
+    switch (sqlDialect) {
+      case "mysql":
+        return mysqlKey;
+      case "sqlserver":
+        return sqlserverKey;
+      default:
+        return postgresKey;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sqlDialect],
-  );
+  }, [sqlDialect]);
 
   // Update sqlCode when initialCode changes (when switching problems)
   useEffect(() => {

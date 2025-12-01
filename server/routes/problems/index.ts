@@ -117,17 +117,20 @@ export const route = factory
 
       const postgresKey = `${problemId}-postgres`;
       const mysqlKey = `${problemId}-mysql`;
+      const sqlserverKey = `${problemId}-sqlserver`;
 
       console.info(`existing pools:`, listActivePools());
 
       // Check if pools already exist and are healthy
-      const [existingPostgresPool, existingMysqlPool] = await Promise.all([
-        getPool(postgresKey),
-        getPool(mysqlKey),
-      ]);
+      const [existingPostgresPool, existingMysqlPool, existingSqlserverPool] =
+        await Promise.all([
+          getPool(postgresKey),
+          getPool(mysqlKey),
+          getPool(sqlserverKey),
+        ]);
 
-      // If both pools exist, return them without allocating new databases
-      if (existingPostgresPool && existingMysqlPool) {
+      // If all pools exist, return them without allocating new databases
+      if (existingPostgresPool && existingMysqlPool && existingSqlserverPool) {
         console.info(`✅ Reusing existing pools for problem: ${problemId}`);
         return c.json({
           postgres: {
@@ -137,6 +140,10 @@ export const route = factory
           mysql: {
             dialect: "mysql",
             key: mysqlKey,
+          },
+          sqlserver: {
+            dialect: "sqlserver",
+            key: sqlserverKey,
           },
         });
       }
@@ -160,6 +167,15 @@ export const route = factory
         relations: getRelationsMappings("mysql", table.relations),
       }));
 
+      const processedTablesSqlserver: SeedTable[] = problemTables.map(
+        (table) => ({
+          table_name: table.table_name,
+          column_types: getColumnMappings("sqlserver", table.column_types),
+          data_path: table.data_path,
+          relations: getRelationsMappings("sqlserver", table.relations),
+        }),
+      );
+
       // Allocate and seed only the missing databases
       interface AllocResult {
         podName: string;
@@ -169,9 +185,11 @@ export const route = factory
       const results: {
         postgres: AllocResult | null;
         mysql: AllocResult | null;
+        sqlserver: AllocResult | null;
       } = {
         postgres: null,
         mysql: null,
+        sqlserver: null,
       };
 
       const allocations: Promise<void>[] = [];
@@ -216,6 +234,28 @@ export const route = factory
         );
       }
 
+      if (!existingSqlserverPool) {
+        allocations.push(
+          (async () => {
+            const result = await allocateDatabase("sqlserver");
+            results.sqlserver = result;
+            const sqlserverPool = await createPool(
+              sqlserverKey,
+              result.connectionString,
+              "sqlserver",
+            );
+            await seedDatabase(
+              sqlserverPool,
+              processedTablesSqlserver,
+              "sqlserver",
+            );
+            console.info(
+              `✅ Created and seeded sqlserver pool for problem: ${problemId}`,
+            );
+          })(),
+        );
+      }
+
       await Promise.all(allocations);
 
       return c.json({
@@ -226,6 +266,10 @@ export const route = factory
         mysql: {
           dialect: "mysql",
           key: mysqlKey,
+        },
+        sqlserver: {
+          dialect: "sqlserver",
+          key: sqlserverKey,
         },
       });
     },
