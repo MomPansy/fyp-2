@@ -9,7 +9,6 @@ export interface SubmissionDetail {
   problem: {
     id: string;
     name: string;
-    description: string;
   };
 }
 

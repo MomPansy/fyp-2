@@ -35,26 +35,23 @@ function SubmissionDetailItem({ detail }: { detail: SubmissionDetail }) {
         <Group justify="space-between">
           <Text fw={600}>{detail.problem.name}</Text>
           <Group gap="xs">
-            <Badge variant="light" color="blue" size="sm">
+            <Badge variant="light" color="blue" size="md">
               {detail.dialect}
             </Badge>
             <Badge
               variant="filled"
               color={getGradeBadgeColor(detail.grade)}
-              size="sm"
+              size="md"
             >
               {detail.grade.toUpperCase()}
             </Badge>
           </Group>
         </Group>
-        <Text size="sm" c="dimmed">
-          {detail.problem.description}
-        </Text>
         <Stack gap="xs">
-          <Text size="sm" fw={500}>
+          <Text size="md" fw={500}>
             Submitted Answer:
           </Text>
-          <Code block style={{ whiteSpace: "pre-wrap" }}>
+          <Code block style={{ whiteSpace: "pre-wrap" }} fs="14px">
             {detail.candidateAnswer}
           </Code>
         </Stack>
@@ -81,7 +78,7 @@ function SubmissionAccordionItem({ submission }: { submission: Submission }) {
             <IconUser size={18} />
             <div>
               <Text fw={500}>{displayName}</Text>
-              <Text size="xs" c="dimmed">
+              <Text size="sm" c="dimmed">
                 {submission.user.email}
               </Text>
             </div>
@@ -90,10 +87,11 @@ function SubmissionAccordionItem({ submission }: { submission: Submission }) {
             <Badge
               variant="light"
               color={passedCount === totalCount ? "green" : "orange"}
+              size="lg"
             >
               {passedCount}/{totalCount} Passed
             </Badge>
-            <Text size="sm" c="dimmed">
+            <Text c="dimmed">
               {dayjs(submission.createdAt).format("DD MMM YYYY, HH:mm")}
             </Text>
           </Group>

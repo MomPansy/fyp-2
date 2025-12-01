@@ -51,7 +51,6 @@ export const route = factory.createApp().get(
         problem: {
           id: userProblems.id,
           name: userProblems.name,
-          description: userProblems.description,
         },
       })
       .from(submissions)
@@ -91,7 +90,6 @@ export const route = factory.createApp().get(
           problem: {
             id: string;
             name: string;
-            description: string;
           };
         }[];
       }
