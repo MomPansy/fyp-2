@@ -121,38 +121,11 @@ export function newSqlitePool(dsn: string, onClose?: () => void): SqlitePool {
   return sqlitePool;
 }
 
-/**
- * Parses a SQL Server connection string URL into mssql config object.
- * Expected format: sqlserver://user:password@host:port?database=dbname&trustServerCertificate=true
- */
-function parseSqlServerConnectionString(dsn: string): mssql.config {
-  const url = new URL(dsn);
-
-  const config: mssql.config = {
-    server: url.hostname,
-    port: parseInt(url.port) || 1433,
-    user: decodeURIComponent(url.username),
-    password: decodeURIComponent(url.password),
-    database: url.searchParams.get("database") || "master",
-    options: {
-      encrypt: false,
-      trustServerCertificate:
-        url.searchParams.get("trustServerCertificate") === "true",
-    },
-    connectionTimeout: 30000,
-    requestTimeout: 30000,
-  };
-
-  return config;
-}
-
-export async function newSqlServerPool(
+export function newSqlServerPool(
   dsn: string,
   onClose?: () => void,
-): Promise<SqlServerPool> {
-  const config = parseSqlServerConnectionString(dsn);
-  const pool = new mssql.ConnectionPool(config);
-  await pool.connect();
+): SqlServerPool {
+  const pool = new mssql.ConnectionPool(dsn);
   const originalClose = pool.close.bind(pool);
   pool.close = async () => {
     await originalClose();
@@ -212,7 +185,7 @@ export async function createDatabasePool(
     case "sqlite":
       return newSqlitePool(dsn, onClose);
     case "sqlserver":
-      return await newSqlServerPool(dsn, onClose);
+      return newSqlServerPool(dsn, onClose);
     case "oracle":
       return await newOraclePool(dsn, onClose);
     default:

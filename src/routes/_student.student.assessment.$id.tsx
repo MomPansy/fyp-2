@@ -49,7 +49,6 @@ export const Route = createFileRoute("/_student/student/assessment/$id")({
       {
         postgres: { key: string; dialect: string };
         mysql: { key: string; dialect: string };
-        sqlserver: { key: string; dialect: string };
       }
     >();
 
@@ -199,7 +198,6 @@ function AssessmentActive() {
                   mode="student"
                   postgresKey={currentConnection.postgres.key}
                   mysqlKey={currentConnection.mysql.key}
-                  sqlserverKey={currentConnection.sqlserver.key}
                   problemId={currentProblem.id}
                   assessmentId={assessmentId}
                   initialCode={currentAnswer}

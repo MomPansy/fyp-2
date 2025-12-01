@@ -89,7 +89,6 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
             mode="admin"
             postgresKey={databaseConnection?.postgres.key}
             mysqlKey={databaseConnection?.mysql.key}
-            sqlserverKey={databaseConnection?.sqlserver.key}
             initialCode={answer}
             problemId={id}
           />
