@@ -168,6 +168,13 @@ var entries = [
     when: 1764236516851,
     tag: "0023_rich_sharon_ventura",
     breakpoints: false
+  },
+  {
+    idx: 24,
+    version: "7",
+    when: 1764262426925,
+    tag: "0024_zippy_vermin",
+    breakpoints: false
   }
 ];
 var journal_default = {

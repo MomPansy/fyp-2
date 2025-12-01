@@ -18,6 +18,7 @@ function narrowPool(pool, dialect) {
   }
 }
 async function executePostgresQuery(pool, sql, params) {
+  console.info("Executing Postgres query:", { sql, params });
   const result = await pool.query(sql, params);
   console.info("Postgres query result:", result);
   return {
@@ -26,7 +27,9 @@ async function executePostgresQuery(pool, sql, params) {
   };
 }
 async function executeMysqlQuery(pool, sql, params) {
+  console.info("Executing MySQL query:", { sql, params });
   const [rows] = await pool.execute(sql, params);
+  console.info("MySQL query result:", rows);
   return {
     rows,
     affectedRows: rows.affectedRows

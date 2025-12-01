@@ -89,26 +89,98 @@ const route = factory.createApp().post(
   zValidator(
     "json",
     z.object({
-      problemId: z.string(),
-      dialect: z.enum(SUPPORTED_DIALECTS)
+      problemId: z.string()
     })
   ),
   async (c) => {
-    const { problemId, dialect } = c.req.valid("json");
+    const { problemId } = c.req.valid("json");
+    const postgresKey = `${problemId}-postgres`;
+    const mysqlKey = `${problemId}-mysql`;
+    const [existingPostgresPool, existingMysqlPool] = await Promise.all([
+      getPool(postgresKey),
+      getPool(mysqlKey)
+    ]);
+    if (existingPostgresPool && existingMysqlPool) {
+      console.info(`\u2705 Reusing existing pools for problem: ${problemId}`);
+      return c.json({
+        postgres: {
+          dialect: "postgres",
+          key: postgresKey
+        },
+        mysql: {
+          dialect: "mysql",
+          key: mysqlKey
+        }
+      });
+    }
     const problemTables = await fetchProblemTables(problemId);
-    const processedTables = problemTables.map((table) => ({
+    const processedTablesPostgres = problemTables.map(
+      (table) => ({
+        table_name: table.table_name,
+        column_types: getColumnMappings("postgres", table.column_types),
+        data_path: table.data_path,
+        relations: getRelationsMappings("postgres", table.relations)
+      })
+    );
+    const processedTablesMysql = problemTables.map((table) => ({
       table_name: table.table_name,
-      column_types: getColumnMappings(dialect, table.column_types),
+      column_types: getColumnMappings("mysql", table.column_types),
       data_path: table.data_path,
-      relations: getRelationsMappings(dialect, table.relations)
+      relations: getRelationsMappings("mysql", table.relations)
     }));
-    const { connectionString, podName } = await allocateDatabase(dialect);
-    const key = `${podName}-${dialect}`;
-    const pool = await createPool(key, connectionString, dialect);
-    await seedDatabase(pool, processedTables, dialect);
+    const results = {
+      postgres: null,
+      mysql: null
+    };
+    const allocations = [];
+    if (!existingPostgresPool) {
+      allocations.push(
+        (async () => {
+          const result = await allocateDatabase("postgres");
+          results.postgres = result;
+          const postgresPool = await createPool(
+            postgresKey,
+            result.connectionString,
+            "postgres"
+          );
+          await seedDatabase(
+            postgresPool,
+            processedTablesPostgres,
+            "postgres"
+          );
+          console.info(
+            `\u2705 Created and seeded postgres pool for problem: ${problemId}`
+          );
+        })()
+      );
+    }
+    if (!existingMysqlPool) {
+      allocations.push(
+        (async () => {
+          const result = await allocateDatabase("mysql");
+          results.mysql = result;
+          const mysqlPool = await createPool(
+            mysqlKey,
+            result.connectionString,
+            "mysql"
+          );
+          await seedDatabase(mysqlPool, processedTablesMysql, "mysql");
+          console.info(
+            `\u2705 Created and seeded mysql pool for problem: ${problemId}`
+          );
+        })()
+      );
+    }
+    await Promise.all(allocations);
     return c.json({
-      podName,
-      dialect
+      postgres: {
+        dialect: "postgres",
+        key: postgresKey
+      },
+      mysql: {
+        dialect: "mysql",
+        key: mysqlKey
+      }
     });
   }
 ).post(
@@ -117,22 +189,23 @@ const route = factory.createApp().post(
   zValidator(
     "json",
     z.object({
-      podName: z.string(),
+      key: z.string(),
       sql: z.string(),
       dialect: z.enum(SUPPORTED_DIALECTS)
     })
   ),
   async (c) => {
-    const { podName, sql, dialect } = c.req.valid("json");
-    const key = `${podName}-${dialect}`;
-    const pool = getPool(key);
+    const { key, sql, dialect } = c.req.valid("json");
+    const pool = await getPool(key);
     if (!pool) {
       throw new HTTPException(404, {
-        message: `No active connection pool found for pod: ${podName}. Please connect first.`
+        message: `No active connection pool found for pod: ${key}. Please connect first.`
       });
     }
     try {
+      console.info("Executing SQL query:", { key, dialect, sql });
       const result = await executeQueryByDialect(pool, sql, dialect);
+      console.info("Query execution result:", { dialect, result });
       return c.json(result);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

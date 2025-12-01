@@ -4,10 +4,10 @@ import {
 const poolStore = /* @__PURE__ */ new Map();
 async function createPool(key, connectionString, dialect) {
   if (poolStore.has(key)) {
-    console.warn(`Pool with key "${key}" already exists. Closing old pool.`);
+    console.info(`Pool with key "${key}" already exists.`);
     const existing = poolStore.get(key);
     if (existing) {
-      await closePoolByDialect(existing.pool, existing.dialect);
+      return existing.pool;
     }
   }
   const pool = await createDatabasePool(dialect, connectionString);
@@ -18,8 +18,25 @@ async function createPool(key, connectionString, dialect) {
   await waitForPoolReady(pool, dialect, key);
   return pool;
 }
-function getPool(key) {
-  return poolStore.get(key)?.pool;
+async function getPool(key) {
+  const entry = poolStore.get(key);
+  if (!entry) {
+    return void 0;
+  }
+  try {
+    const testQuery = getTestQuery(entry.dialect);
+    await executeTestQuery(entry.pool, entry.dialect, testQuery);
+    return entry.pool;
+  } catch (error) {
+    console.warn(
+      `\u26A0\uFE0F Pool "${key}" failed health check, removing from store:`,
+      error
+    );
+    await closePoolByDialect(entry.pool, entry.dialect).catch(() => {
+    });
+    poolStore.delete(key);
+    return void 0;
+  }
 }
 function getPoolDialect(key) {
   return poolStore.get(key)?.dialect;

@@ -1,4 +1,4 @@
-import { eq, and, isNull } from "drizzle-orm";
+import { eq, and, isNull, sql } from "drizzle-orm";
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import { assessments } from "../drizzle/assessments.js";
@@ -6,19 +6,14 @@ import { studentAssessments } from "../drizzle/student_assessments.js";
 import { assessmentProblems } from "../drizzle/assessment_problems.js";
 import { users } from "../drizzle/users.js";
 import { getAssessmentTimingStatus } from "../lib/assessment-utils.js";
+import { db } from "../lib/db.js";
 function assessmentStatus() {
   return createMiddleware(async (c, next) => {
     const assessmentId = c.req.param("id");
-    const tx = c.get("tx");
     const jwtPayload = c.get("jwtPayload");
     if (!jwtPayload) {
       throw new Error(
         "assessmentStatus() middleware requires auth() middleware to be applied first"
-      );
-    }
-    if (!tx) {
-      throw new Error(
-        "assessmentStatus() middleware requires drizzle() middleware to be applied first"
       );
     }
     if (!assessmentId) {
@@ -32,67 +27,75 @@ function assessmentStatus() {
         )
       });
     }
-    const authUserId = jwtPayload.sub;
-    const user = await tx.query.users.findFirst({
-      where: eq(users.authUserId, authUserId)
-    });
-    if (!user) {
-      throw new HTTPException(404, {
-        res: Response.json(
-          {
-            error: "User not found",
-            message: "User account not found in the system"
-          },
-          { status: 404 }
+    const result = await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select set_config('request.jwt.claims', ${JSON.stringify(jwtPayload)}, TRUE)`
+      );
+      await tx.execute(sql`set local role authenticated`);
+      const authUserId = jwtPayload.sub;
+      const user = await tx.query.users.findFirst({
+        where: eq(users.authUserId, authUserId)
+      });
+      if (!user) {
+        throw new HTTPException(404, {
+          res: Response.json(
+            {
+              error: "User not found",
+              message: "User account not found in the system"
+            },
+            { status: 404 }
+          )
+        });
+      }
+      const studentAssessment2 = await tx.query.studentAssessments.findFirst({
+        where: and(
+          eq(studentAssessments.assessment, assessmentId),
+          eq(studentAssessments.student, user.id),
+          isNull(studentAssessments.archivedAt)
         )
       });
-    }
-    const studentAssessment = await tx.query.studentAssessments.findFirst({
-      where: and(
-        eq(studentAssessments.assessment, assessmentId),
-        eq(studentAssessments.student, user.id),
-        isNull(studentAssessments.archivedAt)
-      )
-    });
-    if (!studentAssessment) {
-      throw new HTTPException(404, {
-        res: Response.json(
-          {
-            error: "Assessment not found or access denied",
-            message: "You are not invited to this assessment or it does not exist"
-          },
-          { status: 404 }
-        )
-      });
-    }
-    const assessment = await tx.query.assessments.findFirst({
-      where: eq(assessments.id, assessmentId),
-      with: {
-        assessmentProblems: {
-          where: isNull(assessmentProblems.archivedAt),
-          with: {
-            problem: {
-              columns: {
-                id: true,
-                name: true,
-                description: true
+      if (!studentAssessment2) {
+        throw new HTTPException(404, {
+          res: Response.json(
+            {
+              error: "Assessment not found or access denied",
+              message: "You are not invited to this assessment or it does not exist"
+            },
+            { status: 404 }
+          )
+        });
+      }
+      const assessment2 = await tx.query.assessments.findFirst({
+        where: eq(assessments.id, assessmentId),
+        with: {
+          assessmentProblems: {
+            where: isNull(assessmentProblems.archivedAt),
+            with: {
+              problem: {
+                columns: {
+                  id: true,
+                  name: true,
+                  description: true
+                }
               }
             }
           }
         }
-      }
-    });
-    if (!assessment) {
-      throw new HTTPException(404, {
-        res: Response.json(
-          {
-            error: "Assessment not found",
-            message: "The requested assessment does not exist"
-          },
-          { status: 404 }
-        )
       });
-    }
+      if (!assessment2) {
+        throw new HTTPException(404, {
+          res: Response.json(
+            {
+              error: "Assessment not found",
+              message: "The requested assessment does not exist"
+            },
+            { status: 404 }
+          )
+        });
+      }
+      return { user, studentAssessment: studentAssessment2, assessment: assessment2 };
+    });
+    const { studentAssessment, assessment } = result;
     const timing = getAssessmentTimingStatus(
       assessment.dateTimeScheduled,
       assessment.duration

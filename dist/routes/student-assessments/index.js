@@ -1,7 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { HTTPException } from "hono/http-exception";
-import { eq } from "drizzle-orm/sql/expressions/conditions";
+import { and, eq } from "drizzle-orm/sql/expressions/conditions";
 import { factory } from "../../factory.js";
 import { auth } from "../../middlewares/auth.js";
 import { assessmentStatus } from "../../middlewares/assessment-status.js";
@@ -11,10 +11,11 @@ import {
 } from "../../problem-database/mappings.js";
 import { getPool } from "../../problem-database/pool-manager.js";
 import { executeQueryByDialect } from "../../problem-database/db-seed/query-executors.js";
-import { assessmentProblems } from "../../drizzle/assessment_problems.js";
 import { userProblems } from "../../drizzle/user_problems.js";
 import { submissions } from "../../drizzle/submissions.js";
 import { submissionDetails } from "../../drizzle/submission_details.js";
+import { studentAssessments } from "../../drizzle/student_assessments.js";
+import { assessmentProblems } from "../../drizzle/assessment_problems.js";
 async function gradeSubmission(pool, candidateResult, userProblem, assessmentProblemId) {
   try {
     const answerResult = await executeQueryByDialect(
@@ -95,31 +96,41 @@ const route = factory.createApp().get(
   zValidator(
     "json",
     z.object({
-      podName: z.string(),
+      key: z.string(),
       sql: z.string(),
       dialect: z.enum(SUPPORTED_DIALECTS),
-      assessmentProblemId: z.string()
+      problemId: z.string()
     })
   ),
   async (c) => {
-    const { id: studentAssessmentId } = c.req.valid("param");
-    const { podName, sql, dialect, assessmentProblemId } = c.req.valid("json");
+    const { id: assessmentId } = c.req.valid("param");
+    const { key, sql, dialect, problemId } = c.req.valid("json");
+    const jwtPayload = c.get("jwtPayload");
+    const studentId = jwtPayload.user_metadata.user_id;
     const { withTx } = c.var;
-    const key = `${podName}-${dialect}`;
-    const pool = getPool(key);
+    const pool = await getPool(key);
     if (!pool) {
       throw new HTTPException(404, {
-        message: `No active connection pool found for pod: ${podName}. Please connect first.`
+        message: `No active connection pool found for pod: ${key}. Please connect first.`
       });
     }
     const submissionId = await withTx(async (tx) => {
+      const [studentAssessment] = await tx.select({
+        studentAssessmentId: studentAssessments.id
+      }).from(studentAssessments).where(
+        and(
+          eq(studentAssessments.assessment, assessmentId),
+          eq(studentAssessments.student, studentId)
+        )
+      );
+      if (!studentAssessment) {
+        throw new HTTPException(404, {
+          message: `Student assessment not found for assessment ID: ${assessmentId} and student ID: ${studentId}`
+        });
+      }
+      const studentAssessmentId = studentAssessment.studentAssessmentId;
       const [submission] = await tx.insert(submissions).values({
         studentAssessment: studentAssessmentId
-      }).onConflictDoUpdate({
-        target: submissions.studentAssessment,
-        set: {
-          updatedAt: /* @__PURE__ */ new Date()
-        }
       }).returning({
         id: submissions.id
       });
@@ -131,18 +142,15 @@ const route = factory.createApp().get(
         const [userProblem2] = await tx.select({
           answer: userProblems.answer,
           dialect: userProblems.dialect
-        }).from(assessmentProblems).innerJoin(
-          userProblems,
-          eq(assessmentProblems.problem, userProblems.id)
-        ).where(eq(assessmentProblems.id, assessmentProblemId));
+        }).from(userProblems).where(eq(userProblems.id, problemId));
         if (!userProblem2) {
           throw new HTTPException(404, {
-            message: `Problem not found for assessment problem ID: ${assessmentProblemId}`
+            message: `Problem not found for assessment problem ID: ${problemId}`
           });
         }
         if (!userProblem2.answer) {
           throw new HTTPException(400, {
-            message: `No answer provided for problem ID: ${assessmentProblemId}`
+            message: `No answer provided for problem ID: ${problemId}`
           });
         }
         return {
@@ -154,12 +162,25 @@ const route = factory.createApp().get(
         pool,
         result,
         userProblem,
-        assessmentProblemId
+        problemId
       );
       await withTx(async (tx) => {
+        const [assessmentProblem] = await tx.select({
+          id: assessmentProblems.id
+        }).from(assessmentProblems).where(
+          and(
+            eq(assessmentProblems.assessment, assessmentId),
+            eq(assessmentProblems.problem, problemId)
+          )
+        );
+        if (!assessmentProblem) {
+          throw new HTTPException(404, {
+            message: `Assessment problem not found for assessment ID: ${assessmentId} and problem ID: ${problemId}`
+          });
+        }
         await tx.insert(submissionDetails).values({
           submissionId,
-          assignmentProblemId: assessmentProblemId,
+          assessmentProblemId: assessmentProblem.id,
           candidateAnswer: sql,
           dialect,
           grade: gradeResult.grade
