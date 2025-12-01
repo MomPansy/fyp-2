@@ -32,8 +32,8 @@ import { useExecuteSQLMutation } from "@/hooks/use-problem.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
 interface BaseSqlEditorProps {
-  postgresPodName?: string;
-  mysqlPodName?: string;
+  postgresKey?: string;
+  mysqlKey?: string;
   problemId: string;
   initialCode?: string | null;
   onCodeChange?: (code: string) => void;
@@ -66,14 +66,8 @@ const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
 }));
 
 export function SqlEditor(props: SqlEditorProps) {
-  const {
-    postgresPodName,
-    mysqlPodName,
-    problemId,
-    initialCode,
-    onCodeChange,
-    mode,
-  } = props;
+  const { postgresKey, mysqlKey, problemId, initialCode, onCodeChange, mode } =
+    props;
   const navigate = useNavigate();
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
@@ -91,8 +85,9 @@ export function SqlEditor(props: SqlEditorProps) {
   const [sqlDialect, setSqlDialect] = useState<Dialect>("postgres");
   const [opened, { open, close }] = useDisclosure(false);
 
-  const podName = useMemo(
-    () => (sqlDialect === "mysql" ? mysqlPodName : postgresPodName),
+  const podKey = useMemo(
+    () => (sqlDialect === "mysql" ? mysqlKey : postgresKey),
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sqlDialect],
   );
@@ -119,7 +114,7 @@ export function SqlEditor(props: SqlEditorProps) {
 
   const handleTest = () => {
     if (!sqlCode) return;
-    if (!podName) {
+    if (!podKey) {
       showErrorNotification({
         title: "Database Connection Error",
         message:
@@ -128,7 +123,7 @@ export function SqlEditor(props: SqlEditorProps) {
       return;
     }
     mutate({
-      podName,
+      key: podKey,
       sql: sqlCode,
       dialect: sqlDialect,
     });
@@ -188,7 +183,7 @@ export function SqlEditor(props: SqlEditorProps) {
       return;
     }
 
-    if (!podName) {
+    if (!podKey) {
       showErrorNotification({
         title: "Database Connection Error",
         message:
@@ -200,7 +195,7 @@ export function SqlEditor(props: SqlEditorProps) {
     submitAnswer({
       assessmentId: props.assessmentId,
       problemId: props.problemId,
-      podName,
+      key: podKey,
       sql: sqlCode,
       dialect: sqlDialect,
     });

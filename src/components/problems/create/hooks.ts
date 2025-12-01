@@ -39,7 +39,7 @@ export const useSaveUserProblemMutation = () => {
 interface SubmitAssessmentMutationProps {
   assessmentId: string;
   problemId: string;
-  podName: string;
+  key: string;
   sql: string;
   dialect: Dialect;
 }
@@ -63,14 +63,14 @@ export const useSubmitAssessmentMutation = () => {
     mutationFn: async ({
       assessmentId,
       problemId,
-      podName,
+      key,
       sql,
       dialect,
     }: SubmitAssessmentMutationProps): Promise<SubmitResponse> => {
       const response = await api.student.assessments[":id"].submit.$post({
         param: { id: assessmentId },
         json: {
-          podName,
+          key,
           sql,
           dialect,
           problemId,

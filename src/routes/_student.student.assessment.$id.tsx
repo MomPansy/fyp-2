@@ -47,8 +47,8 @@ export const Route = createFileRoute("/_student/student/assessment/$id")({
     const databaseConnections = new Map<
       string,
       {
-        postgres: { podName: string; dialect: string };
-        mysql: { podName: string; dialect: string };
+        postgres: { key: string; dialect: string };
+        mysql: { key: string; dialect: string };
       }
     >();
 
@@ -196,8 +196,8 @@ function AssessmentActive() {
                 <SqlEditor
                   key={currentProblem.id}
                   mode="student"
-                  postgresPodName={currentConnection.postgres.podName}
-                  mysqlPodName={currentConnection.mysql.podName}
+                  postgresKey={currentConnection.postgres.key}
+                  mysqlKey={currentConnection.mysql.key}
                   problemId={currentProblem.id}
                   assessmentId={assessmentId}
                   initialCode={currentAnswer}

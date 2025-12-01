@@ -32,10 +32,10 @@ export async function createPool(
 ): Promise<DatabasePool> {
   if (poolStore.has(key)) {
     // If a pool for this key already exists, close it before creating a new one.
-    console.warn(`Pool with key "${key}" already exists. Closing old pool.`);
+    console.info(`Pool with key "${key}" already exists.`);
     const existing = poolStore.get(key);
     if (existing) {
-      await closePoolByDialect(existing.pool, existing.dialect);
+      return existing.pool;
     }
   }
 
@@ -52,12 +52,34 @@ export async function createPool(
 }
 
 /**
- * Retrieves an existing connection pool.
+ * Retrieves an existing connection pool and verifies it's still working.
  * @param key - The unique identifier for the pool.
- * @returns The pool if found, otherwise undefined.
+ * @returns The pool if found and healthy, otherwise undefined.
  */
-export function getPool(key: string): DatabasePool | undefined {
-  return poolStore.get(key)?.pool;
+export async function getPool(key: string): Promise<DatabasePool | undefined> {
+  const entry = poolStore.get(key);
+  if (!entry) {
+    return undefined;
+  }
+
+  // Test if the pool is still responsive
+  try {
+    const testQuery = getTestQuery(entry.dialect);
+    await executeTestQuery(entry.pool, entry.dialect, testQuery);
+    return entry.pool;
+  } catch (error) {
+    console.warn(
+      `⚠️ Pool "${key}" failed health check, removing from store:`,
+      error,
+    );
+    // Pool is unhealthy, remove it from the store
+    await closePoolByDialect(entry.pool, entry.dialect).catch(() => {
+      // Ignore errors when closing an already broken pool
+    });
+    // eslint-disable-next-line drizzle/enforce-delete-with-where
+    poolStore.delete(key);
+    return undefined;
+  }
 }
 
 /**

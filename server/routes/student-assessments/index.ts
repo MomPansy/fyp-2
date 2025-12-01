@@ -128,7 +128,7 @@ export const route = factory
     zValidator(
       "json",
       z.object({
-        podName: z.string(),
+        key: z.string(),
         sql: z.string(),
         dialect: z.enum(SUPPORTED_DIALECTS),
         problemId: z.string(),
@@ -137,18 +137,17 @@ export const route = factory
     async (c) => {
       // TODO: Clean this whole route up, theres too many joins
       const { id: assessmentId } = c.req.valid("param");
-      const { podName, sql, dialect, problemId } = c.req.valid("json");
+      const { key, sql, dialect, problemId } = c.req.valid("json");
 
       const jwtPayload = c.get("jwtPayload");
       const studentId = jwtPayload.user_metadata.user_id;
 
       const { withTx } = c.var;
-      const key = `${podName}-${dialect}`;
-      const pool = getPool(key);
+      const pool = await getPool(key);
 
       if (!pool) {
         throw new HTTPException(404, {
-          message: `No active connection pool found for pod: ${podName}. Please connect first.`,
+          message: `No active connection pool found for pod: ${key}. Please connect first.`,
         });
       }
 

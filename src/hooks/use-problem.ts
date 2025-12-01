@@ -274,7 +274,7 @@ export const userProblemTablesQueryOptions = <
 };
 
 interface ExecuteSQLMutationOptions {
-  podName: string;
+  key: string;
   dialect: Dialect;
   sql: string;
 }
@@ -290,14 +290,10 @@ export const useExecuteSQLMutation = () => {
     ExecuteSQLMutationOptions
   >({
     mutationKey: [PROBLEM_EXECUTE_SQL_MUTATION_KEY],
-    mutationFn: async ({
-      podName,
-      dialect,
-      sql,
-    }: ExecuteSQLMutationOptions) => {
+    mutationFn: async ({ key, dialect, sql }: ExecuteSQLMutationOptions) => {
       const response = await api.problems.execute.$post({
         json: {
-          podName,
+          key,
           sql,
           dialect,
         },

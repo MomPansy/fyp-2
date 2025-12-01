@@ -87,9 +87,9 @@ Ut ut mollis nisl, eget euismod ligula. Nunc vitae dignissim erat. Cras fermentu
         <PanelGroup direction="vertical" className="h-full">
           <SqlEditor
             mode="admin"
-            postgresPodName={databaseConnection?.postgres.podName}
-            mysqlPodName={databaseConnection?.mysql.podName}
-            answer={answer}
+            postgresKey={databaseConnection?.postgres.key}
+            mysqlKey={databaseConnection?.mysql.key}
+            initialCode={answer}
             problemId={id}
           />
           <HorizontalResizeHandle />
