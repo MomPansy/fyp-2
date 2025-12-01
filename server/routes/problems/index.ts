@@ -19,6 +19,7 @@ import {
 import {
   createPool,
   getPool,
+  listActivePools,
   removePool,
 } from "server/problem-database/pool-manager.ts";
 import type { SeedTable } from "server/problem-database/db-seed/index.ts";
@@ -116,6 +117,8 @@ export const route = factory
 
       const postgresKey = `${problemId}-postgres`;
       const mysqlKey = `${problemId}-mysql`;
+
+      console.info(`existing pools:`, listActivePools());
 
       // Check if pools already exist and are healthy
       const [existingPostgresPool, existingMysqlPool] = await Promise.all([
