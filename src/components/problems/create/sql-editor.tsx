@@ -63,6 +63,8 @@ const dialectLabels: Record<Dialect, string> = {
 const sqlDialects = SUPPORTED_DIALECTS.map((dialect) => ({
   value: dialect,
   label: dialectLabels[dialect],
+  disabled:
+    dialect === "sqlite" || dialect === "sqlserver" || dialect === "oracle", // Disable unsupported dialects
 }));
 
 export function SqlEditor(props: SqlEditorProps) {
