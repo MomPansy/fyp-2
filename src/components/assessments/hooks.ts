@@ -29,6 +29,9 @@ export interface AssessmentProblem {
 
 interface AssessmentPageItem extends Assessment {
   assessment_problems: AssessmentProblem[];
+  // Stats from joined queries
+  attempted_count?: number;
+  invitation_count?: number;
 }
 
 export interface AssessmentPage {
@@ -83,6 +86,65 @@ function buildQueries(
   return { countQuery, dataQuery };
 }
 
+/**
+ * Fetches stats for assessments: attempted count (distinct submissions) and invitation count
+ */
+async function fetchAssessmentStats(
+  assessmentIds: string[],
+): Promise<Map<string, { attempted_count: number; invitation_count: number }>> {
+  if (assessmentIds.length === 0) {
+    return new Map();
+  }
+
+  // Fetch distinct student_assessment_ids that have submissions per assessment
+  // This gives us "attempted" count
+  const { data: submissionData, error: submissionError } = await supabase
+    .from("student_assessments")
+    .select("assessment_id, submissions(id)")
+    .in("assessment_id", assessmentIds);
+
+  if (submissionError) throw new Error(submissionError.message);
+
+  // Count distinct student_assessments that have at least one submission per assessment
+  const attemptedMap = new Map<string, number>();
+  for (const sa of submissionData) {
+    const submissions = sa.submissions as { id: string }[] | null;
+    if (submissions && submissions.length > 0) {
+      const currentCount = attemptedMap.get(sa.assessment_id) ?? 0;
+      attemptedMap.set(sa.assessment_id, currentCount + 1);
+    }
+  }
+
+  // Fetch invitation counts per assessment
+  const { data: invitationData, error: invitationError } = await supabase
+    .from("assessment_student_invitations")
+    .select("assessment_id")
+    .in("assessment_id", assessmentIds);
+
+  if (invitationError) throw new Error(invitationError.message);
+
+  // Count invitations per assessment
+  const invitationMap = new Map<string, number>();
+  for (const inv of invitationData) {
+    const currentCount = invitationMap.get(inv.assessment_id) ?? 0;
+    invitationMap.set(inv.assessment_id, currentCount + 1);
+  }
+
+  // Combine into result map
+  const result = new Map<
+    string,
+    { attempted_count: number; invitation_count: number }
+  >();
+  for (const id of assessmentIds) {
+    result.set(id, {
+      attempted_count: attemptedMap.get(id) ?? 0,
+      invitation_count: invitationMap.get(id) ?? 0,
+    });
+  }
+
+  return result;
+}
+
 export const useFetchAssessmentsInfinite = ({
   filters,
   sorting,
@@ -113,8 +175,22 @@ export const useFetchAssessmentsInfinite = ({
         const totalCount = count ?? 0;
         const totalPages = Math.ceil(totalCount / pageSize);
 
+        // Fetch stats for the assessments in this page
+        const assessmentIds = data.map((a) => a.id);
+        const statsMap = await fetchAssessmentStats(assessmentIds);
+
+        // Merge stats into items
+        const itemsWithStats: AssessmentPageItem[] = data.map((item) => {
+          const stats = statsMap.get(item.id);
+          return {
+            ...item,
+            attempted_count: stats?.attempted_count ?? 0,
+            invitation_count: stats?.invitation_count ?? 0,
+          } as AssessmentPageItem;
+        });
+
         return {
-          items: data as AssessmentPageItem[],
+          items: itemsWithStats,
           totalCount,
           totalPages,
         };
@@ -123,7 +199,21 @@ export const useFetchAssessmentsInfinite = ({
       const { data, error } = await pagedDataQuery;
       if (error) throw new Error(error.message);
 
-      return { items: data as AssessmentPageItem[] };
+      // Fetch stats for the assessments in this page
+      const assessmentIds = data.map((a) => a.id);
+      const statsMap = await fetchAssessmentStats(assessmentIds);
+
+      // Merge stats into items
+      const itemsWithStats: AssessmentPageItem[] = data.map((item) => {
+        const stats = statsMap.get(item.id);
+        return {
+          ...item,
+          attempted_count: stats?.attempted_count ?? 0,
+          invitation_count: stats?.invitation_count ?? 0,
+        } as AssessmentPageItem;
+      });
+
+      return { items: itemsWithStats };
     },
     getNextPageParam: (lastPage, _allPages, lastPageParam) =>
       lastPage.items.length < pageSize ? undefined : lastPageParam + 1,

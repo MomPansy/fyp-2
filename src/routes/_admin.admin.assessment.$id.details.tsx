@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Breadcrumbs, Stack, Tabs, Skeleton } from "@mantine/core";
 import {
+  IconFileCheck,
   IconNumber123,
   IconSettings,
   IconUsersGroup,
@@ -11,6 +12,7 @@ import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { ProblemsTab } from "@/components/assessments/details/problems-tab.tsx";
 import { CandidatesTab } from "@/components/assessments/details/candidates-tab/index.ts";
 import { SettingsTab } from "@/components/assessments/details/settings-tab.tsx";
+import { SubmissionsTab } from "@/components/assessments/details/submissions-tab.tsx";
 
 export const Route = createFileRoute("/_admin/admin/assessment/$id/details")({
   loader: async ({ context: { queryClient }, params }) => {
@@ -69,6 +71,12 @@ function RouteComponent() {
           >
             Candidates
           </Tabs.Tab>
+          <Tabs.Tab
+            value="submissions"
+            leftSection={<IconFileCheck size={18} />}
+          >
+            Submissions
+          </Tabs.Tab>
           <Tabs.Tab value="settings" leftSection={<IconSettings size={18} />}>
             Settings
           </Tabs.Tab>
@@ -88,6 +96,12 @@ function RouteComponent() {
         <Tabs.Panel value="settings">
           <Suspense fallback={<TabsSkeleton />}>
             <SettingsTab />
+          </Suspense>
+        </Tabs.Panel>
+
+        <Tabs.Panel value="submissions">
+          <Suspense fallback={<TabsSkeleton />}>
+            <SubmissionsTab />
           </Suspense>
         </Tabs.Panel>
       </Tabs>

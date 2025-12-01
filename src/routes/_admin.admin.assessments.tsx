@@ -15,10 +15,10 @@ import {
   Checkbox,
   ActionIcon,
 } from "@mantine/core";
-import { IconCalendar, IconClock, IconEdit } from "@tabler/icons-react";
+import { IconClock, IconEdit } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useCallback, useState } from "react";
-import { dayjs } from "@/lib/dayjs.ts";
+import { MiniCalendar } from "@mantine/dates"
 import { AssessmentListFilters } from "@/components/assessments/query-keys.ts";
 import {
   CreateAssessmentMutationProps,
@@ -144,9 +144,11 @@ function AssessmentPage() {
                     <Table.Th style={{ minWidth: "400px" }}>
                       Assessment
                     </Table.Th>
+                    <Table.Th>Status</Table.Th>
+                    <Table.Th>Duration</Table.Th>
+                    <Table.Th>Date Scheduled</Table.Th>
                     <Table.Th>Not Attempted</Table.Th>
-                    <Table.Th>Completed</Table.Th>
-                    <Table.Th>To Evaluate</Table.Th>
+                    <Table.Th>Attempted</Table.Th>
                     <Table.Th>Action</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
@@ -221,15 +223,6 @@ function AssessmentPage() {
                                   <Text fw={600} size="md">
                                     {assessment.name}
                                   </Text>
-                                  <Badge
-                                    variant="light"
-                                    color={
-                                      getAssessmentStatus(assessment).color
-                                    }
-                                    size="sm"
-                                  >
-                                    {getAssessmentStatus(assessment).label}
-                                  </Badge>
                                 </Group>
                                 <Text size="sm" c="dimmed" mb={8}>
                                   No description available
@@ -239,41 +232,56 @@ function AssessmentPage() {
                                     {assessment.assessment_problems.length}
                                     &nbsp;questions
                                   </Badge>
-                                  <Group gap="xs">
-                                    <IconClock size={12} />
-                                    <Text size="xs" c="dimmed">
-                                      {assessment.duration
-                                        ? `${assessment.duration} min`
-                                        : "No time limit"}
-                                    </Text>
-                                  </Group>
-                                  <Group gap="xs">
-                                    <IconCalendar size={12} />
-                                    <Text size="xs" c="dimmed">
-                                      {assessment.date_time_scheduled
-                                        ? dayjs(
-                                          assessment.date_time_scheduled,
-                                        ).format("MMM D, YYYY")
-                                        : "Not scheduled"}
-                                    </Text>
-                                  </Group>
                                 </Flex>
                               </Box>
                             </Flex>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" c="dimmed">
-                              TODO
+                            <Badge
+                              variant="light"
+                              color={
+                                getAssessmentStatus(assessment).color
+                              }
+                              size="lg"
+                            >
+                              {getAssessmentStatus(assessment).label}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td>
+                            <Group gap="xs" wrap="nowrap">
+                              <IconClock size={18} color="var(--mantine-color-blue-6)" />
+                              <Text size="sm" fw={500}>
+                                {assessment.duration
+                                  ? `${assessment.duration} min`
+                                  : "No limit"}
+                              </Text>
+                            </Group>
+                          </Table.Td>
+                          <Table.Td>
+                            {
+                              !assessment.date_time_scheduled ? (
+                                <Text size="sm" >
+                                  Not Scheduled
+                                </Text>
+                              ) : <MiniCalendar
+                                value={assessment.date_time_scheduled}
+                                numberOfDays={1}
+                                styles={{
+                                  control: {
+                                    display: "none"
+                                  }
+                                }}
+                              />
+                            }
+                          </Table.Td>
+                          <Table.Td>
+                            <Text >
+                              {(assessment.invitation_count ?? 0) - (assessment.attempted_count ?? 0)}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" c="dimmed">
-                              TODO
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm" c="dimmed">
-                              TODO
+                            <Text>
+                              {assessment.attempted_count ?? 0}
                             </Text>
                           </Table.Td>
                           <Table.Td>
