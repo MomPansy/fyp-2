@@ -10,6 +10,7 @@ import emailRoute from "./routes/email/index.ts";
 import { route as invitationsRoute } from "./routes/invitations/index.ts";
 import { route as studentAssessmentsRoute } from "./routes/student-assessments/index.ts";
 import { route as submissionsRoute } from "./routes/submissions/index.ts";
+import { route as assessmentsRoute } from "./routes/assessments/index.ts";
 
 const app = factory.createApp();
 
@@ -28,7 +29,8 @@ export const apiRoutes = app
   .route("/email", emailRoute)
   .route("/invitations", invitationsRoute)
   .route("/student/assessments", studentAssessmentsRoute)
-  .route("/submissions", submissionsRoute);
+  .route("/submissions", submissionsRoute)
+  .route("/assessments", assessmentsRoute);
 
 export type ApiRoutes = typeof apiRoutes;
 

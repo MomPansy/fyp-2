@@ -644,21 +644,25 @@ export const useCancelAssessmentMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }: CancelAssessmentProps) => {
-      const { data, error } = await supabase
-        .from("assessments")
-        .update({ archived_at: new Date().toISOString() })
-        .eq("id", id)
-        .select()
-        .single();
+      const response = await api.assessments.cancel.$post({
+        json: { id },
+      });
 
-      if (error) throw new Error(error.message);
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message);
+      }
 
-      return data;
+      return response.json();
     },
     onSuccess: (_data, variables) => {
       // Invalidate the specific assessment query
       queryClient.invalidateQueries({
         queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate candidates since they're now archived
+      queryClient.invalidateQueries({
+        queryKey: assessmentKeys.candidatesByAssessmentId(variables.id),
       });
       // Also invalidate all assessments list
       queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
@@ -689,6 +693,38 @@ export const useRestoreAssessmentMutation = () => {
       // Invalidate the specific assessment query
       queryClient.invalidateQueries({
         queryKey: assessmentKeys.byAssesmentId(variables.id),
+      });
+      // Also invalidate all assessments list
+      queryClient.invalidateQueries({ queryKey: assessmentKeys.all });
+    },
+  });
+};
+
+interface DeleteAssessmentProps {
+  ids: string[];
+}
+
+export const useDeleteAssessmentMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids }: DeleteAssessmentProps) => {
+      const response = await api.assessments.$delete({
+        json: { ids },
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return response.json();
+    },
+    onSuccess: (_data, variables) => {
+      // Invalidate the specific assessment queries
+      variables.ids.forEach((id) => {
+        queryClient.invalidateQueries({
+          queryKey: assessmentKeys.byAssesmentId(id),
+        });
       });
       // Also invalidate all assessments list
       queryClient.invalidateQueries({ queryKey: assessmentKeys.all });

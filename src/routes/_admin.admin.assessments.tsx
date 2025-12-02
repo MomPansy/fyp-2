@@ -14,8 +14,9 @@ import {
   ScrollArea,
   Checkbox,
   ActionIcon,
+  Menu,
 } from "@mantine/core";
-import { IconClock, IconEdit } from "@tabler/icons-react";
+import { IconClock, IconDotsVertical, IconEdit, IconTrash } from "@tabler/icons-react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Suspense, useCallback, useState } from "react";
 import { MiniCalendar } from "@mantine/dates"
@@ -23,6 +24,7 @@ import { AssessmentListFilters } from "@/components/assessments/query-keys.ts";
 import {
   CreateAssessmentMutationProps,
   useCreateAssessmentMutation,
+  useDeleteAssessmentMutation,
   useFetchAssessmentsInfinite,
 } from "@/components/assessments/hooks.ts";
 import { TableSkeleton } from "@/components/assessments/skeleton.tsx";
@@ -30,6 +32,11 @@ import { Filters } from "@/components/assessments/filters.tsx";
 import { generateUUID } from "@/lib/utils.ts";
 import { useUser } from "@/hooks/auth.ts";
 import { getAssessmentStatus } from "@/components/assessments/utils.ts";
+import { openDeleteConfirmModal } from "@/lib/modals.tsx";
+import {
+  showErrorNotification,
+  showSuccessNotification,
+} from "@/components/notifications.ts";
 
 export const Route = createFileRoute("/_admin/admin/assessments")({
   component: RouteComponent,
@@ -77,6 +84,7 @@ function AssessmentPage() {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<AssessmentListFilters>({});
   const [selectedRows, setSelectedRows] = useState<string[]>([]);
+  const { mutate: deleteAssessments } = useDeleteAssessmentMutation();
   const {
     data,
     fetchNextPage,
@@ -114,6 +122,43 @@ function AssessmentPage() {
     });
   };
 
+  const handleDeleteClick = (ids: string[]) => {
+    openDeleteConfirmModal({
+      itemName: ids.length === 1 ? "assessment" : "assessments",
+      itemCount: ids.length,
+      onConfirm: () => {
+        deleteAssessments(
+          { ids },
+          {
+            onSuccess: () => {
+              // Remove deleted items from selected rows
+              setSelectedRows((prev) => prev.filter((id) => !ids.includes(id)));
+              showSuccessNotification({
+                title: "Assessment Deleted",
+                message:
+                  ids.length === 1
+                    ? "The assessment has been deleted successfully."
+                    : `${ids.length} assessments have been deleted successfully.`,
+              });
+            },
+            onError: (error) => {
+              showErrorNotification({
+                title: "Cannot Delete Assessment",
+                message: error.message,
+              });
+            },
+          },
+        );
+      },
+    });
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length > 0) {
+      handleDeleteClick(selectedRows);
+    }
+  };
+
   if (error) {
     return (
       <Stack>
@@ -131,6 +176,17 @@ function AssessmentPage() {
       <Group>
         <Filters filters={filters} setFilters={setFilters} w="20rem" />
         <Stack flex={1}>
+          {selectedRows.length > 0 && (
+            <Group>
+              <Button
+                color="red"
+                leftSection={<IconTrash size={16} />}
+                onClick={handleBulkDelete}
+              >
+                Delete {selectedRows.length} selected
+              </Button>
+            </Group>
+          )}
           <Paper withBorder>
             <ScrollArea
               h={600}
@@ -285,17 +341,41 @@ function AssessmentPage() {
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <ActionIcon
-                              variant="subtle"
-                              size="lg"
-                              onClick={(event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                handleClick(assessment.id);
-                              }}
-                            >
-                              <IconEdit />
-                            </ActionIcon>
+                            <Menu shadow="md" width={200} position="bottom-end">
+                              <Menu.Target>
+                                <ActionIcon
+                                  variant="subtle"
+                                  size="lg"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                >
+                                  <IconDotsVertical />
+                                </ActionIcon>
+                              </Menu.Target>
+                              <Menu.Dropdown>
+                                <Menu.Item
+                                  leftSection={<IconEdit size={16} />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleClick(assessment.id);
+                                  }}
+                                >
+                                  Edit
+                                </Menu.Item>
+                                <Menu.Item
+                                  color="red"
+                                  leftSection={<IconTrash size={16} />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDeleteClick([assessment.id]);
+                                  }}
+                                >
+                                  Delete
+                                </Menu.Item>
+                              </Menu.Dropdown>
+                            </Menu>
                           </Table.Td>
                         </Table.Tr>
                       ))

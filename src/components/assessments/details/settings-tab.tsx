@@ -6,7 +6,6 @@ import {
   Stack,
   Text,
   TextInput,
-  Modal,
 } from "@mantine/core";
 import { DateTimePicker } from "@mantine/dates";
 import { useForm } from "@mantine/form";
@@ -21,7 +20,6 @@ import {
 } from "@tabler/icons-react";
 import { z } from "zod";
 import { zodResolver } from "mantine-form-zod-resolver";
-import { useState } from "react";
 import {
   useFetchAssessmentById,
   useUpdateAssessmentSettingsMutation,
@@ -34,6 +32,7 @@ import {
   showErrorNotification,
   showSuccessNotification,
 } from "@/components/notifications.ts";
+import { openConfirmModal } from "@/lib/modals.tsx";
 
 const settingsSchema = z.object({
   name: z
@@ -74,7 +73,6 @@ export function SettingsTab() {
   const updateNameMutation = useUpdateAssessmentNameMutation();
   const cancelAssessmentMutation = useCancelAssessmentMutation();
   const restoreAssessmentMutation = useRestoreAssessmentMutation();
-  const [cancelModalOpened, setCancelModalOpened] = useState(false);
 
   const isCancelled = !!data?.archived_at;
 
@@ -131,20 +129,33 @@ export function SettingsTab() {
     }
   };
 
-  const handleCancelAssessment = () => {
-    cancelAssessmentMutation.mutate(
-      { id },
-      {
-        onSuccess: () => {
-          showSuccessNotification({
-            title: "Assessment Cancelled",
-            message: "The assessment has been cancelled successfully",
-            color: "orange",
-          });
-          setCancelModalOpened(false);
-        },
+  const handleCancelAssessmentClick = () => {
+    openConfirmModal({
+      title: "Cancel Assessment",
+      message: (
+        <Text size="sm">
+          Are you sure you want to cancel this assessment? Candidates will no
+          longer be able to access it. You can restore it later if needed.
+        </Text>
+      ),
+      confirmLabel: "Cancel Assessment",
+      cancelLabel: "Keep Assessment",
+      confirmColor: "red",
+      onConfirm: () => {
+        cancelAssessmentMutation.mutate(
+          { id },
+          {
+            onSuccess: () => {
+              showSuccessNotification({
+                title: "Assessment Cancelled",
+                message: "The assessment has been cancelled successfully",
+                color: "orange",
+              });
+            },
+          },
+        );
       },
-    );
+    });
   };
 
   const handleRestoreAssessment = () => {
@@ -186,7 +197,7 @@ export function SettingsTab() {
                     color="red"
                     variant="light"
                     leftSection={<IconX size={18} />}
-                    onClick={() => setCancelModalOpened(true)}
+                    onClick={handleCancelAssessmentClick}
                   >
                     Cancel Assessment
                   </Button>
@@ -268,36 +279,6 @@ export function SettingsTab() {
           </form>
         </Paper>
       </Group>
-
-      <Modal
-        opened={cancelModalOpened}
-        onClose={() => setCancelModalOpened(false)}
-        title="Cancel Assessment"
-        centered
-      >
-        <Stack>
-          <Text>
-            Are you sure you want to cancel this assessment? Candidates will no
-            longer be able to access it. You can restore it later if needed.
-          </Text>
-          <Group justify="flex-end" mt="md">
-            <Button
-              variant="subtle"
-              onClick={() => setCancelModalOpened(false)}
-            >
-              Keep Assessment
-            </Button>
-            <Button
-              color="red"
-              leftSection={<IconX size={18} />}
-              onClick={handleCancelAssessment}
-              loading={cancelAssessmentMutation.isPending}
-            >
-              Cancel Assessment
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
     </>
   );
 }

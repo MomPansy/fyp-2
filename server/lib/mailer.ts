@@ -196,3 +196,96 @@ This is an automated message from QueryProctor. Please do not reply to this emai
     text,
   });
 }
+
+/**
+ * Send a cancellation notification email to a student
+ */
+export async function sendCancellationEmail({
+  to,
+  studentName,
+  assessmentTitle,
+}: {
+  to: string;
+  studentName: string;
+  assessmentTitle: string;
+}): Promise<SentMessageInfo> {
+  const subject = `Assessment Cancelled: ${assessmentTitle}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px 0;
+          }
+          .alert {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+          }
+          h1 {
+            color: #dc3545;
+            margin-bottom: 20px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>Assessment Cancelled</h1>
+          <p>Hello ${studentName},</p>
+          <div class="alert">
+            <p><strong>Important Notice:</strong> The following assessment has been cancelled:</p>
+            <p><strong>${assessmentTitle}</strong></p>
+          </div>
+          <p>Your invitation to this assessment is no longer valid. If you have any questions, please contact your instructor or assessment administrator.</p>
+          <div class="footer">
+            <p>This is an automated message from QueryProctor. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  const text = `
+Hello ${studentName},
+
+IMPORTANT NOTICE: The following assessment has been cancelled:
+
+${assessmentTitle}
+
+Your invitation to this assessment is no longer valid. If you have any questions, please contact your instructor or assessment administrator.
+
+---
+This is an automated message from QueryProctor. Please do not reply to this email.
+  `;
+
+  return sendEmail({
+    to,
+    subject,
+    html,
+    text,
+  });
+}
