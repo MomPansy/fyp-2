@@ -27,7 +27,6 @@ import {
 } from "@/hooks/use-problem.ts";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
-import { DeleteConfirmationModal } from "@/components/shared/delete-confirmation-modal.tsx";
 
 export function ProblemDatabase() {
   const { id: problemId } = useParams({
@@ -176,7 +175,7 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
     [updateTable, problemId],
   );
 
-  const { table, deleteModal } = useDatabaseTablesTable({
+  const { table } = useDatabaseTablesTable({
     data: tableMetadata,
     onEdit: handleEdit,
     onDelete: handleDelete,
@@ -195,14 +194,6 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
       ) : (
         <MantineReactTable table={table} />
       )}
-
-      <DeleteConfirmationModal
-        opened={deleteModal.opened}
-        onClose={deleteModal.close}
-        onConfirm={deleteModal.onConfirm}
-        title="Delete Table"
-        message="Are you sure you want to delete this table? This action cannot be undone."
-      />
 
       <ColumnMetadataDrawer
         tableName={columnsDrawerTable.tableName}

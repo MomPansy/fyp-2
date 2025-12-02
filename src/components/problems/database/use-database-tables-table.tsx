@@ -1,9 +1,9 @@
-import { useMemo, useState, useCallback } from "react";
-import { useDisclosure } from "@mantine/hooks";
-import { ActionIcon, Button, Tooltip, Text, Code } from "@mantine/core";
-import { IconEdit, IconTrash } from "@tabler/icons-react";
+import { useMemo, useCallback } from "react";
+import { ActionIcon, Button, Menu, Text, Code } from "@mantine/core";
+import { IconDots, IconEdit, IconTrash } from "@tabler/icons-react";
 import { useMantineReactTable, type MRT_ColumnDef } from "mantine-react-table";
 import type { TableMetadata } from "@/hooks/use-problem.ts";
+import { openDeleteConfirmModal } from "@/lib/modals.tsx";
 
 interface UseDatabaseTablesTableOptions {
   data: TableMetadata[];
@@ -25,27 +25,16 @@ export function useDatabaseTablesTable({
   onViewColumns,
   onUpdateTable,
 }: UseDatabaseTablesTableOptions) {
-  const [tableToDelete, setTableToDelete] = useState<string | null>(null);
-  const [
-    deleteModalOpened,
-    { open: openDeleteModal, close: closeDeleteModal },
-  ] = useDisclosure(false);
-
   const openDeleteConfirmation = useCallback(
-    (tableId: string) => {
-      setTableToDelete(tableId);
-      openDeleteModal();
+    (table: TableMetadata) => {
+      openDeleteConfirmModal({
+        itemName: table.tableName,
+        title: "Delete Table",
+        onConfirm: () => onDelete(table.tableId),
+      });
     },
-    [openDeleteModal],
+    [onDelete],
   );
-
-  const handleConfirmDelete = useCallback(() => {
-    if (tableToDelete !== null) {
-      onDelete(tableToDelete);
-      setTableToDelete(null);
-      closeDeleteModal();
-    }
-  }, [tableToDelete, closeDeleteModal, onDelete]);
 
   const columns = useMemo<MRT_ColumnDef<TableMetadata>[]>(
     () => [
@@ -95,16 +84,14 @@ export function useDatabaseTablesTable({
         header: "Columns",
         enableEditing: false,
         Cell: ({ row }) => (
-          <Tooltip label="View Columns">
-            <Button
-              variant="light"
-              size="sm"
-              onClick={() => onViewColumns(row.original)}
-              disabled={row.original.columnTypes.length === 0}
-            >
-              {row.original.columnTypes.length} Columns
-            </Button>
-          </Tooltip>
+          <Button
+            variant="light"
+            size="sm"
+            onClick={() => onViewColumns(row.original)}
+            disabled={row.original.columnTypes.length === 0}
+          >
+            {row.original.columnTypes.length} Columns
+          </Button>
         ),
       },
     ],
@@ -123,22 +110,28 @@ export function useDatabaseTablesTable({
     enableSorting: false,
     enableTopToolbar: false,
     renderRowActions: ({ row }) => (
-      <ActionIcon.Group>
-        <Tooltip label="Edit Table Data">
-          <ActionIcon variant="subtle" onClick={() => onEdit(row.original)}>
-            <IconEdit size={32} />
+      <Menu position="bottom-end" withinPortal>
+        <Menu.Target>
+          <ActionIcon variant="subtle">
+            <IconDots size={18} />
           </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Delete Table">
-          <ActionIcon
-            variant="subtle"
-            color="red"
-            onClick={() => openDeleteConfirmation(row.original.tableId)}
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Item
+            leftSection={<IconEdit size={16} />}
+            onClick={() => onEdit(row.original)}
           >
-            <IconTrash size={32} />
-          </ActionIcon>
-        </Tooltip>
-      </ActionIcon.Group>
+            Edit Table Data
+          </Menu.Item>
+          <Menu.Item
+            leftSection={<IconTrash size={16} />}
+            color="red"
+            onClick={() => openDeleteConfirmation(row.original)}
+          >
+            Delete Table
+          </Menu.Item>
+        </Menu.Dropdown>
+      </Menu>
     ),
     mantineTableContainerProps: {
       style: { maxHeight: "35rem", overflow: "auto" },
@@ -151,10 +144,5 @@ export function useDatabaseTablesTable({
 
   return {
     table,
-    deleteModal: {
-      opened: deleteModalOpened,
-      close: closeDeleteModal,
-      onConfirm: handleConfirmDelete,
-    },
   };
 }
