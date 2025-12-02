@@ -11,6 +11,7 @@ import {
   cleanRowData,
   formatValidationMessage,
 } from "@/utils/csv-validator.ts";
+import { sanitizeSqlIdentifier } from "@/utils/sql-name-sanitizer.ts";
 
 export function TableManager() {
   const storeOpen = useCsvImportStore((s) => s.open);
@@ -44,10 +45,8 @@ export function TableManager() {
         // Clean the data (trim whitespace, filter empty rows)
         const cleanedData = cleanRowData(results.data);
 
-        const baseName = file.name
-          .replace(/\.[^/.]+$/, "") // remove extension
-          .replace(/[^a-zA-Z0-9_]/g, "_") // replace invalid chars with _
-          .toLowerCase();
+        // Sanitize the table name from the file name
+        const baseName = sanitizeSqlIdentifier(file.name);
 
         storeOpen({
           fileName: baseName,

@@ -29,6 +29,7 @@ import {
 } from "@/hooks/use-problem.ts";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
+import { sanitizeSqlIdentifier } from "@/utils/sql-name-sanitizer.ts";
 
 export function ProblemDatabase() {
   const { id: problemId } = useParams({
@@ -163,19 +164,29 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
       value: string,
       oldValue?: string,
     ) => {
+      // Sanitize table name if updating table name field
+      const sanitizedValue =
+        field === "tableName" ? sanitizeSqlIdentifier(value) : value;
+
       updateTable(
         {
           tableId,
           problemId,
           ...(field === "tableName"
-            ? { tableName: value, oldTableName: oldValue }
-            : { description: value }),
+            ? { tableName: sanitizedValue, oldTableName: oldValue }
+            : { description: sanitizedValue }),
         },
         {
           onSuccess: () => {
             // Update the store's table metadata and relations when table name changes
-            if (field === "tableName" && oldValue && value !== oldValue) {
-              useCsvImportStore.getState().updateTableName(oldValue, value);
+            if (
+              field === "tableName" &&
+              oldValue &&
+              sanitizedValue !== oldValue
+            ) {
+              useCsvImportStore
+                .getState()
+                .updateTableName(oldValue, sanitizedValue);
             }
           },
           onError: (error) => {
