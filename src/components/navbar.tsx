@@ -10,6 +10,7 @@ import {
 import {
   IconBook,
   IconFilePencil,
+  IconHome,
   IconLogout,
   IconTemplate,
 } from "@tabler/icons-react";
@@ -40,7 +41,11 @@ export const CustomLink: LinkComponent<typeof MantineLinkComponent> = (
   return <CreatedLinkComponent preload="intent" {...props} />;
 };
 
-export function Navbar() {
+interface NavbarProps {
+  variant?: "admin" | "student";
+}
+
+export function Navbar({ variant = "admin" }: NavbarProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data } = useAccessToken();
@@ -69,31 +74,45 @@ export function Navbar() {
     navigate({ to: "/login" });
   };
 
+  const isAdmin = variant === "admin";
+  const dashboardRoute = isAdmin ? "/admin/dashboard" : "/student/dashboard";
+
   return (
     <div className="flex h-full max-h-screen flex-col gap-6 p-4 items-center">
       <div className="flex flex-1 flex-col justify-between gap-6 items-center w-full">
         <section className="flex flex-col gap-4 items-center">
-          <CustomAnchor to="/admin/template-problems">
-            <Tooltip label="Template Problems" position="right" withArrow>
+          <CustomAnchor to={dashboardRoute}>
+            <Tooltip label="Dashboard" position="right" withArrow>
               <ActionIcon variant="subtle" c="black" size="xl">
-                <IconTemplate size={32} />
+                <IconHome size={32} />
               </ActionIcon>
             </Tooltip>
           </CustomAnchor>
-          <CustomAnchor to="/admin/problems">
-            <Tooltip label="My Problems" position="right" withArrow>
-              <ActionIcon variant="subtle" c="black" size="xl">
-                <IconBook size={32} />
-              </ActionIcon>
-            </Tooltip>
-          </CustomAnchor>
-          <CustomAnchor to="/admin/assessments">
-            <Tooltip label="Assessments" position="right" withArrow>
-              <ActionIcon variant="subtle" c="black" size="xl">
-                <IconFilePencil size={32} />
-              </ActionIcon>
-            </Tooltip>
-          </CustomAnchor>
+          {isAdmin && (
+            <>
+              <CustomAnchor to="/admin/template-problems">
+                <Tooltip label="Template Problems" position="right" withArrow>
+                  <ActionIcon variant="subtle" c="black" size="xl">
+                    <IconTemplate size={32} />
+                  </ActionIcon>
+                </Tooltip>
+              </CustomAnchor>
+              <CustomAnchor to="/admin/problems">
+                <Tooltip label="My Problems" position="right" withArrow>
+                  <ActionIcon variant="subtle" c="black" size="xl">
+                    <IconBook size={32} />
+                  </ActionIcon>
+                </Tooltip>
+              </CustomAnchor>
+              <CustomAnchor to="/admin/assessments">
+                <Tooltip label="Assessments" position="right" withArrow>
+                  <ActionIcon variant="subtle" c="black" size="xl">
+                    <IconFilePencil size={32} />
+                  </ActionIcon>
+                </Tooltip>
+              </CustomAnchor>
+            </>
+          )}
         </section>
         <Stack align="center" gap="md">
           <Group justify="center">

@@ -214,7 +214,8 @@ export function InvitationAccept() {
   if (
     invitationData &&
     "error" in invitationData &&
-    invitationData.error === "token_expired"
+    (invitationData.error === "token_expired" ||
+      invitationData.error === "invitation_not_active")
   ) {
     return (
       <Container size="sm" py={80}>
@@ -224,7 +225,9 @@ export function InvitationAccept() {
               <IconAlertCircle size={32} />
             </ThemeIcon>
             <Title order={2} ta="center">
-              Invitation Link Expired
+              {invitationData.error === "token_expired"
+                ? "Invitation Link Expired"
+                : "Invitation No Longer Active"}
             </Title>
             <Text ta="center" c="dimmed">
               {"assessmentTitle" in invitationData &&

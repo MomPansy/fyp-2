@@ -170,7 +170,7 @@ export const route = factory
 
       try {
         const token = c.req.param("token");
-        
+
         // Try to verify token normally
         try {
           payload = await verifyInvitationToken(token);
@@ -199,7 +199,17 @@ export const route = factory
         }
 
         if (!invitation.active) {
-          throw new HTTPException(400, { message: "Invitation is not active" });
+          return c.json(
+            {
+              success: false,
+              error: "invitation_not_active",
+              message:
+                "This invitation is no longer active. If you already have an account, please sign in directly.",
+              assessmentTitle: invitation.assessments.name,
+              assessmentId: payload.assessmentId,
+            },
+            400,
+          );
         }
 
         // Use shared utility for timing status calculation

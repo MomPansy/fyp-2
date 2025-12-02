@@ -50,5 +50,5 @@ function RouteComponent() {
     );
   }
 
-  return <Sidebar />;
+  return <Sidebar variant="student" />;
 }

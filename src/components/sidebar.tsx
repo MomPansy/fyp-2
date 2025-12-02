@@ -3,7 +3,11 @@ import { Outlet } from "@tanstack/react-router";
 import { Suspense } from "react";
 import { Navbar } from "./navbar.tsx";
 
-export function Sidebar() {
+interface SidebarProps {
+  variant?: "admin" | "student";
+}
+
+export function Sidebar({ variant = "admin" }: SidebarProps) {
   return (
     <AppShell
       padding="md"
@@ -14,7 +18,7 @@ export function Sidebar() {
     >
       <AppShell.Navbar>
         <Suspense>
-          <Navbar />
+          <Navbar variant={variant} />
         </Suspense>
       </AppShell.Navbar>
 
