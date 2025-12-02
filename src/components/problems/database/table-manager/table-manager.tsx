@@ -2,25 +2,57 @@ import { FileWithPath, MIME_TYPES } from "@mantine/dropzone";
 import { parse } from "papaparse";
 import { DropCSV } from "../../dropzone.tsx";
 import { Row, useCsvImportStore } from "./csv-import.store.ts";
-import { showErrorNotification } from "components/notifications.ts";
+import {
+  showErrorNotification,
+  showWarningNotification,
+} from "components/notifications.ts";
+import {
+  validateCsv,
+  cleanRowData,
+  formatValidationMessage,
+} from "@/utils/csv-validator.ts";
 
 export function TableManager() {
   const storeOpen = useCsvImportStore((s) => s.open);
 
   const onDrop = (files: FileWithPath[]) => {
     const file = files[0];
-    parse(file, {
+    parse<Row>(file, {
       header: true,
-      skipEmptyLines: true,
+      skipEmptyLines: "greedy", // Skip lines that are empty or only whitespace
       complete: (results) => {
+        // Validate the parsed CSV
+        const validation = validateCsv(results);
+
+        // Show errors and abort if invalid
+        if (!validation.isValid) {
+          showErrorNotification({
+            title: "Invalid CSV file",
+            message: formatValidationMessage(validation),
+          });
+          return;
+        }
+
+        // Show warnings but continue
+        if (validation.warnings.length > 0) {
+          showWarningNotification({
+            title: "CSV imported with warnings",
+            message: formatValidationMessage(validation),
+          });
+        }
+
+        // Clean the data (trim whitespace, filter empty rows)
+        const cleanedData = cleanRowData(results.data);
+
         const baseName = file.name
           .replace(/\.[^/.]+$/, "") // remove extension
           .replace(/[^a-zA-Z0-9_]/g, "_") // replace invalid chars with _
           .toLowerCase();
+
         storeOpen({
           fileName: baseName,
           columns: results.meta.fields ?? [],
-          rawData: results.data as Row[],
+          rawData: cleanedData,
         });
       },
       error: (error) => {
@@ -30,7 +62,11 @@ export function TableManager() {
           message: error.message,
         });
       },
-      transformHeader: (header) => header.toLowerCase().replace(/\s+/g, "_"),
+      transformHeader: (header, index) => {
+        const trimmed = header.toLowerCase().replace(/\s+/g, "_").trim();
+        // Handle empty headers by giving them a default name
+        return trimmed || `column_${index + 1}`;
+      },
     });
   };
 

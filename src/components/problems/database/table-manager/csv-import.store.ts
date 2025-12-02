@@ -28,6 +28,7 @@ interface CsvImportState {
   columnTypes: ColumnType[];
   relations: ForeignKeyMapping[];
   description: string;
+  generateIdColumn: boolean; // auto-generate an ID column
   // UI flags
   isLoading: boolean;
   tableMetadata?: TableMetadata[];
@@ -64,8 +65,10 @@ interface CsvImportState {
   ) => void;
   cleanRelations: () => ForeignKeyMapping[];
   setDescription: (desc: string) => void;
+  setGenerateIdColumn: (generate: boolean) => void;
   // derived
   getFilteredData: () => Row[];
+  getFilteredColumns: () => string[];
   save: (db: PGliteWithLive) => Promise<void>;
 }
 
@@ -84,6 +87,7 @@ export const useCsvImportStore = create<CsvImportState>()(
     description: "",
     isLoading: false,
     mode: "create",
+    generateIdColumn: false,
     // actions
     open: ({ fileName, columns, rawData }) => {
       set({
@@ -96,6 +100,7 @@ export const useCsvImportStore = create<CsvImportState>()(
         relations: [],
         description: "",
         mode: "create",
+        generateIdColumn: false,
       });
     },
     openExisting: ({
@@ -134,6 +139,7 @@ export const useCsvImportStore = create<CsvImportState>()(
         relations: [],
         description: "",
         isLoading: false,
+        generateIdColumn: false,
       });
     },
     close: () => {
@@ -203,6 +209,8 @@ export const useCsvImportStore = create<CsvImportState>()(
       return cleanedRelations;
     },
     setDescription: (desc: string) => set({ description: desc }),
+    setGenerateIdColumn: (generate: boolean) =>
+      set({ generateIdColumn: generate }),
     setLoading: (v) => set({ isLoading: v }),
     setTableMetadata: (metadata: TableMetadata[]) => {
       set({ tableMetadata: metadata });
@@ -243,19 +251,41 @@ export const useCsvImportStore = create<CsvImportState>()(
     },
 
     // derived
+    getFilteredColumns: () => {
+      const filteredCols = get().filteredColumns;
+      const generateId = get().generateIdColumn;
+      if (generateId) {
+        return ["id", ...filteredCols];
+      }
+      return filteredCols;
+    },
     getFilteredData: () => {
       const filteredCols = get().filteredColumns;
       const initialCols = get().initialColumns;
       const rawData = get().rawData;
+      const generateId = get().generateIdColumn;
+
+      let data: Row[];
       if (filteredCols.length === initialCols.length) {
-        return rawData;
+        data = rawData;
+      } else {
+        data = rawData.map((row) => {
+          const entries = Object.entries(row).filter(([key]) =>
+            filteredCols.includes(key),
+          );
+          return Object.fromEntries(entries);
+        });
       }
-      return rawData.map((row) => {
-        const entries = Object.entries(row).filter(([key]) =>
-          filteredCols.includes(key),
-        );
-        return Object.fromEntries(entries);
-      });
+
+      // Add auto-generated ID column if enabled
+      if (generateId) {
+        data = data.map((row, index) => ({
+          id: index + 1,
+          ...row,
+        }));
+      }
+
+      return data;
     },
 
     save: async (db) => {

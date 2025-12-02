@@ -8,13 +8,14 @@ import {
   Table,
   Title,
   Text,
+  Checkbox,
 } from "@mantine/core";
 import { IconFileTypeCsv } from "@tabler/icons-react";
 import { useState } from "react";
 import { unparse } from "papaparse";
 import { ToggleButton } from "../../../buttons/toggle-button.tsx";
 import { useInferSchemaMutation } from "../use-table-manager.ts";
-import { useCsvImportStore } from "./csv-import.store.ts";
+import { Row, useCsvImportStore } from "./csv-import.store.ts";
 import { sampleRows } from "./csv-import.service.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 
@@ -24,11 +25,13 @@ export function DataConfig() {
   const initialColumns = useCsvImportStore((state) => state.initialColumns);
   const rawData = useCsvImportStore((state) => state.rawData);
   const currentColumnTypes = useCsvImportStore((state) => state.columnTypes);
+  const generateIdColumn = useCsvImportStore((state) => state.generateIdColumn);
 
   // actions
   const setColumnTypes = useCsvImportStore.getState().setColumnTypes;
   const setFilteredColumns = useCsvImportStore.getState().setFilteredColumns;
   const getFilteredData = useCsvImportStore.getState().getFilteredData;
+  const setGenerateIdColumn = useCsvImportStore.getState().setGenerateIdColumn;
 
   const close = useCsvImportStore.getState().close;
   const reset = useCsvImportStore.getState().reset;
@@ -46,6 +49,20 @@ export function DataConfig() {
   const visibleColumns = initialColumns.filter(
     (c) => !columnsToRemove.includes(c),
   );
+
+  // Columns shown in preview (includes ID if auto-generate is enabled)
+  const previewColumns = generateIdColumn
+    ? ["id", ...visibleColumns]
+    : visibleColumns;
+
+  // Preview data (includes ID if auto-generate is enabled)
+  const previewData: Row[] = generateIdColumn
+    ? rawData.slice(0, 20).map((row, index) => ({
+      // eslint-disable-next-line prettier/prettier
+      id: index + 1,
+      ...row,
+    }))
+    : rawData.slice(0, 20);
 
   const handleContinue = async () => {
     const cols = visibleColumns;
@@ -135,6 +152,14 @@ export function DataConfig() {
             </Accordion.Control>
             <Accordion.Panel>
               <Stack>
+                <Checkbox
+                  label="Auto-generate ID column"
+                  description="Add an auto-incrementing integer ID column as the first column"
+                  checked={generateIdColumn}
+                  onChange={(event) =>
+                    setGenerateIdColumn(event.currentTarget.checked)
+                  }
+                />
                 <Text size="sm">
                   Select which columns to import. <br />
                   Here is a preview of the data that will be added (up to the
@@ -173,7 +198,7 @@ export function DataConfig() {
                   <Table withColumnBorders highlightOnHover>
                     <Table.Thead>
                       <Table.Tr>
-                        {visibleColumns.map((column) => (
+                        {previewColumns.map((column) => (
                           <Table.Th
                             key={column}
                             style={{
@@ -187,9 +212,9 @@ export function DataConfig() {
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
-                      {rawData.slice(0, 20).map((row, rowIndex) => (
+                      {previewData.map((row, rowIndex) => (
                         <Table.Tr key={rowIndex}>
-                          {visibleColumns.map((column) => (
+                          {previewColumns.map((column) => (
                             <Table.Td
                               key={column}
                               style={{

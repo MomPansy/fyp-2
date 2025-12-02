@@ -42,3 +42,20 @@ export function showErrorNotification(
     store,
   );
 }
+
+export function showWarningNotification(
+  notificationData: NotificationData = {
+    message: "Warning",
+  },
+  store?: NotificationsStore,
+): void {
+  notifications.show(
+    {
+      ...notificationData,
+      message: notificationData.message ?? "Warning",
+      title: notificationData.title ?? "Warning",
+      color: notificationData.color ?? "yellow",
+    },
+    store,
+  );
+}
