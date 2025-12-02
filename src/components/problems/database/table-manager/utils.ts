@@ -6,6 +6,7 @@ import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { showErrorNotification } from "@/components/notifications.ts";
 import { supabase } from "@/lib/supabase.ts";
 import { TableMetadata } from "@/hooks/use-problem.ts";
+import { downloadAndParseCsvSafe } from "@/utils/csv-storage.ts";
 
 /**
  * Sorts tables by their dependencies so tables with no foreign keys are created first
@@ -262,6 +263,7 @@ export async function seedTableData(
 async function ensureForeignTableExists(
   db: PGliteWithLive,
   foreignTableName: string,
+  problemId: string,
 ): Promise<void> {
   // Check if foreign table exists in the database
   const result = await db.query(
@@ -278,10 +280,12 @@ async function ensureForeignTableExists(
   }
 
   // Table doesn't exist, try to create it from Supabase metadata
+  // Filter by both table_name and user_problem_id to get the correct table
   const { data: foreignTable, error } = await supabase
     .from("user_problem_tables")
-    .select("table_name, column_types")
+    .select("table_name, column_types, data_path")
     .eq("table_name", foreignTableName)
+    .eq("user_problem_id", problemId)
     .single();
 
   if (error) {
@@ -290,18 +294,47 @@ async function ensureForeignTableExists(
     );
   }
 
-  // Create the foreign table
+  // Create the foreign table structure
   const foreignColumnTypes =
     foreignTable.column_types as unknown as ColumnType[];
   await createTablesColumns(db, foreignTableName, foreignColumnTypes);
 
-  console.info(`✅ Created foreign table: ${foreignTableName}`);
+  // Also seed the data if data_path exists
+  if (foreignTable.data_path) {
+    const csvResult = await downloadAndParseCsvSafe<Row>(
+      foreignTable.data_path,
+      "tables",
+      {},
+      foreignTableName,
+    );
+
+    if (csvResult && csvResult.data.length > 0) {
+      await seedTableData(
+        db,
+        foreignTableName,
+        csvResult.data,
+        foreignColumnTypes,
+      );
+      console.info(
+        `✅ Created and seeded foreign table: ${foreignTableName} with ${csvResult.data.length} rows`,
+      );
+    } else {
+      console.info(
+        `✅ Created foreign table: ${foreignTableName} (no data to seed)`,
+      );
+    }
+  } else {
+    console.info(
+      `✅ Created foreign table: ${foreignTableName} (no data path)`,
+    );
+  }
 }
 
 export async function setRelations(
   db: PGliteWithLive,
   baseTableName: string,
   relations: ForeignKeyMapping[],
+  problemId: string,
 ) {
   if (relations.length === 0) {
     console.warn("No relations to set, skipping");
@@ -315,7 +348,7 @@ export async function setRelations(
 
     try {
       // Ensure foreign table exists
-      await ensureForeignTableExists(db, foreignTableName);
+      await ensureForeignTableExists(db, foreignTableName, problemId);
 
       // Check if constraint already exists
       const constraintName = `fk_${baseColumnName}_${foreignTableName}`;

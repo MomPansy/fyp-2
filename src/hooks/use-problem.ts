@@ -410,6 +410,10 @@ export function useDeleteUserProblemTableMutation() {
           data.user_problem_id,
         ),
       });
+      // Also invalidate the basic query used by the table relations dropdown
+      queryClient.invalidateQueries({
+        queryKey: userProblemTableKeys.basicByProblemId(data.user_problem_id),
+      });
     },
   });
 }
@@ -513,6 +517,10 @@ export function useUpdateUserProblemTableMutation() {
         queryKey: userProblemTableKeys.metadataByProblemId(
           data.user_problem_id,
         ),
+      });
+      // Also invalidate the basic query used by the table relations dropdown
+      queryClient.invalidateQueries({
+        queryKey: userProblemTableKeys.basicByProblemId(data.user_problem_id),
       });
     },
   });

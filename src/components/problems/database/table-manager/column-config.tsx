@@ -392,7 +392,7 @@ export function ColumnConfig() {
 
   const onSave = async () => {
     try {
-      await save(db);
+      await save(db, problemId);
       finalizeUpload();
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {

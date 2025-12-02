@@ -14,10 +14,12 @@ import { useNavigate, useParams } from "@tanstack/react-router";
 import { IconArrowRight, IconCheck, IconX } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { MantineReactTable } from "mantine-react-table";
+import { usePGlite } from "@electric-sql/pglite-react";
 import { TableManager } from "./table-manager/table-manager.tsx";
 import { useCsvImportStore } from "./table-manager/csv-import.store.ts";
 import { CSVModal } from "./table-manager/csv-modal.tsx";
 import { useDatabaseTablesTable } from "./use-database-tables-table.tsx";
+import { dropAllTables } from "./table-manager/utils.ts";
 import {
   TableMetadata,
   useDeleteUserProblemTableMutation,
@@ -68,6 +70,7 @@ interface DatabaseTableProps {
 }
 
 function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
+  const db = usePGlite();
   const [
     columnsDrawerOpened,
     { open: openColumnsDrawer, close: closeColumnsDrawer },
@@ -109,9 +112,21 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
 
   const handleDelete = useCallback(
     (tableId: string) => {
+      // Find the table name from metadata to drop from PGlite
+      const tableToDelete = tableMetadata.find((t) => t.tableId === tableId);
+      const tableName = tableToDelete?.tableName;
+
       deleteTable(
         { tableId, problemId },
         {
+          onSuccess: () => {
+            // Also drop the table from PGlite
+            if (tableName) {
+              dropAllTables(db, [tableName]).catch((error: unknown) => {
+                console.error("Failed to drop table from PGlite:", error);
+              });
+            }
+          },
           onError: (error) => {
             showErrorNotification({
               title: "Failed to delete table",
@@ -121,7 +136,7 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
         },
       );
     },
-    [deleteTable, problemId],
+    [deleteTable, problemId, tableMetadata, db],
   );
 
   const handleViewColumns = useCallback(

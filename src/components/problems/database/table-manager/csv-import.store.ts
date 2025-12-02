@@ -69,7 +69,7 @@ interface CsvImportState {
   // derived
   getFilteredData: () => Row[];
   getFilteredColumns: () => string[];
-  save: (db: PGliteWithLive) => Promise<void>;
+  save: (db: PGliteWithLive, problemId: string) => Promise<void>;
 }
 
 export const useCsvImportStore = create<CsvImportState>()(
@@ -288,7 +288,7 @@ export const useCsvImportStore = create<CsvImportState>()(
       return data;
     },
 
-    save: async (db) => {
+    save: async (db, problemId) => {
       const filteredData = get().getFilteredData();
       const baseFilteredColumnsTypes = get().columnTypes;
       const baseTableName = get().fileName;
@@ -306,7 +306,7 @@ export const useCsvImportStore = create<CsvImportState>()(
       ) => {
         await createTablesColumns(db, tableName, columnTypes);
         if (relations && relations.length > 0) {
-          await setRelations(db, tableName, relations);
+          await setRelations(db, tableName, relations, problemId);
         }
 
         await seedTableData(db, tableName, data, columnTypes);
