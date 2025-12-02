@@ -117,6 +117,32 @@ function DatabaseTable({ tableMetadata, problemId }: DatabaseTableProps) {
       const tableToDelete = tableMetadata.find((t) => t.tableId === tableId);
       const tableName = tableToDelete?.tableName;
 
+      if (!tableName) {
+        showErrorNotification({
+          title: "Failed to delete table",
+          message: "Table not found",
+        });
+        return;
+      }
+
+      // Check if any other table references this table via foreign key
+      const referencingTables = tableMetadata.filter(
+        (t) =>
+          t.tableId !== tableId &&
+          t.relations.some((r) => r.foreignTableName === tableName),
+      );
+
+      if (referencingTables.length > 0) {
+        const referencingNames = referencingTables
+          .map((t) => `"${t.tableName}"`)
+          .join(", ");
+        showErrorNotification({
+          title: "Cannot delete table",
+          message: `Table "${tableName}" is referenced by ${referencingNames}. Delete the referencing table(s) first or remove the foreign key relationship.`,
+        });
+        return;
+      }
+
       deleteTable(
         { tableId, problemId },
         {
