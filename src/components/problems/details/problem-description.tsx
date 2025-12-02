@@ -92,8 +92,12 @@ export function ProblemDescription({
       debouncedSaveName(name);
     },
     validate: {
-      name: (value) =>
-        value.trim().length > 0 ? null : "Problem name is required",
+      name: (value) => {
+        if (value.trim().length === 0) return "Problem name is required";
+        if (value.length > 100)
+          return "Problem name must be 100 characters or less";
+        return null;
+      },
     },
   });
 
