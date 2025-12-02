@@ -139,7 +139,7 @@ export async function createTablesColumns(
   baseTableName: string,
   baseTableColumns: ColumnType[],
 ) {
-  // Check if table already exists
+  // Check if table already exists in PGlite (useful within same session)
   try {
     const result = await db.query(
       `SELECT EXISTS (

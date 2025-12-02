@@ -10,6 +10,8 @@ import {
 } from "./utils.ts";
 import { ColumnType, ForeignKeyMapping } from "server/drizzle/_custom.ts";
 import { TableMetadata } from "@/hooks/use-problem.ts";
+import { supabase } from "@/lib/supabase.ts";
+import { showErrorNotification } from "@/components/notifications.ts";
 import { downloadAndParseCsvSafe } from "@/utils/csv-storage.ts";
 
 export type Row = Record<string, unknown>;
@@ -296,6 +298,30 @@ export const useCsvImportStore = create<CsvImportState>()(
 
       if (!baseTableName) {
         throw new Error("File name is required to create tables");
+      }
+
+      // In create mode, check if table name already exists in Supabase
+      // (PGlite is in-memory and empty after page refresh, so we must check Supabase)
+      if (mode === "create") {
+        const { data: existingTables, error } = await supabase
+          .from("user_problem_tables")
+          .select("table_name")
+          .eq("user_problem_id", problemId)
+          .eq("table_name", baseTableName);
+
+        if (error) {
+          console.error("Failed to check for existing tables:", error);
+          throw new Error("Failed to verify table name availability");
+        }
+
+        if (existingTables.length > 0) {
+          const errorMessage = `A table named "${baseTableName}" already exists. Please use a different name.`;
+          showErrorNotification({
+            title: "Duplicate table name",
+            message: errorMessage,
+          });
+          throw new Error(errorMessage);
+        }
       }
 
       const createAndSeedTable = async (
