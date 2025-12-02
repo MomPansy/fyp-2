@@ -28,7 +28,6 @@ import {
   IconClipboardList,
   IconPlus,
   IconEdit,
-  IconTrendingUp,
   IconAlertTriangle,
   IconCircleCheck,
   IconPlayerPlay,
