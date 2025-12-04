@@ -3,7 +3,6 @@ import {
   Button,
   Group,
   LoadingOverlay,
-  Modal,
   Pagination,
   Paper,
   Skeleton,
@@ -11,7 +10,7 @@ import {
   Table,
   TextInput,
 } from "@mantine/core";
-import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
+import { useDebouncedValue } from "@mantine/hooks";
 import {
   IconArrowsUpDown,
   IconEdit,
@@ -42,6 +41,10 @@ import { dayjs } from "@/lib/dayjs.ts";
 import { CustomAnchor } from "@/components/buttons/link-button.tsx";
 import { generateUUID } from "@/lib/utils.ts";
 import { ProblemPreviewModal } from "@/components/problems/problem-preview-modal.tsx";
+import {
+  openDeleteConfirmModal,
+  openDeleteProblemWithAssessmentWarning,
+} from "@/lib/modals.tsx";
 
 const problemSearchSchema = z.object({
   id: z.string().optional(),
@@ -177,16 +180,6 @@ function ListContent({ filters, sorting }: ListProps) {
 
   const queryClient = useQueryClient();
 
-  const [
-    deleteConfirmationModalOpened,
-    { open: openConfirmationModal, close: closeConfirmationModal },
-  ] = useDisclosure();
-
-  const [problemToDelete, setProblemToDelete] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-
   const handlePageHover = (page: number) => {
     // Only prefetch if it's not the current page
     if (page !== currentPage) {
@@ -264,36 +257,54 @@ function ListContent({ filters, sorting }: ListProps) {
   };
 
   const handleDeleteClick = (problem: { id: string; name: string }) => {
-    setProblemToDelete(problem);
-    openConfirmationModal();
-  };
+    openDeleteConfirmModal({
+      itemName: problem.name,
+      onConfirm: () => {
+        mutate(
+          { problemId: problem.id },
+          {
+            onError: (error) => {
+              // Check if the error is due to assessment usage
+              if (error.message.startsWith("ASSESSMENT_IN_USE:")) {
+                const assessmentUsage = JSON.parse(
+                  error.message.replace("ASSESSMENT_IN_USE:", ""),
+                ) as { assessmentId: string; assessmentName: string }[];
 
-  const handleDeleteConfirm = () => {
-    if (problemToDelete) {
-      mutate(
-        {
-          problemId: problemToDelete.id,
-        },
-        {
-          onError: (error) => {
-            showErrorNotification({
-              title: "Failed to delete problem",
-              message: error.message,
-            });
+                // Show warning modal about assessment usage
+                openDeleteProblemWithAssessmentWarning({
+                  problemName: problem.name,
+                  assessments: assessmentUsage,
+                  onConfirm: () => {
+                    mutate(
+                      { problemId: problem.id, removeFromAssessments: true },
+                      {
+                        onError: (err) => {
+                          showErrorNotification({
+                            title: "Failed to delete problem",
+                            message: err.message,
+                          });
+                        },
+                        onSuccess: () => {
+                          reset();
+                        },
+                      },
+                    );
+                  },
+                });
+              } else {
+                showErrorNotification({
+                  title: "Failed to delete problem",
+                  message: error.message,
+                });
+              }
+            },
+            onSuccess: () => {
+              reset();
+            },
           },
-          onSuccess: () => {
-            reset();
-            closeConfirmationModal();
-            setProblemToDelete(null);
-          },
-        },
-      );
-    }
-  };
-
-  const handleDeleteCancel = () => {
-    closeConfirmationModal();
-    setProblemToDelete(null);
+        );
+      },
+    });
   };
 
   // Reset to page 1 when filters change
@@ -406,51 +417,7 @@ function ListContent({ filters, sorting }: ListProps) {
           </Suspense>
         );
       })()}
-      <DeleteConfirmationModal
-        isOpened={deleteConfirmationModalOpened}
-        onClose={handleDeleteCancel}
-        onConfirm={handleDeleteConfirm}
-        problemName={problemToDelete?.name}
-      />
     </>
-  );
-}
-
-function DeleteConfirmationModal({
-  isOpened,
-  onClose,
-  onConfirm,
-  problemName,
-}: {
-  isOpened: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  problemName?: string;
-}) {
-  return (
-    <Modal
-      opened={isOpened}
-      onClose={onClose}
-      title="Confirm Deletion"
-      centered
-    >
-      <Modal.Body p="0">
-        <Stack>
-          <p>
-            Are you sure you want to delete the problem &nbsp;
-            <strong>"{problemName}"</strong>? This action cannot be undone.
-          </p>
-          <Group justify="flex-end">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={onConfirm}>
-              Delete
-            </Button>
-          </Group>
-        </Stack>
-      </Modal.Body>
-    </Modal>
   );
 }
 

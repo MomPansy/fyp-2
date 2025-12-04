@@ -19,6 +19,7 @@ import { downloadAndParseCsv } from "@/utils/csv-storage.ts";
 import { myProblemKeys } from "@/components/my-problems/query-keys.ts";
 import { PROBLEM_EXECUTE_SQL_MUTATION_KEY } from "@/components/problems/create/mutation-key.ts";
 import { Database } from "@/database.gen.ts";
+import { assessmentKeys } from "@/components/assessments/query-keys.ts";
 
 // Narrow type for convenience
 type ProblemRow = Database["public"]["Tables"]["problems"]["Row"];
@@ -526,10 +527,78 @@ export function useUpdateUserProblemTableMutation() {
   });
 }
 
+export interface AssessmentUsage {
+  assessmentId: string;
+  assessmentName: string;
+}
+
+/**
+ * Checks if a problem is being used in any assessments.
+ * Returns a list of assessments that use this problem.
+ */
+export async function checkProblemAssessmentUsage(
+  problemId: string,
+): Promise<AssessmentUsage[]> {
+  const { data, error } = await supabase
+    .from("assessment_problems")
+    .select("assessment_id, assessments(id, name)")
+    .eq("problem_id", problemId);
+
+  if (error) {
+    throw new Error("Error checking assessments for problem: " + error.message);
+  }
+
+  if (data.length === 0) {
+    return [];
+  }
+
+  return data.map((item) => ({
+    assessmentId: item.assessment_id,
+    assessmentName: item.assessments.name,
+  }));
+}
+
 export function useDeleteUserProblemMutation() {
   const queryClient = useQueryClient();
-  return useMutation<unknown, Error, { problemId: string }>({
-    mutationFn: async ({ problemId }: { problemId: string }) => {
+  return useMutation<
+    { affectedAssessmentIds: string[] },
+    Error,
+    { problemId: string; removeFromAssessments?: boolean }
+  >({
+    mutationFn: async ({
+      problemId,
+      removeFromAssessments = false,
+    }: {
+      problemId: string;
+      removeFromAssessments?: boolean;
+    }) => {
+      // check if the id is being used in any assessments
+      const assessmentUsage = await checkProblemAssessmentUsage(problemId);
+      const affectedAssessmentIds = assessmentUsage.map((a) => a.assessmentId);
+
+      if (assessmentUsage.length > 0 && !removeFromAssessments) {
+        // Throw a special error that the UI can handle
+        const error = new Error(
+          "ASSESSMENT_IN_USE:" + JSON.stringify(assessmentUsage),
+        );
+        throw error;
+      }
+
+      // If removeFromAssessments is true, delete from assessment_problems first
+      if (assessmentUsage.length > 0 && removeFromAssessments) {
+        // eslint-disable-next-line drizzle/enforce-delete-with-where
+        const { error: removeError } = await supabase
+          .from("assessment_problems")
+          .delete()
+          .eq("problem_id", problemId);
+
+        if (removeError) {
+          throw new Error(
+            "Error removing problem from assessments: " + removeError.message,
+          );
+        }
+      }
+
       // get all tables for the problem
       const { data: tables, error: tablesError } = await supabase
         .from("user_problem_tables")
@@ -577,6 +646,22 @@ export function useDeleteUserProblemMutation() {
 
       if (problemDeleteError) {
         throw new Error("Error deleting problem" + problemDeleteError.message);
+      }
+
+      return { affectedAssessmentIds };
+    },
+    onSuccess: (data) => {
+      // Invalidate affected assessment queries
+      if (data.affectedAssessmentIds.length > 0) {
+        for (const assessmentId of data.affectedAssessmentIds) {
+          queryClient.invalidateQueries({
+            queryKey: assessmentKeys.byAssesmentId(assessmentId),
+          });
+        }
+        // Also invalidate the assessment list
+        queryClient.invalidateQueries({
+          queryKey: assessmentKeys.all,
+        });
       }
     },
     onSettled: (_data, _error, variables) => {
